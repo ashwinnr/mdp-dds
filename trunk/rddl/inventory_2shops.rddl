@@ -1,0 +1,35 @@
+non-fluents inventory_2shops {
+	domain = inventory_mdp ;
+	objects {
+		location : { l1, l2, d };
+		truck : { t1 }; 
+	};
+	non-fluents {
+		DEPOT(d); 
+		SHOP(l1); 
+		SHOP(l2); 
+//		SHOP(l3); 
+//		SHOP(l4); 
+//		SHOP(l5); 
+//		SHOP(l6); 
+	};
+}
+
+instance inventory_2shops {
+	domain = inventory_mdp ;
+	non-fluents = inventory_2shops ;
+	init-state {
+		empty(l1) ;
+		empty(l2) ;
+//		empty(l3) ;
+//		empty(l4) ;
+//		empty(l5) ;
+//		empty(l6) ;
+		empty(d) ;
+		tin(t1,l1) ;
+	};
+max-nondef-actions = 1;
+horizon = 40;
+discount = 0.99;
+}
+

@@ -1,0 +1,21 @@
+non-fluents nf_ic_test {
+	domain = inventory_control_mdp; 
+	objects { 
+		shop : {s0};
+	}; 
+	non-fluents {
+		PENALTY = 0.05;
+		ARRIVE-PARAM = 0.15;
+ 	}; 
+ }
+instance ic_test_1 { 
+	domain = inventory_control_mdp;
+ 	non-fluents = nf_ic_test;
+	init-state { 
+		~empty(s0);
+	};
+	max-nondef-actions = 1;
+	horizon = 40;
+	discount = 1.0;
+} 
+

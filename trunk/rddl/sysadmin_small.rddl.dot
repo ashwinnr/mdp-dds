@@ -1,0 +1,27 @@
+digraph G { 
+graph [ fontname = "Helvetica",fontsize="16",ratio = "auto",
+        size="7.5,10",ranksep="2.00" ];
+node [fontsize="16"];
+"#2341" [label="running__c1",fillcolor=lightblue,color=black,shape=ellipse,style=filled];
+"#2340" [label="running__c3",fillcolor=lightblue,color=black,shape=ellipse,style=filled];
+"#2252" [label="running__c2",fillcolor=lightblue,color=black,shape=ellipse,style=filled];
+"#2139" [label="running__c2",fillcolor=lightblue,color=black,shape=ellipse,style=filled];
+"#2140" [label="11.705",fillcolor=lightsalmon,color=black,shape=box,style=filled];
+"#1999" [label="13.899",fillcolor=lightsalmon,color=black,shape=box,style=filled];
+"#2141" [label="running__c2",fillcolor=lightblue,color=black,shape=ellipse,style=filled];
+"#2142" [label="running__c3",fillcolor=lightblue,color=black,shape=ellipse,style=filled];
+"#2138" [label="8.496",fillcolor=lightsalmon,color=black,shape=box,style=filled];
+"#2137" [label="5.518",fillcolor=lightsalmon,color=black,shape=box,style=filled];
+"#2341" -> "#2340" [color=black,style=solid];
+"#2341" -> "#2142" [color=black,style=dashed];
+"#2340" -> "#2252" [color=black,style=solid];
+"#2340" -> "#2141" [color=black,style=dashed];
+"#2252" -> "#2140" [color=black,style=dashed];
+"#2252" -> "#1999" [color=black,style=solid];
+"#2139" -> "#2138" [color=black,style=solid];
+"#2139" -> "#2137" [color=black,style=dashed];
+"#2141" -> "#2140" [color=black,style=solid];
+"#2141" -> "#2138" [color=black,style=dashed];
+"#2142" -> "#2139" [color=black,style=dashed];
+"#2142" -> "#2141" [color=black,style=solid];
+}

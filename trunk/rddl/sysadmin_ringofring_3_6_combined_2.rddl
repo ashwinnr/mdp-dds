@@ -1,0 +1,107 @@
+non-fluents nf_sysadmin_ringofring_3_6_combined_2 {
+	domain = sysadmin_mdp_same;
+	objects {
+		computer : {c1,c2,c3,c4,c5,c6,c8,c9,c10,c11,c12,c13,c15,c16,c17,c18,c19,c20};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c1,c2);
+		CONNECTED(c2,c3);
+		CONNECTED(c3,c4);
+		CONNECTED(c4,c5);
+		CONNECTED(c5,c6);
+		CONNECTED(c6,c1);
+		SAME(c1, c2);
+		SAME(c1, c3);
+		SAME(c1, c4);
+		SAME(c1, c5);
+		SAME(c1, c6);
+		SAME(c2, c3);
+		SAME(c2, c4);
+		SAME(c2, c5);
+		SAME(c2, c6);
+		SAME(c3, c4);
+		SAME(c3, c5);
+		SAME(c3, c6);
+		SAME(c4, c5);
+		SAME(c4, c6);
+		SAME(c5, c6);
+		CONNECTED(c1,c8);
+		CONNECTED(c2,c9);
+		CONNECTED(c8,c9);
+		CONNECTED(c9,c10);
+		CONNECTED(c10,c11);
+		CONNECTED(c11,c12);
+		CONNECTED(c12,c13);
+		CONNECTED(c13,c8);
+		SAME(c8, c9);
+		SAME(c8, c10);
+		SAME(c8, c11);
+		SAME(c8, c12);
+		SAME(c8, c13);
+		SAME(c9, c10);
+		SAME(c9, c11);
+		SAME(c9, c12);
+		SAME(c9, c13);
+		SAME(c10, c11);
+		SAME(c10, c12);
+		SAME(c10, c13);
+		SAME(c11, c12);
+		SAME(c11, c13);
+		SAME(c12, c13);
+		CONNECTED(c8,c15);
+		CONNECTED(c9,c16);
+		CONNECTED(c15,c16);
+		CONNECTED(c16,c17);
+		CONNECTED(c17,c18);
+		CONNECTED(c18,c19);
+		CONNECTED(c19,c20);
+		CONNECTED(c20,c15);
+		SAME(c15, c16);
+		SAME(c15, c17);
+		SAME(c15, c18);
+		SAME(c15, c19);
+		SAME(c15, c20);
+		SAME(c16, c17);
+		SAME(c16, c18);
+		SAME(c16, c19);
+		SAME(c16, c20);
+		SAME(c17, c18);
+		SAME(c17, c19);
+		SAME(c17, c20);
+		SAME(c18, c19);
+		SAME(c18, c20);
+		SAME(c19, c20);
+		CONNECTED(c15,c1);
+		CONNECTED(c16,c2);
+	};
+}
+
+instance sysadmin_ringofring_3_6_combined_2 {
+	domain = sysadmin_mdp_same;
+	non-fluents = nf_sysadmin_ringofring_3_6_combined_2;
+	init-state {
+		running(c1);
+		running(c2);
+		running(c3);
+		running(c4);
+		running(c5);
+		running(c6);
+		running(c8);
+		running(c9);
+		running(c10);
+		running(c11);
+		running(c12);
+		running(c13);
+		running(c15);
+		running(c16);
+		running(c17);
+		running(c18);
+		running(c19);
+		running(c20);
+	};
+
+	max-nondef-actions = 3;
+	horizon  = 40;
+	discount = 0.9;
+}

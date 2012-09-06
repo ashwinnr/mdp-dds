@@ -1,0 +1,34 @@
+non-fluents nf_inventory_control_combined_inst_mdp_5_5 {
+	domain = inventory_control_combined_mdp;
+	objects {
+		shop : {s1,s2,s3,s4,s5};
+	};
+	non-fluents {
+		ARRIVE_PARAM(s1) = 0.1511774219461983;
+		STORE_PENALTY(s1) = 0.1;
+		ARRIVE_PARAM(s2) = 0.1517014291973109;
+		STORE_PENALTY(s2) = 0.1;
+		ARRIVE_PARAM(s3) = 0.16298979558436397;
+		STORE_PENALTY(s3) = 0.1;
+		ARRIVE_PARAM(s4) = 0.1889934273035714;
+		STORE_PENALTY(s4) = 0.1;
+		ARRIVE_PARAM(s5) = 0.15919601570394087;
+		STORE_PENALTY(s5) = 0.1;
+	};
+}
+
+instance inventory_control_combined_inst_mdp_5_5 {
+	domain = inventory_control_combined_mdp;
+	non-fluents = nf_inventory_control_combined_inst_mdp_5_5;
+	init-state {
+		empty(s1);
+		empty(s2);
+		empty(s3);
+		empty(s4);
+		empty(s5);
+	};
+
+	max-nondef-actions = 5;
+	horizon  = 40;
+	discount = 0.9;
+}

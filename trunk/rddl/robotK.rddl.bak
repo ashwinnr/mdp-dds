@@ -1,0 +1,47 @@
+//super simple domain
+//deterministic actions and no exogeneity
+
+domain robotK_mdp {
+	
+	requirements = { 
+		constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+  		robot : object;
+		room : object;
+	}; 
+	
+	pvariables { 
+	
+		SUCCESS-PARAM(job) : { non-fluent, real, default = 0.0 }; 		  		
+		
+		NEEDS(job, machine) : { non-fluent, real, default = 0.0 };
+		
+		done(job) : { state-fluent, bool, deafault = false };
+		
+		assign(machine, job) : { action-fluent, bool, default = false };
+		
+	};
+  
+	cpfs {
+		
+		done'(?j) = if( ~done(?j) )
+					then if ( sum_{?m : machine} [ NEEDS(?j,?m) *  assign(?m, ?j) ] == 0 )
+						 then Bernoulli(SUCCESS-PARAM(?j))
+						 else KronDelta(false)
+					else KronDelta(true);
+
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		sum_{?j: job} [ done(?j) ];
+
+	state-action-constraints {
+		
+		forall_{?m : machine} [ sum_{?j : job} [ assign(?m, ?j) ] <= 1 ];
+		
+	};
+}

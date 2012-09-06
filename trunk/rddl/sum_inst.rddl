@@ -1,0 +1,25 @@
+non-fluents nf_sum_inst{
+	domain = sum_mdp;
+	objects {
+		x : {t1,t2,t3,t4,t5,t6};
+	};
+	
+	non-fluents{
+		NF = true;
+	};
+}
+instance inst_sum{
+	domain = sum_mdp;
+	non-fluents = nf_sum_inst;
+	init-state{
+		~p(t1);
+		~p(t2);
+		~p(t3);
+		~p(t4);
+		~p(t5);
+		~p(t6);
+	};
+	max-nondef-actions = 3;
+	horizon = 40;
+	discount = 0.9;
+}

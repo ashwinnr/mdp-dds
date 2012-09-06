@@ -1,0 +1,78 @@
+domain predprey_mdp {
+	requirements = {
+		constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+		xpos : object;
+		ypos : object;
+		prey : object;
+		predator : object;
+	};
+	
+	pvariables {
+
+		NORTH(ypos, ypos) : {non-fluent, bool, default = false};
+		SOUTH(ypos, ypos) : {non-fluent, bool, default = false};
+		EAST(xpos, xpos)  : {non-fluent, bool, default = false};
+		WEST(xpos, xpos)  : {non-fluent, bool, default = false};
+
+		MIN-XPOS(xpos) : {non-fluent, bool, default = false};
+		MAX-XPOS(xpos) : {non-fluent, bool, default = false};
+		MIN-YPOS(ypos) : {non-fluent, bool, default = false};
+		MAX-YPOS(ypos) : {non-fluent, bool, default = false};
+	
+		// Fluents
+		predator-at(predator, xpos, ypos) : {state-fluent, bool, default = false};
+		prey-alive : {state-fluent, bool, default = true};
+		prey-at(xpos, ypos) : {state-fluent, bool, default = false};
+		// Actions
+		move-north(predator) : {action-fluent, bool, default = false};
+		move-south(predator): {action-fluent, bool, default = false};
+		move-east(predator) : {action-fluent, bool, default = false};
+		move-west(predator) : {action-fluent, bool, default = false};
+	};
+	
+	cpfs {
+	
+		predator-at'(?p,?x,?y) =
+		
+			if ( ( move-north(?p) ^ exists_{?y2 : ypos} [ NORTH(?y,?y2) ^ predator-at(?p,?x,?y) ] )
+					 | ( move-south(?p) ^ exists_{?y2 : ypos} [ SOUTH(?y,?y2) ^ predator-at(?p,?x,?y) ] )
+					 | ( move-east(?p) ^ exists_{?x2 : xpos} [ EAST(?x,?x2) ^ predator-at(?p,?x,?y) ] )
+					 | ( move-west(?p) ^ exists_{?x2 : xpos} [ WEST(?x,?x2) ^ predator-at(?p,?x,?y) ] ))
+			then 
+				KronDelta(false) 
+			else if (( move-north(?p) ^ exists_{?y2 : ypos} [ NORTH(?y2,?y) ^ predator-at(?p,?x,?y2) ] )
+					 | ( move-south(?p) ^ exists_{?y2 : ypos} [ SOUTH(?y2,?y) ^ predator-at(?p,?x,?y2) ] )
+					 | ( move-east(?p) ^ exists_{?x2 : xpos} [ EAST(?x2,?x) ^ predator-at(?p,?x2,?y) ] )
+					 | ( move-west(?p) ^ exists_{?x2 : xpos} [ WEST(?x2,?x) ^ predator-at(?p,?x2,?y) ] ))
+			then 
+				KronDelta(true)
+			else 
+				KronDelta( predator-at(?p,?x,?y) );
+
+		prey-alive' = if( prey-alive )
+			      then
+					Bernoulli(1.0/[1+sum_{?x : xpos, ?y : ypos} [ prey-at(?x, ?y) * sum_{?p : predator} [predator-at(?p,?x,?y)]]])	
+				else KronDelta(prey-alive);
+
+		prey-at'(?x, ?y) = if( prey-alive ^ (( exists_{?y2 : ypos} [ NORTH(?y2,?y) ^ prey-at(?x,?y2) ] )
+					 | ( exists_{?y2 : ypos} [ SOUTH(?y2,?y) ^ prey-at(?x,?y2) ] )
+					 | ( exists_{?x2 : xpos} [ EAST(?x2,?x) ^ prey-at(?x2,?y) ] )
+					 | ( exists_{?x2 : xpos} [ WEST(?x2,?x) ^ prey-at(?x2,?y) ] ) ))
+		  		   	then Bernoulli(0.25)
+				   else KronDelta(false); 					    
+	
+
+				
+	};
+	
+	reward = if( prey-alive) then [ sum_{?x : xpos, ?y : ypos} [ prey-at(?x,?y) * sum_{?p : predator} [ predator-at(?p,?x,?y) ] ] ] else 75;
+
+	state-action-constraints {
+		forall_{?p : predator}[ move-north(?p) + move-south(?p) + move-east(?p) + move-west(?p)] <= 1;
+//		sum_{?x : xpos, ?y : ypos}[ prey-at(?x,?y) ] == 1;	
+	};
+}
