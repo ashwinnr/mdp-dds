@@ -1,0 +1,52 @@
+domain job_shop_mdp {
+	
+	requirements = { 
+		constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+  		job : object;
+		machine : object;
+	}; 
+	
+	pvariables { 
+	
+		// Probability of success of job
+		SUCCESS-PARAM(job) : { non-fluent, real, default = 0.0 }; 		  		
+		
+		NEEDS(job, machine) : { non-fluent, boolean, default = false };
+		
+		PREREQ(job, job) : { non-fluent, boolean, default = false };
+		
+		done(job) : { state-fluent, bool, default = false };
+		
+		broken(machine) : { state-fluent, bool, default = false };
+		
+		assign(machine, job) : { action-fluent, bool, default = false };
+		
+	};
+  
+	cpfs {
+		
+		done'(?j) = if( done(?j) )
+					then KronDelta(true)
+					else if( exists_{?m : machine}[ NEEDS(?j, ?m) ^ ( ~assign(?m, ?j) | broken(?m) ) ] | exists_{?j2 : job} [ PREREQ(?j, ?j2) ^ ~done(?j2) ] )
+						 then KronDelta(false)
+						 else Bernoulli(SUCCESS-PARAM(?j));
+					
+		broken'(?m) = KronDelta( sum_{?j : job} [ assign(?m, ?j) ] > 1 );
+
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		sum_{?j: job} [ -~done(?j) ];
+
+	state-action-constraints {
+		
+		//broken machines cannot be assigned
+		//forall_{?m : machine } [ broken(?m) => forall_{?j : job} [ ~assign(?m, ?j) ] ];
+		
+	};
+}

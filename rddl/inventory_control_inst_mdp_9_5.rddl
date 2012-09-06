@@ -1,0 +1,46 @@
+non-fluents nf_inventory_control_inst_mdp_9_5 {
+	domain = inventory_control_mdp;
+	objects {
+		shop : {s1,s2,s3,s4,s5,s6,s7,s8,s9};
+	};
+	non-fluents {
+		ARRIVE_PARAM(s1) = 0.1676025102968917;
+		STORE_PENALTY(s1) = 0.1;
+		ARRIVE_PARAM(s2) = 0.17906349590425993;
+		STORE_PENALTY(s2) = 0.1;
+		ARRIVE_PARAM(s3) = 0.1783328030348141;
+		STORE_PENALTY(s3) = 0.1;
+		ARRIVE_PARAM(s4) = 0.19013818581810127;
+		STORE_PENALTY(s4) = 0.1;
+		ARRIVE_PARAM(s5) = 0.17107595767710432;
+		STORE_PENALTY(s5) = 0.1;
+		ARRIVE_PARAM(s6) = 0.1614379509896387;
+		STORE_PENALTY(s6) = 0.1;
+		ARRIVE_PARAM(s7) = 0.16253380167713552;
+		STORE_PENALTY(s7) = 0.1;
+		ARRIVE_PARAM(s8) = 0.1520153185682115;
+		STORE_PENALTY(s8) = 0.1;
+		ARRIVE_PARAM(s9) = 0.1713835949740154;
+		STORE_PENALTY(s9) = 0.1;
+	};
+}
+
+instance inventory_control_inst_mdp_9_5 {
+	domain = inventory_control_mdp;
+	non-fluents = nf_inventory_control_inst_mdp_9_5;
+	init-state {
+		empty(s1);
+		empty(s2);
+		empty(s3);
+		empty(s4);
+		empty(s5);
+		empty(s6);
+		empty(s7);
+		empty(s8);
+		empty(s9);
+	};
+
+	max-nondef-actions = 5;
+	horizon  = 40;
+	discount = 0.9;
+}

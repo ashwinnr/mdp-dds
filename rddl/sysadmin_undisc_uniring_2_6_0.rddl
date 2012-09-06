@@ -1,0 +1,74 @@
+non-fluents nf_sysadmin_undisc_uniring_2_6_0 {
+	domain = sysadmin_mdp_same;
+	objects {
+		computer : {c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c1,c2);
+		CONNECTED(c2,c3);
+		CONNECTED(c3,c4);
+		CONNECTED(c4,c5);
+		CONNECTED(c5,c6);
+		CONNECTED(c6,c1);
+		SAME(c1, c2);
+		SAME(c1, c3);
+		SAME(c1, c4);
+		SAME(c1, c5);
+		SAME(c1, c6);
+		SAME(c2, c3);
+		SAME(c2, c4);
+		SAME(c2, c5);
+		SAME(c2, c6);
+		SAME(c3, c4);
+		SAME(c3, c5);
+		SAME(c3, c6);
+		SAME(c4, c5);
+		SAME(c4, c6);
+		SAME(c5, c6);
+		CONNECTED(c7,c8);
+		CONNECTED(c8,c9);
+		CONNECTED(c9,c10);
+		CONNECTED(c10,c11);
+		CONNECTED(c11,c12);
+		CONNECTED(c12,c7);
+		SAME(c7, c8);
+		SAME(c7, c9);
+		SAME(c7, c10);
+		SAME(c7, c11);
+		SAME(c7, c12);
+		SAME(c8, c9);
+		SAME(c8, c10);
+		SAME(c8, c11);
+		SAME(c8, c12);
+		SAME(c9, c10);
+		SAME(c9, c11);
+		SAME(c9, c12);
+		SAME(c10, c11);
+		SAME(c10, c12);
+		SAME(c11, c12);
+	};
+}
+
+instance sysadmin_undisc_uniring_2_6_0 {
+	domain = sysadmin_mdp_same;
+	non-fluents = nf_sysadmin_undisc_uniring_2_6_0;
+	init-state {
+		running(c1);
+		running(c2);
+		running(c3);
+		running(c4);
+		running(c5);
+		running(c6);
+		running(c7);
+		running(c8);
+		running(c9);
+		running(c10);
+		running(c11);
+		running(c12);
+	};
+
+	max-nondef-actions = 2;
+	horizon  = 40;
+	discount = 1.0;
+}

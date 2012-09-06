@@ -1,0 +1,52 @@
+non-fluents nf_inventory_control_combined_inst_mdp_11_7 {
+	domain = inventory_control_combined_mdp;
+	objects {
+		shop : {s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11};
+	};
+	non-fluents {
+		ARRIVE_PARAM(s1) = 0.16401500728308827;
+		STORE_PENALTY(s1) = 0.1;
+		ARRIVE_PARAM(s2) = 0.1513515469127052;
+		STORE_PENALTY(s2) = 0.1;
+		ARRIVE_PARAM(s3) = 0.15754798586660243;
+		STORE_PENALTY(s3) = 0.1;
+		ARRIVE_PARAM(s4) = 0.16851544410845368;
+		STORE_PENALTY(s4) = 0.1;
+		ARRIVE_PARAM(s5) = 0.17071792948544848;
+		STORE_PENALTY(s5) = 0.1;
+		ARRIVE_PARAM(s6) = 0.17004852407679902;
+		STORE_PENALTY(s6) = 0.1;
+		ARRIVE_PARAM(s7) = 0.1806532754335302;
+		STORE_PENALTY(s7) = 0.1;
+		ARRIVE_PARAM(s8) = 0.16286144768839209;
+		STORE_PENALTY(s8) = 0.1;
+		ARRIVE_PARAM(s9) = 0.15452314553298366;
+		STORE_PENALTY(s9) = 0.1;
+		ARRIVE_PARAM(s10) = 0.19294865497528527;
+		STORE_PENALTY(s10) = 0.1;
+		ARRIVE_PARAM(s11) = 0.17123270621637127;
+		STORE_PENALTY(s11) = 0.1;
+	};
+}
+
+instance inventory_control_combined_inst_mdp_11_7 {
+	domain = inventory_control_combined_mdp;
+	non-fluents = nf_inventory_control_combined_inst_mdp_11_7;
+	init-state {
+		empty(s1);
+		empty(s2);
+		empty(s3);
+		empty(s4);
+		empty(s5);
+		empty(s6);
+		empty(s7);
+		empty(s8);
+		empty(s9);
+		empty(s10);
+		empty(s11);
+	};
+
+	max-nondef-actions = 7;
+	horizon  = 40;
+	discount = 0.9;
+}

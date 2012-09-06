@@ -1,0 +1,37 @@
+domain inventory_control_combined_mdp {
+	
+	requirements = { 
+		//constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+  		shop : object;
+	}; 
+	
+	pvariables { 
+	
+		ARRIVE-PARAM(shop) : { non-fluent, real, default = 0.0 }; 		  		
+		STORE-PENALTY(shop) : { non-fluent, real, default = 0.0 };
+
+		empty(shop) : { state-fluent, bool, default = false };
+		fill(shop) : { action-fluent, bool, default = false };		
+
+	};
+  
+	cpfs {
+		
+		empty'(?s) =
+			if( fill(?s) ) 
+			then KronDelta(false) 
+			else if (empty(?s)) 
+			then KronDelta(true) 
+			else Bernoulli(ARRIVE-PARAM(?s));
+			
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		[sum_{?s: shop} [ -fill(?s) * STORE-PENALTY(?s) - empty(?s) ]];
+
+}

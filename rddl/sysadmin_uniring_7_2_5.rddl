@@ -1,0 +1,24 @@
+non-fluents nf_sysadmin_uniring_7_2_5 {
+	domain = sysadmin_mdp;
+	objects {
+		computer : {c9,c10};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c9,c10);
+		CONNECTED(c10,c9);
+	};
+}
+
+instance sysadmin_uniring_7_2_5 {
+	domain = sysadmin_mdp;
+	non-fluents = nf_sysadmin_uniring_7_2_5;
+	init-state {
+		running(c9);
+		running(c10);
+	};
+
+	max-nondef-actions = 1;
+	horizon  = 40;
+	discount = 1.0;
+}

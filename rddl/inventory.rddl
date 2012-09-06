@@ -1,0 +1,73 @@
+domain inventory_mdp {
+
+	requirements = {
+		constrained-state,
+		reward-deterministic // this domain does not use a stochastic reward
+	};
+
+	types {
+ 	  	location : object;
+		truck    : object;
+	}; 
+	
+	pvariables { 
+		// Non-fluents
+		CONSUMPTION-RATE    : { non-fluent, real, default = 0.3 };
+		SHOP(location)      : { non-fluent, bool, default = false };
+		DEPOT(location)     : { non-fluent, bool, default = false };
+		
+		// State-fluents
+		empty(location)     : { state-fluent, bool, default = false };
+		tin(truck,location) : { state-fluent, bool, default = false };
+		tfull(truck)        : { state-fluent, bool, default = false };
+
+		// Action-fluents
+		load(truck,location) : { action-fluent, bool, default = false };
+		unload(truck,location) : { action-fluent, bool, default = false };
+		drive(truck,location,location) : { action-fluent, bool, default = false };
+	};
+
+	cpfs {
+		empty'(?l) = 
+			if(DEPOT(?l))
+			then KronDelta(true)
+			else if ((~empty(?l)) ^ (exists_{?t : truck} [tin(?t,?l) ^ tfull(?t) ^ SHOP(?l) ^ unload(?t,?l)]))
+			then KronDelta(false)
+			else if ((~empty(?l)) | (exists_{?t : truck} [tin(?t,?l) ^ tfull(?t) ^ SHOP(?l) ^ unload(?t,?l)]))
+			then Bernoulli(CONSUMPTION-RATE)
+			else KronDelta( empty(?l) );
+
+		tin'(?t,?l) = 
+			if (tin(?t,?l))
+			then KronDelta( ~exists_{?l1 : location} [ drive(?t,?l,?l1) ])
+			else KronDelta( exists_{?l1 : location} [ drive(?t,?l1,?l) ] );
+
+		tfull'(?t) = 
+			if(tfull(?t))
+			then KronDelta( ~exists_{?l : location} [ tin(?t,?l) ^ SHOP(?l) ^ unload(?t,?l) ] )
+			else KronDelta( exists_{?l : location} [ tin(?t,?l) ^ DEPOT(?l) ^ load(?t,?l) ] );
+	};
+	
+	reward = (([sum_{?l: location} [ 0+~empty(?l) ]]) / [sum_{?l1 : location} [1]]);
+
+
+	state-action-constraints {
+		//A truck cannot be in more than one location at a time
+		forall_{?t : truck} ([sum_{?l : location} tin(?t, ?l)] == 1);
+
+		//A  location cannot be both SHOP and DEPOT
+		forall_{?l : location} (DEPOT(?l) <=> ~SHOP(?l));
+		
+		forall_{?l : location} [DEPOT(?l) => empty(?l)];
+
+		forall_{?l : location, ?t : truck} [DEPOT(?l)^tin(?t,?l) => ~unload(?t,?l)];
+		
+		//truck can drive to one place only
+		forall_{?t : truck} ( [ sum_{ ?l1 : location, ?l2 : location } drive(?t,?l1,?l2) ] <= 1 );
+		
+		forall_{?t : truck, ?l1 : location} ( ~drive(?t, ?l1, ?l1) );
+
+	};
+}
+
+

@@ -1,0 +1,155 @@
+domain elevators_mdp {
+	
+	requirements = { 
+		constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+  		elevator : object;
+ 	  	floor    : object;
+	}; 
+	
+	pvariables { 
+	
+		// Probability someone arrives at the floor (up or down)
+		ARRIVE-PARAM(floor) : { non-fluent, real, default = 0.0 }; 		  		
+		
+		// Penalty for persons in the elevator going in right/wrong direction
+		// Note: a constant 1.0 penalty for people waiting at a floor 
+		ELEVATOR-PENALTY-RIGHT-DIR : { non-fluent, real, default = 0.75 };
+		ELEVATOR-PENALTY-WRONG-DIR : { non-fluent, real, default = 3.0 };
+
+		// Useful definitions
+		TOP-FLOOR(elevator, floor)          : { non-fluent, bool, default = false };
+   		BOTTOM-FLOOR(elevator, floor)       : { non-fluent, bool, default = false };
+		ADJACENT-UP(floor, floor) : { non-fluent, bool, default = false };
+		BEFORE(elevator, elevator) : { non-fluent, bool, default = false };
+		
+		CAN(elevator, floor) : { non-fluent, bool, default = false }; 		  		
+		
+		person-waiting-up(floor)   : { state-fluent, bool, default = false };
+		person-in-elevator-going-up(elevator)   : { state-fluent, bool, default = false };
+		
+		elevator-at-floor(elevator, floor) : { state-fluent, bool, default = false };
+		elevator-dir-up(elevator) : { state-fluent, bool, default = true };
+
+		move-up(elevator)     : { action-fluent, bool, default = false };
+		move-down(elevator)   : { action-fluent, bool, default = false };
+		change-dir(elevator) : { action-fluent, bool, default = false };
+		
+	};
+  
+	cpfs {
+		
+		person-waiting-up'(?f) = 
+			if (person-waiting-up(?f) ^ 
+				~exists_{?e: elevator} [ CAN(?e,?f) ^ elevator-at-floor(?e, ?f) ^ 
+					elevator-dir-up(?e) ])
+			then KronDelta(true) 
+			else Bernoulli(ARRIVE-PARAM(?f));
+			
+  		person-in-elevator-going-up'(?e) = 
+  			if (person-in-elevator-going-up(?e))
+  				then KronDelta( ~exists_{?f : floor} [CAN(?e, ?f) ^ 
+  					elevator-at-floor(?e, ?f) ^ TOP-FLOOR(?e,?f)] )
+  			else
+  				KronDelta( exists_{?f : floor} 
+  					[ CAN(?e, ?f) ^ elevator-at-floor(?e, ?f) ^ person-waiting-up(?f) ^ elevator-dir-up(?e) 
+  						^ ( ( sum_{?e2 : elevator} [ BEFORE(?e2,?e) * CAN(?e2, ?f) 
+  							* elevator-at-floor(?e2,?f) * elevator-dir-up(?e2) ] ) == 0 ) ] );
+
+		elevator-at-floor'(?e, ?f) =
+		
+			if ( CAN(?e, ?f) ^ elevator-at-floor(?e, ?f) 
+				^ move-up(?e) ^ exists_{?above : floor} 
+					 [ADJACENT-UP(?f, ?above) ^ CAN(?e, ?above) ])
+				then KronDelta(false)
+			else if ( CAN(?e, ?f) ^ elevator-at-floor(?e, ?f) ^ move-down(?e) 
+				^ exists_{?below : floor} 
+						[ADJACENT-UP(?below, ?f) ^ CAN(?e, ?below) ])
+				then KronDelta(false)
+			else if ( CAN(?e, ?f) ^ move-up(?e) 
+				^ exists_{?cur : floor}[ CAN(?e, ?cur) ^ elevator-at-floor(?e, ?cur) ^ 
+					ADJACENT-UP(?cur, ?f) ] )
+				then KronDelta(true)
+			else if ( CAN(?e, ?f) ^ move-down(?e) 
+				^ exists_{?cur : floor}[ CAN(?e, ?cur) ^ elevator-at-floor(?e, ?cur) 
+				^ ADJACENT-UP(?f, ?cur) ] )
+				then KronDelta(true)
+			else if( CAN(?e, ?f) )
+				then KronDelta( elevator-at-floor(?e, ?f) )
+			else KronDelta(false);
+			
+		elevator-dir-up'(?e) =
+			if( exists_{?f : floor} [ CAN(?e, ?f) ^ elevator-at-floor(?e, ?f) ^ TOP-FLOOR(?e, ?f) ] )
+				then KronDelta(false)
+			else if( exists_{?f : floor} [ CAN(?e, ?f) ^ elevator-at-floor(?e, ?f) ^ BOTTOM-FLOOR(?e, ?f) ] )
+				then KronDelta(true)
+			else if( move-up(?e) )
+				then KronDelta(true)
+			else if( move-down(?e) )
+				then KronDelta(false)
+			else if( change-dir(?e) )
+				then KronDelta( ~elevator-dir-up(?e) )
+			else KronDelta( elevator-dir-up(?e) );	
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		[sum_{?e: elevator} [
+			-ELEVATOR-PENALTY-RIGHT-DIR * 
+				(person-in-elevator-going-up(?e)*elevator-dir-up(?e)) 
+			-ELEVATOR-PENALTY-WRONG-DIR *
+				(person-in-elevator-going-up(?e)*~elevator-dir-up(?e))
+		]] +
+		[sum_{?f: floor} [
+			- person-waiting-up(?f)
+		]];
+
+	state-action-constraints {
+		// Can check uniqueness constraint in many ways, but for simulator easiest 
+		// is just to count.
+		forall_{?e : elevator} ([sum_{?f: floor} elevator-at-floor(?e, ?f)] == 1);
+		
+		// Max of one action per elevator.
+		forall_{?e : elevator} [(move-up(?e) + move-down(?e) + change-dir(?e)) <= 1];
+		
+		//can
+		forall_{?e : elevator, ?f : floor} [ elevator-at-floor(?e,?f) => CAN(?e, ?f) ];
+		
+		//forall_{?e : elevator, ?f : floor} [ elevator-at-floor(?e,?f) ^ TOP-FLOOR(?f) => ~elevator-dir-up(?e) ];
+		
+		//forall_{?e : elevator, ?f : floor} [ elevator-at-floor(?e,?f) ^ BOTTOM-FLOOR(?f) => elevator-dir-up(?e) ];		 
+	
+		//forall_{?f : floor} [ TOP-FLOOR(?f) => ~person-waiting-up(?f) ];
+		
+		//forall_{?f : floor} [ BOTTOM-FLOOR(?f) => ~person-waiting-down(?f) ];
+			
+		//forall_{?e : elevator, ?f : floor, ?b : building} [ elevator-at-floor(?e,?f) ^ ELEVATOR-BUILDING(?e, ?b) => FLOOR-BUILDING(?f, ?b) ];
+		
+		
+		// All floors except top and bottom must have one adjacent floor above/below
+//		forall_{?f : floor} [ TOP-FLOOR(?f) | (sum_{?fup : floor} ADJACENT-UP(?f,?fup)) == 1 ];
+//		forall_{?f : floor} [ BOTTOM-FLOOR(?f) | (sum_{?fdown : floor} ADJACENT-UP(?fdown,?f)) == 1 ];
+
+//		forall_{?e : elevator, ?f : floor} [ (~(ARRIVE-PARAM(?f) == 0)) ^ elevator-at-floor(?e, ?f) ^ elevator-dir-up(?e) ^ ~person-waiting-up(?f) => ~open-door-going-up(?e)];
+//		forall_{?e : elevator, ?f : floor} [ (~(ARRIVE-PARAM(?f) == 0)) ^ elevator-at-floor(?e, ?f) ^ ~elevator-dir-up(?e) ^ ~person-waiting-down(?f) => ~open-door-going-down(?e)];
+//		forall_{?f : floor} [ TOP-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-dir-up(?e) ^ elevator-at-floor(?e,?f) => open-door-going-down(?e) ] ] ];
+//		forall_{?f : floor} [ TOP-FLOOR(?f) => [ forall_{?e : elevator} [ ~elevator-closed(?e) ^ ~elevator-dir-up(?e) ^ elevator-at-floor(?e,?f) => close-door(?e) ] ] ];
+
+//		forall_{?f : floor} [ TOP-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-closed(?e) ^ ~elevator-dir-up(?e) ^ elevator-at-floor(?e,?f) => move-current-dir(?e) ] ] ];
+//		forall_{?f : floor} [ BOTTOM-FLOOR(?f) => [ forall_{?e : elevator} [ ~elevator-dir-up(?e) ^ elevator-at-floor(?e,?f) => open-door-going-up(?e) ] ] ];
+
+//		forall_{?f : floor} [ BOTTOM-FLOOR(?f) => [ forall_{?e : elevator} [ ~elevator-closed(?e) ^ elevator-dir-up(?e) ^ elevator-at-floor(?e,?f) => close-door(?e) ] ] ];
+//		forall_{?f : floor} [ BOTTOM-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-closed(?e) ^ elevator-dir-up(?e) ^ elevator-at-floor(?e,?f) => move-current-dir(?e) ] ] ];
+
+//		forall_{?f : floor} [ TOP-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-at-floor(?e,?f)^person-in-elevator-going-up(?e) => open-door-going-up(?e) ] ] ];
+//		forall_{?f : floor} [ TOP-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-at-floor(?e,?f) ^ ~person-in-elevator-going-up(?e) ^ ~elevator-closed(?e) => open-door-going-down(?e) ] ] ];
+//		forall_{?f : floor} [ BOTTOM-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-at-floor(?e,?f) ^ ~person-in-elevator-going-up(?e) ^ ~elevator-dir-up(?e) ^ elevator-closed(?e) => move-current-dir(?e) ] ] ];
+//			forall_{?f : floor} [ BOTTOM-FLOOR(?f) => [ forall_{?e : elevator} [ elevator-at-floor(?e,?f) => ~open-door-going-down(?e) ] ] ];
+//		forall_{?e  : elevator} [ person-in-elevator-going-up(?e) ^ elevator-dir-up(?e) => ~open-door-going-down(?e) ];
+//		forall_{?e : elevator} [ person-in-elevator-going-down(?e) ^ ~elevator-dir-up(?e) => ~open-door-going-up(?e) ];
+//		forall_{?e : elevator} [ ~elevator-closed(?e) => [~move-current-dir(?e)] ];
+	};
+}

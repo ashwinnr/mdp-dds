@@ -1,0 +1,22 @@
+non-fluents nf_inventory_control_combined_inst_mdp_1_3 {
+	domain = inventory_control_combined_mdp;
+	objects {
+		shop : {s1};
+	};
+	non-fluents {
+		ARRIVE_PARAM(s1) = 0.16962726450085144;
+		STORE_PENALTY(s1) = 0.1;
+	};
+}
+
+instance inventory_control_combined_inst_mdp_1_3 {
+	domain = inventory_control_combined_mdp;
+	non-fluents = nf_inventory_control_combined_inst_mdp_1_3;
+	init-state {
+		empty(s1);
+	};
+
+	max-nondef-actions = 3;
+	horizon  = 40;
+	discount = 0.9;
+}

@@ -1,0 +1,33 @@
+domain sum_mdp{
+	
+	requirements = { 
+		//constrained-state,
+		reward-deterministic
+	};
+	
+	types{
+		x : object;
+	};
+	
+	pvariables { 
+	
+		p(x) : { state-fluent, bool, default = false };
+		
+		a(x,x,x) : { action-fluent, bool, default = false};
+		
+		NF : { non-fluent, bool, default = false };
+	};
+  
+	cpfs {
+		
+		p'(?t) = if( p(?t) )
+				 then Bernoulli( 1.0 / ( sum_{?t2 : x} [ p(?t2) ] ) )
+				 else Bernoulli( a(?t,?t,?t) / ( sum_{?t2: x} [ a(?t,?t,?t2) ] + 1 ) );
+
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		sum_{?t: x} [ -~p(?t) ];
+
+}

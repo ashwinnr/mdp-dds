@@ -1,0 +1,88 @@
+non-fluents nf_inventory_control_combined_inst_mdp_23_9 {
+	domain = inventory_control_combined_mdp;
+	objects {
+		shop : {s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23};
+	};
+	non-fluents {
+		ARRIVE_PARAM(s1) = 0.16682052878662923;
+		STORE_PENALTY(s1) = 0.1;
+		ARRIVE_PARAM(s2) = 0.16870082834987365;
+		STORE_PENALTY(s2) = 0.1;
+		ARRIVE_PARAM(s3) = 0.1704842190536825;
+		STORE_PENALTY(s3) = 0.1;
+		ARRIVE_PARAM(s4) = 0.18288135851538495;
+		STORE_PENALTY(s4) = 0.1;
+		ARRIVE_PARAM(s5) = 0.18861182524108808;
+		STORE_PENALTY(s5) = 0.1;
+		ARRIVE_PARAM(s6) = 0.19784572693294838;
+		STORE_PENALTY(s6) = 0.1;
+		ARRIVE_PARAM(s7) = 0.15443799133066557;
+		STORE_PENALTY(s7) = 0.1;
+		ARRIVE_PARAM(s8) = 0.1560062968895182;
+		STORE_PENALTY(s8) = 0.1;
+		ARRIVE_PARAM(s9) = 0.19581173447766997;
+		STORE_PENALTY(s9) = 0.1;
+		ARRIVE_PARAM(s10) = 0.18798383348055162;
+		STORE_PENALTY(s10) = 0.1;
+		ARRIVE_PARAM(s11) = 0.1960882544813909;
+		STORE_PENALTY(s11) = 0.1;
+		ARRIVE_PARAM(s12) = 0.1704481715007056;
+		STORE_PENALTY(s12) = 0.1;
+		ARRIVE_PARAM(s13) = 0.1605159024656241;
+		STORE_PENALTY(s13) = 0.1;
+		ARRIVE_PARAM(s14) = 0.15196224546739448;
+		STORE_PENALTY(s14) = 0.1;
+		ARRIVE_PARAM(s15) = 0.1724996371961738;
+		STORE_PENALTY(s15) = 0.1;
+		ARRIVE_PARAM(s16) = 0.1981374908935377;
+		STORE_PENALTY(s16) = 0.1;
+		ARRIVE_PARAM(s17) = 0.15062476368170122;
+		STORE_PENALTY(s17) = 0.1;
+		ARRIVE_PARAM(s18) = 0.18635400424856902;
+		STORE_PENALTY(s18) = 0.1;
+		ARRIVE_PARAM(s19) = 0.156684189746518;
+		STORE_PENALTY(s19) = 0.1;
+		ARRIVE_PARAM(s20) = 0.1732975198340137;
+		STORE_PENALTY(s20) = 0.1;
+		ARRIVE_PARAM(s21) = 0.196475615829335;
+		STORE_PENALTY(s21) = 0.1;
+		ARRIVE_PARAM(s22) = 0.1678145899854895;
+		STORE_PENALTY(s22) = 0.1;
+		ARRIVE_PARAM(s23) = 0.15453483500266885;
+		STORE_PENALTY(s23) = 0.1;
+	};
+}
+
+instance inventory_control_combined_inst_mdp_23_9 {
+	domain = inventory_control_combined_mdp;
+	non-fluents = nf_inventory_control_combined_inst_mdp_23_9;
+	init-state {
+		empty(s1);
+		empty(s2);
+		empty(s3);
+		empty(s4);
+		empty(s5);
+		empty(s6);
+		empty(s7);
+		empty(s8);
+		empty(s9);
+		empty(s10);
+		empty(s11);
+		empty(s12);
+		empty(s13);
+		empty(s14);
+		empty(s15);
+		empty(s16);
+		empty(s17);
+		empty(s18);
+		empty(s19);
+		empty(s20);
+		empty(s21);
+		empty(s22);
+		empty(s23);
+	};
+
+	max-nondef-actions = 9;
+	horizon  = 40;
+	discount = 0.9;
+}

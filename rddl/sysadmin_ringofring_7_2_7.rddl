@@ -1,0 +1,24 @@
+non-fluents nf_sysadmin_ringofring_7_2_7 {
+	domain = sysadmin_mdp;
+	objects {
+		computer : {c13,c14};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c13,c14);
+		CONNECTED(c14,c13);
+	};
+}
+
+instance sysadmin_ringofring_7_2_7 {
+	domain = sysadmin_mdp;
+	non-fluents = nf_sysadmin_ringofring_7_2_7;
+	init-state {
+		running(c13);
+		running(c14);
+	};
+
+	max-nondef-actions = 1;
+	horizon  = 40;
+	discount = 1.0;
+}

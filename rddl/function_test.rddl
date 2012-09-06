@@ -1,0 +1,34 @@
+domain function_test {
+	
+	requirements = { 
+		//constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+  		o1 : object;
+  		o2 : object;
+	}; 
+	
+	pvariables { 
+	
+		p1(o1) : { state-fluent, o2, default = f0 };
+		
+		do : { action-fluent, bool, default = false };
+		PARAM : { non-fluent, real, default = 0.5 };		
+
+	};
+  
+	cpfs {
+		
+		p1'(?obj1) = if( do )
+						then f0
+					 else f1; 
+		
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		[-sum_{?obj1: o1} [ p1(?obj1)==f0 ]];
+
+}

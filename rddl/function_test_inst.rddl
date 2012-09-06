@@ -1,0 +1,19 @@
+non-fluents nf_function_test {
+	domain = function_test; 
+	objects { 
+		o1 : {e0,e1};
+		o2 : {f0,f1,f2,f3}; 
+	}; 
+	non-fluents {
+		PARAM = 0.5;
+	};
+}
+
+instance function_test_inst { 
+	domain = function_test; 
+ 	non-fluents = nf_function_test;
+	max-nondef-actions = 1;
+	horizon = 40;
+	discount = 1.0;
+} 
+

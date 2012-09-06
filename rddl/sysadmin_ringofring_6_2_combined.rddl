@@ -1,0 +1,56 @@
+non-fluents nf_sysadmin_ringofring_6_2_combined {
+	domain = sysadmin_mdp_same;
+	objects {
+		computer : {c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c1,c2);
+		CONNECTED(c2,c1);
+		SAME(c1, c2);
+		CONNECTED(c1,c2);
+		CONNECTED(c3,c4);
+		CONNECTED(c4,c3);
+		SAME(c3, c4);
+		CONNECTED(c3,c4);
+		CONNECTED(c5,c6);
+		CONNECTED(c6,c5);
+		SAME(c5, c6);
+		CONNECTED(c5,c6);
+		CONNECTED(c7,c8);
+		CONNECTED(c8,c7);
+		SAME(c7, c8);
+		CONNECTED(c7,c8);
+		CONNECTED(c9,c10);
+		CONNECTED(c10,c9);
+		SAME(c9, c10);
+		CONNECTED(c9,c10);
+		CONNECTED(c11,c12);
+		CONNECTED(c12,c11);
+		SAME(c11, c12);
+		CONNECTED(c11,c0);
+	};
+}
+
+instance sysadmin_ringofring_6_2_combined {
+	domain = sysadmin_mdp_same;
+	non-fluents = nf_sysadmin_ringofring_6_2_combined;
+	init-state {
+		running(c1);
+		running(c2);
+		running(c3);
+		running(c4);
+		running(c5);
+		running(c6);
+		running(c7);
+		running(c8);
+		running(c9);
+		running(c10);
+		running(c11);
+		running(c12);
+	};
+
+	max-nondef-actions = 6;
+	horizon  = 40;
+	discount = 1.0;
+}

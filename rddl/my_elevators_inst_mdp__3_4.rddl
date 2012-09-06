@@ -1,0 +1,28 @@
+non-fluents nf_my_elevators_inst_mdp__3_4 {
+	domain = my_elevators_mdp;
+	objects {
+		elevator : {e0,e1,e2,e3};
+floor : {f0,f1,f2};
+};
+non-fluents{
+ ELEVATOR-PENALTY = 1.25;
+ARRIVE-PARAM(f1) = 0.14;
+ADJACENT-UP(f0,f1) = true;
+ADJACENT-UP(f1,f2) = true;
+TOP-FLOOR(f2) = true;
+BOTTOM-FLOOR(f0) = true;
+};
+}
+instance my_elevators_inst_mdp__3_4{
+domain = my_elevators_mdp;
+non-fluents = nf_my_elevators_inst_mdp__3_4;
+init-state{
+elevator-at-floor(e0,f0);
+elevator-at-floor(e1,f0);
+elevator-at-floor(e2,f0);
+elevator-at-floor(e3,f0);
+};
+max-nondef-actions = 4;
+horizon = 40;
+discount = 1.0;
+}

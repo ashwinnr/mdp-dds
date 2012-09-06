@@ -1,0 +1,32 @@
+non-fluents nf_sysadmin_ringofring_2_2_1 {
+	domain = sysadmin_mdp_same;
+	objects {
+		computer : {c1,c2,c3,c4};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c1,c2);
+		CONNECTED(c2,c1);
+		SAME(c1, c2);
+		CONNECTED(c1,c3);
+		CONNECTED(c3,c4);
+		CONNECTED(c4,c3);
+		SAME(c3, c4);
+		CONNECTED(c3,c1);
+	};
+}
+
+instance sysadmin_ringofring_2_2_1 {
+	domain = sysadmin_mdp_same;
+	non-fluents = nf_sysadmin_ringofring_2_2_1;
+	init-state {
+		running(c1);
+		running(c2);
+		running(c3);
+		running(c4);
+	};
+
+	max-nondef-actions = 2;
+	horizon  = 40;
+	discount = 0.9;
+}

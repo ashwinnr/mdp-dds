@@ -1,0 +1,103 @@
+non-fluents nf_inventory_control_inst_mdp_28_2 {
+	domain = inventory_control_mdp;
+	objects {
+		shop : {s1,s2,s3,s4,s5,s6,s7,s8,s9,s10,s11,s12,s13,s14,s15,s16,s17,s18,s19,s20,s21,s22,s23,s24,s25,s26,s27,s28};
+	};
+	non-fluents {
+		ARRIVE_PARAM(s1) = 0.18872863439747073;
+		STORE_PENALTY(s1) = 0.1;
+		ARRIVE_PARAM(s2) = 0.16867353516947461;
+		STORE_PENALTY(s2) = 0.1;
+		ARRIVE_PARAM(s3) = 0.16635134277769983;
+		STORE_PENALTY(s3) = 0.1;
+		ARRIVE_PARAM(s4) = 0.1973210320422989;
+		STORE_PENALTY(s4) = 0.1;
+		ARRIVE_PARAM(s5) = 0.1851678544279597;
+		STORE_PENALTY(s5) = 0.1;
+		ARRIVE_PARAM(s6) = 0.15957038114183142;
+		STORE_PENALTY(s6) = 0.1;
+		ARRIVE_PARAM(s7) = 0.19152180350628317;
+		STORE_PENALTY(s7) = 0.1;
+		ARRIVE_PARAM(s8) = 0.18251826119214193;
+		STORE_PENALTY(s8) = 0.1;
+		ARRIVE_PARAM(s9) = 0.1893286449819463;
+		STORE_PENALTY(s9) = 0.1;
+		ARRIVE_PARAM(s10) = 0.17337184104789724;
+		STORE_PENALTY(s10) = 0.1;
+		ARRIVE_PARAM(s11) = 0.1638641927468938;
+		STORE_PENALTY(s11) = 0.1;
+		ARRIVE_PARAM(s12) = 0.1744156859620153;
+		STORE_PENALTY(s12) = 0.1;
+		ARRIVE_PARAM(s13) = 0.1606667579435147;
+		STORE_PENALTY(s13) = 0.1;
+		ARRIVE_PARAM(s14) = 0.15662692957496493;
+		STORE_PENALTY(s14) = 0.1;
+		ARRIVE_PARAM(s15) = 0.1604986468872575;
+		STORE_PENALTY(s15) = 0.1;
+		ARRIVE_PARAM(s16) = 0.1974431532330077;
+		STORE_PENALTY(s16) = 0.1;
+		ARRIVE_PARAM(s17) = 0.19469663137697957;
+		STORE_PENALTY(s17) = 0.1;
+		ARRIVE_PARAM(s18) = 0.1560869107143615;
+		STORE_PENALTY(s18) = 0.1;
+		ARRIVE_PARAM(s19) = 0.1974438121605688;
+		STORE_PENALTY(s19) = 0.1;
+		ARRIVE_PARAM(s20) = 0.18030469781660452;
+		STORE_PENALTY(s20) = 0.1;
+		ARRIVE_PARAM(s21) = 0.15096428120658942;
+		STORE_PENALTY(s21) = 0.1;
+		ARRIVE_PARAM(s22) = 0.16334919791041635;
+		STORE_PENALTY(s22) = 0.1;
+		ARRIVE_PARAM(s23) = 0.17748083669551892;
+		STORE_PENALTY(s23) = 0.1;
+		ARRIVE_PARAM(s24) = 0.16039103344143318;
+		STORE_PENALTY(s24) = 0.1;
+		ARRIVE_PARAM(s25) = 0.18424424121779237;
+		STORE_PENALTY(s25) = 0.1;
+		ARRIVE_PARAM(s26) = 0.1515653935932495;
+		STORE_PENALTY(s26) = 0.1;
+		ARRIVE_PARAM(s27) = 0.18895639694276864;
+		STORE_PENALTY(s27) = 0.1;
+		ARRIVE_PARAM(s28) = 0.1907214464617778;
+		STORE_PENALTY(s28) = 0.1;
+	};
+}
+
+instance inventory_control_inst_mdp_28_2 {
+	domain = inventory_control_mdp;
+	non-fluents = nf_inventory_control_inst_mdp_28_2;
+	init-state {
+		empty(s1);
+		empty(s2);
+		empty(s3);
+		empty(s4);
+		empty(s5);
+		empty(s6);
+		empty(s7);
+		empty(s8);
+		empty(s9);
+		empty(s10);
+		empty(s11);
+		empty(s12);
+		empty(s13);
+		empty(s14);
+		empty(s15);
+		empty(s16);
+		empty(s17);
+		empty(s18);
+		empty(s19);
+		empty(s20);
+		empty(s21);
+		empty(s22);
+		empty(s23);
+		empty(s24);
+		empty(s25);
+		empty(s26);
+		empty(s27);
+		empty(s28);
+	};
+
+	max-nondef-actions = 2;
+	horizon  = 40;
+	discount = 0.9;
+}

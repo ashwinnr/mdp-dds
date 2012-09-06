@@ -1,0 +1,21 @@
+non-fluents nf_sysadmin_small {
+	domain = sysadmin_mdp;
+	objects {
+		computer : {c1};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+	};
+}
+
+instance sysadmin_small {
+	domain = sysadmin_mdp;
+	non-fluents = nf_sysadmin_small;
+	init-state {
+		running(c1);
+	};
+
+	max-nondef-actions = 1;
+	horizon  = 40;
+	discount = 1.0;
+}

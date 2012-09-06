@@ -1,0 +1,30 @@
+non-fluents elevators_saket_8 {
+	domain = elevators_saket_mdp ;
+	objects {
+		floor : { bottom,f1,f2,f3,f4,f5,f6,top }; 
+	};
+	non-fluents {
+		ABOVE(top,f6); ABOVE(top,f5); ABOVE(top,f4); ABOVE(top,f3); ABOVE(top,f2); ABOVE(top,f1); ABOVE(top, bottom);
+		ABOVE(f6,f5); ABOVE(f6,f4) ; ABOVE(f6,f3) ; ABOVE(f6,f2); ABOVE(f6,f1); ABOVE(f6,bottom);
+		ABOVE(f5,f4); ABOVE(f5,f3) ; ABOVE(f5,f2) ; ABOVE(f5,f1); ABOVE(f5,bottom);
+		ABOVE(f4,f3); ABOVE(f4, f2); ABOVE(f4,f1); ABOVE(f4,bottom);
+		ABOVE(f3,f2); ABOVE(f3, f1); ABOVE(f3,bottom);
+		ABOVE(f2,f1) ; ABOVE(f2,bottom); 
+		ABOVE(f1,bottom) ; 
+//		ABOVE(f2,f1) ; ABOVE(f2,bottom); ABOVE(top,f2); 
+//		ABOVE(f3,f2) ; ABOVE(f3,f1) ; ABOVE(f3,bottom) ; ABOVE(top,f3) ; 
+//		ABOVE(f4,f3) ; ABOVE(f4,f2) ; ABOVE(f4,f1) ; ABOVE(f4,bottom) ; ABOVE(top,f4) ; 
+		TOP-FLOOR(top) ; BOTTOM-FLOOR(bottom) ; 
+	};
+}
+
+instance elevators_saket_8 {
+	domain = elevators_saket_mdp ;
+	non-fluents = elevators_saket_8 ;
+	init-state {
+		   elevator-at-floor(f1);
+	};
+max-nondef-actions = 1;
+horizon = 20;
+discount = 0.99;
+}

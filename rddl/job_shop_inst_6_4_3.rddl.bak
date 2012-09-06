@@ -1,0 +1,40 @@
+non-fluents nf_job_shop_inst_6_4_3 {
+	domain = job_shop_mdp;
+	objects {
+		job : {j1, j2, j3, j4, j5, j6 };
+		machine : {m1, m2, m3, m4 };
+
+	};
+	non-fluents{
+		SUCCESS-PARAM(j1) = 0.9;
+		SUCCESS-PARAM(j2) = 0.9;
+		SUCCESS-PARAM(j3) = 0.9;
+		SUCCESS-PARAM(j4) = 0.9;
+		SUCCESS-PARAM(j5) = 0.9;
+		SUCCESS-PARAM(j6) = 0.9;
+		NEEDS(j1, m2) = true;
+		NEEDS(j2, m1) = true;
+		NEEDS(j3, m3) = true;
+		NEEDS(j3, m4) = true;
+		PREREQ(j4,j1) = true;
+		PREREQ(j4,j2) = true;
+		PREREQ(j5,j4) = true;
+		PREREQ(j5,j3) = true;
+		PREREQ(j6,j5) = true;
+	};
+}
+instance job_shop_inst_6_4_3{
+	domain = job_shop_mdp;
+	non-fluents = nf_job_shop_inst_6_4_3;
+init-state{
+		~done(j1);
+		~done(j2);
+		~done(j3);
+		~done(j4);
+		~done(j5);
+		~done(j6);
+	};
+	max-nondef-actions = 4;
+	horizon = 40;
+	discount = 0.9;
+}

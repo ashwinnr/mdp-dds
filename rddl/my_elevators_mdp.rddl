@@ -1,0 +1,98 @@
+domain my_elevators_mdp {
+
+	requirements = {
+		constrained-state,
+		reward-deterministic
+	};
+
+	types {
+		elevator : object;
+		floor : object;
+	};
+
+	pvariables {
+		
+		// Probability someone arrives at the floor (up or down)
+		ARRIVE-PARAM(floor) : { non-fluent, real, default = 0.0 }; 		  		
+		
+		// Penalty for persons in the elevator going in right/wrong direction
+		// Note: a constant 1.0 penalty for people waiting at a floor 
+		ELEVATOR-PENALTY : { non-fluent, real, default = 0.75 };
+
+		// Useful definitions
+		TOP-FLOOR(floor)          : { non-fluent, bool, default = false };
+   		BOTTOM-FLOOR(floor)       : { non-fluent, bool, default = false };
+		ADJACENT-UP(floor, floor) : { non-fluent, bool, default = false }; 		  		
+		
+		// Person waiting state
+		person-waiting-up(floor)   : { state-fluent, bool, default = false };
+		person-waiting-down(floor) : { state-fluent, bool, default = false };
+		person-in-elevator-going-up(elevator)   : { state-fluent, bool, default = false };
+		person-in-elevator-going-down(elevator) : { state-fluent, bool, default = false };
+		
+		// Elevator state
+
+		elevator-at-floor(elevator, floor) : { state-fluent, bool, default = false };
+
+		move-up(elevator) : { action-fluent, bool, default = false };
+		move-down(elevator) : { action-fluent, bool, default = false }; 
+
+
+	};
+
+	cpfs{
+
+			person-waiting-up'(?f) = 
+			if (person-waiting-up(?f) ^ 
+				~exists_{?e: elevator} [ elevator-at-floor(?e, ?f) ])
+			then KronDelta(true) 
+			else Bernoulli(ARRIVE-PARAM(?f));
+			
+		person-waiting-down'(?f) = 
+			if (person-waiting-down(?f) ^ 
+				~exists_{?e: elevator} [elevator-at-floor(?e, ?f) ])
+			then KronDelta(true) 
+			else Bernoulli(ARRIVE-PARAM(?f));
+  		
+  		// A person is in the elevator going in a direction if someone gets on 
+  		// in that direction or someone was already on in that direction and does
+  		// not get off.
+  		person-in-elevator-going-up'(?e) = 
+  			if (person-in-elevator-going-up(?e))
+  				// If elevator not at top floor then stays true, otherwise set to false
+  				then KronDelta( ~exists_{?f : floor} [elevator-at-floor(?e, ?f) ^ TOP-FLOOR(?f)] )
+  			else
+  				// No one in elevator going up... can only be true if someone going up gets in
+  				KronDelta( exists_{?f : floor} 
+  					[ elevator-at-floor(?e, ?f) ^ person-waiting-up(?f) ] );
+
+  		person-in-elevator-going-down'(?e) = 
+  			if (person-in-elevator-going-down(?e))
+  				// If elevator not at bottom floor then stays true, otherwise set to false
+  				then KronDelta( ~exists_{?f : floor} [elevator-at-floor(?e, ?f) ^ BOTTOM-FLOOR(?f)] )
+  			else
+  				// No one in elevator going up... can only be true if someone going up gets in
+  				KronDelta( exists_{?f : floor} 
+  					[ elevator-at-floor(?e, ?f) ^ person-waiting-down(?f) ] );
+  		
+		elevator-at-floor'(?e, ?f) =
+			if( elevator-at-floor(?e, ?f) ^ ~(move-up(?e) | move-down(?e)) ) 
+				then KronDelta(true)
+			else KronDelta( exists_{?f2 : floor}[ elevator-at-floor(?e,?f2) ^ ((ADJACENT-UP(?f,?f2) ^ move-down(?e) ) | ( ADJACENT-UP(?f2,?f) ^ move-up(?e) )) ]  ) ;
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		[sum_{?e: elevator} [
+			-ELEVATOR-PENALTY * (person-in-elevator-going-up(?e) + person-in-elevator-going-down(?e))
+		]] + 
+		[sum_{?f: floor} [
+			-person-waiting-up(?f) - person-waiting-down(?f)
+		]];
+
+	state-action-constraints {
+		forall_{?e : elevator} (move-up(?e) + move-down(?e) <= 1 );
+		
+	
+	};
+}	

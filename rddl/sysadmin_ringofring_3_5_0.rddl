@@ -1,0 +1,80 @@
+non-fluents nf_sysadmin_ringofring_3_5_0 {
+	domain = sysadmin_mdp_same;
+	objects {
+		computer : {c1,c2,c3,c4,c5,c8,c9,c10,c11,c12,c15,c16,c17,c18,c19};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c1,c2);
+		CONNECTED(c2,c3);
+		CONNECTED(c3,c4);
+		CONNECTED(c4,c5);
+		CONNECTED(c5,c1);
+		SAME(c1, c2);
+		SAME(c1, c3);
+		SAME(c1, c4);
+		SAME(c1, c5);
+		SAME(c2, c3);
+		SAME(c2, c4);
+		SAME(c2, c5);
+		SAME(c3, c4);
+		SAME(c3, c5);
+		SAME(c4, c5);
+		CONNECTED(c8,c9);
+		CONNECTED(c9,c10);
+		CONNECTED(c10,c11);
+		CONNECTED(c11,c12);
+		CONNECTED(c12,c8);
+		SAME(c8, c9);
+		SAME(c8, c10);
+		SAME(c8, c11);
+		SAME(c8, c12);
+		SAME(c9, c10);
+		SAME(c9, c11);
+		SAME(c9, c12);
+		SAME(c10, c11);
+		SAME(c10, c12);
+		SAME(c11, c12);
+		CONNECTED(c15,c16);
+		CONNECTED(c16,c17);
+		CONNECTED(c17,c18);
+		CONNECTED(c18,c19);
+		CONNECTED(c19,c15);
+		SAME(c15, c16);
+		SAME(c15, c17);
+		SAME(c15, c18);
+		SAME(c15, c19);
+		SAME(c16, c17);
+		SAME(c16, c18);
+		SAME(c16, c19);
+		SAME(c17, c18);
+		SAME(c17, c19);
+		SAME(c18, c19);
+	};
+}
+
+instance sysadmin_ringofring_3_5_0 {
+	domain = sysadmin_mdp_same;
+	non-fluents = nf_sysadmin_ringofring_3_5_0;
+	init-state {
+		running(c1);
+		running(c2);
+		running(c3);
+		running(c4);
+		running(c5);
+		running(c8);
+		running(c9);
+		running(c10);
+		running(c11);
+		running(c12);
+		running(c15);
+		running(c16);
+		running(c17);
+		running(c18);
+		running(c19);
+	};
+
+	max-nondef-actions = 3;
+	horizon  = 40;
+	discount = 0.9;
+}

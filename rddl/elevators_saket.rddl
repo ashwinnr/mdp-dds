@@ -1,0 +1,112 @@
+domain elevators_saket_mdp {
+	
+	requirements = { 
+		constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+ 	  	floor    : object;
+	}; 
+	
+	pvariables { 
+	
+		// Probability someone arrives at the floor (up or down)
+		ARRIVE-PARAM(floor) : { non-fluent, real, default = 0.3 }; 		  		
+		
+		// Useful definitions
+		TOP-FLOOR(floor)          : { non-fluent, bool, default = false };
+   		BOTTOM-FLOOR(floor)       : { non-fluent, bool, default = false };
+		ABOVE(floor, floor)       : { non-fluent, bool, default = false }; 		  		
+//		WAITING-IN-ELEVATOR : { non-fluent, real, default = 0.5 };
+		
+		// Person waiting state
+		person-waiting-up(floor)   : { state-fluent, bool, default = false };
+		person-waiting-down(floor) : { state-fluent, bool, default = false };
+		person-in-elevator-going-up   : { state-fluent, bool, default = false };
+		person-in-elevator-going-down : { state-fluent, bool, default = false };
+		
+		// Elevator state
+		elevator-dir-up : { state-fluent, bool, default = true };
+		elevator-at-floor(floor) : { state-fluent, bool, default = false };
+
+		// Actions: the elevator must move in one direction, it can only switch
+		//          direction by signaling the change when the door opens
+		//          (i.e., the passengers must know which direction the 
+		//           elevator is going before they get on... then the elevator
+		//           is constrained to go in that direction when the door closes).
+		move-current-dir(floor)     : { action-fluent, bool, default = false };
+		change-dir                        : { action-fluent, bool, default = false };
+		
+	};
+  
+	cpfs {
+		
+		// We might even allow people to get off the elevator if it switches
+		// directions on them while they're in it, but we won't model this now.
+		
+		// A person is waiting unless they get on an elevator going in their
+		// direction.
+		person-waiting-up'(?f) = 
+			if(TOP-FLOOR(?f))
+			then KronDelta(false)
+			else if (elevator-at-floor(?f) ^ elevator-dir-up)
+			then KronDelta(false) 
+			else if (person-waiting-up(?f))
+			then KronDelta(true) 
+			else Bernoulli(ARRIVE-PARAM(?f));
+			
+		person-waiting-down'(?f) = 
+			if(BOTTOM-FLOOR(?f))
+			then KronDelta(false) 
+  			else if (elevator-at-floor(?f) ^ ~elevator-dir-up)
+			then KronDelta(false) 
+			else if (person-waiting-down(?f))
+			then KronDelta(true) 
+			else Bernoulli(ARRIVE-PARAM(?f));
+
+  		// A person is in the elevator going in a direction if someone gets on 
+  		// in that direction or someone was already on in that direction and does
+  		// not get off.
+  		person-in-elevator-going-up' = 
+  			if (person-in-elevator-going-up)
+  			then KronDelta(~exists_{?f : floor} [elevator-at-floor(?f) ^ TOP-FLOOR(?f)])
+  			else KronDelta(exists_{?f : floor} 
+  				       [elevator-at-floor(?f) ^ person-waiting-up(?f) ^ elevator-dir-up]);
+
+  		person-in-elevator-going-down' = 
+  		  	if (person-in-elevator-going-down)
+  			then KronDelta(~exists_{?f : floor} [elevator-at-floor(?f) ^ BOTTOM-FLOOR(?f)])
+  			else KronDelta(exists_{?f : floor} 
+  				       [elevator-at-floor(?f) ^ person-waiting-down(?f) ^ ~elevator-dir-up]);
+
+		elevator-dir-up' = 
+			if(elevator-dir-up)
+			then KronDelta(~change-dir)
+			else KronDelta(change-dir);	 		
+
+		elevator-at-floor'(?f) =
+			if( move-current-dir(?f) )
+			then KronDelta(true)
+			else if( elevator-at-floor(?f) )
+			then KronDelta(~exists_{?f1 : floor} [ move-current-dir(?f1) ] ) 
+			else KronDelta( move-current-dir(?f) );	
+	};
+  
+  	// Reward is a sum of waiting penalties for those in elevators and at floor
+	reward = 
+		([sum_{?f: floor} [4 - person-in-elevator-going-up - person-in-elevator-going-down - person-waiting-up(?f) - person-waiting-down(?f)]])/([sum_{?f : floor} [1]]);
+
+	state-action-constraints {
+		([sum_{?f : floor} [0 + elevator-at-floor(?f)]] == 1);
+	
+		//forall_{?f1 : floor, ?f2 : floor} [ (?f1 == ?f2) => //~move-current-dir(?f1,?f2) ];
+		
+		forall_{?f : floor} [TOP-FLOOR(?f) => ~person-waiting-up(?f)];
+
+		forall_{?f : floor} [BOTTOM-FLOOR(?f) => ~person-waiting-down(?f)];
+	};
+}
+
+
+
