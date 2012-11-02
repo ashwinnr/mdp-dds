@@ -61,12 +61,18 @@ public interface DD<D extends DDNode, DR extends DDRNode<D>,
 	
 	public void showTable(DR input);
 	
-	public DR enumeratePaths(DR input, NodeOperation<DL> op);
+	public DR enumeratePaths(DR input);
 	
-	public boolean compare(DR input1, DR input2, NodeOperation<DL> op);
+	public boolean compare(DR input1, DR input2);
 	
-	public DR doUnaryOp( DR input, NodeOperation<DI> interiorNodeOp, NodeOperation<DL> leafOp );
+	//all operations seem to be defined by 2. node check. 3. recursive calls.
+	//4. merge 5. some operation of leaf and inode
 	
-	public DR doBinaryOp( DR inputA, DR inputB, NodeOperation<DI> interiorNodeOp, NodeOperation<DL> leafOp );
+	//this method must traverse a DD in some order
+	//use recurse? to recurse or not
+	//recursive traverse children
+	//use merge() to get result
+	
+	public DR doUnaryOp( DR input, DDOperation<D,DR,DI,DL,M> leafOp );
 	
 }

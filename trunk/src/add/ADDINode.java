@@ -17,10 +17,13 @@ import dd.DDRNode;
 public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > implements ADDNode, Comparable<ADDINode> {
 
 
+	private int _nNegHash;
+
 	@Override
+	//returns soft reference to itself
 	public MySoftReference<ADDINode> getNullDD() {
 		
-		this.children = new UniPair<ADDRNode>( new ADDRNode(), new ADDRNode() );
+		this.children = new UniPair<ADDRNode>( new ADDRNode(null), new ADDRNode(null) );
 		
 		this.testVariable = "".intern();
 		
@@ -95,5 +98,79 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 		return -1;
 		
 	}
+	
+	public void swapChildren(){
+		hashSet = false;
+		this.children.swap();
+	}
+
+	@Override
+	public void setHashCode(int numb) {
+		_nHashCode = numb;
+		hashSet = true;
+	}
+
+	public int hashCode() {
+		
+		if( hashSet ){
+			return _nHashCode;
+		}
+		
+		int res = HASH_INIT;
+		
+		int h1 = children._o1.hashCode();
+		
+		int h2 = children._o2.hashCode();
+		
+		int h12 = h1*h1, h22 = h2*h2;
+		
+		//m^5 s + m^4 h1^2 + m^3 h1 + m^2 h2^2 + m h2 
+		
+		res = ( res << HASH_SHIFT - res) + h12;
+		
+		res = ( res << HASH_SHIFT - res) + h1;
+		
+		res = ( res << HASH_SHIFT - res ) + h22;
+		
+		res = ( res << HASH_SHIFT - res) + h2;
+		
+		_nHashCode = res;
+		
+		hashSet = true;
+		
+		int negHash = HASH_INIT;
+		
+		negHash = ( negHash << HASH_SHIFT - negHash ) + h22;
+		
+		negHash = ( negHash << HASH_SHIFT - negHash ) + h2;
+		
+		negHash = ( negHash << HASH_SHIFT - negHash ) + h12;
+		
+		negHash = ( negHash << HASH_SHIFT - negHash ) + h1;
+		
+		_nNegHash = negHash;
+		
+		return res;
+		
+	}
+
+	public int getNegatedHashCode() {
+
+		if( !hashSet ){
+			hashCode();
+		}
+
+		return _nNegHash;
+		
+	}
+
+	public ADDRNode getTrueChild() {
+		return this.children._o1;
+	}
+	
+	public ADDRNode getFalseChild(){
+		return this.children._o2;
+	}
+	
 
 }
