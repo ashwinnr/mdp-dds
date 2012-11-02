@@ -1,6 +1,8 @@
 package util;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 
 public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements Collection<K1> {
@@ -65,8 +67,11 @@ public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements 
 		if( _o1 == null && _o2 == null ){
 			
 			for( K1 item : c ){
-				_o1 = ( _o1 == null ) ? item : _o1;
-				_o2 = ( _o2 == null && _o1 != null ) ? item : null;
+				if( _o1 == null && _o2 == null ){
+					_o1 = item;
+				}else if( _o2 == null ){
+					_o2 = item;
+				}
 			}
 			
 		}
@@ -112,15 +117,12 @@ public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements 
 	@Override
 	public Iterator<K1> iterator() {
 		
-		try{
-			throw new UnsupportedOperationException("Unsopprted colelction operation " );
-			
-		}catch( UnsupportedOperationException e ){
-			e.printStackTrace();
-			LOGGER.severe(e.getMessage());
-		}
+		ArrayList<K1> _temp = new ArrayList<K1>();
+		_temp.add(_o1);
+		_temp.add(_o2);
 		
-		return null;
+		return _temp.iterator();
+				
 	}
 
 	@Override
@@ -201,6 +203,16 @@ public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements 
 
 	public boolean isDistinct() {
 		return _o1.equals(_o2);
+	}
+
+	public void swap() {
+
+		K1 temp = _o1;
+		
+		_o1 = _o2;
+		
+		_o2 = temp;
+		
 	}
 
 }

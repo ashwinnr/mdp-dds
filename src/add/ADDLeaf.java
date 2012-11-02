@@ -15,6 +15,7 @@ import dd.DDNode;
 
 public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, Comparable<ADDLeaf> {
 
+	
 	@Override
 	public MySoftReference<ADDLeaf> getNullDD() {
 		
@@ -74,5 +75,6 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 		
 		
 	}
+
 
 }

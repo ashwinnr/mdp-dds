@@ -37,4 +37,5 @@ public interface DDNode{
 		
 		public abstract double getMin();
 		
+		
 }

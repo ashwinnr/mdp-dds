@@ -14,35 +14,26 @@ import add.ADDRNode;
 
 public abstract class DDINode<D extends DDNode, DR extends DDRNode<D>, C extends Collection<DR> > implements DDNode {
 
-	protected static final int HASH_MULTIPLIER = 17;
+	protected static final int HASH_SHIFT = 4;
 
-	protected static final int HASH_INIT = 31;
+	protected static final int HASH_INIT = 29;
 
 	protected String testVariable = null;
 	
 	protected C children = null;
 	
 	//to avoid recursive computation of hashcode
-	protected Integer _nHashCode = null;
+	protected int _nHashCode;
+	
+	protected boolean hashSet = false;
 	
 	protected double _nMax = Double.NaN, _nMin = Double.NaN;
 	
-	@Override
-	public int hashCode() {
-		
-		if( _nHashCode != null ){
-			return _nHashCode;
-		}
-		
-		int res = HASH_INIT;
-		
-		res = HASH_MULTIPLIER*res + children.hashCode();
-		
-		_nHashCode = res;
-		
-		return res;
-		
+	public String getTestVariable() {
+		return testVariable;
 	}
+
+	public abstract int hashCode();
 	
 	@Override
 	public boolean equals(Object obj) {
@@ -64,10 +55,16 @@ public abstract class DDINode<D extends DDNode, DR extends DDRNode<D>, C extends
 
 	@Override
 	public void nullify() {
-		this._nHashCode = null;
+		this._nHashCode = -1;
 		this._nMax = this._nMin = Double.NaN;
 		this.children = null;
 		this.testVariable = null;
+		hashSet = false;
+	}
+	
+	@Override
+	public String toString() {
+		return this.testVariable ;
 	}
 	
 	@Override
@@ -113,6 +110,37 @@ public abstract class DDINode<D extends DDNode, DR extends DDRNode<D>, C extends
 			
 		}
 		
+	}
+	
+	public abstract void setHashCode(int numb);
+	
+	public boolean equalChildren(){
+
+		Iterator<DR> it = children.iterator();
+		
+		DR ex = null;
+		
+		while( it.hasNext() ){
+			
+			if( ex == null ){
+				ex = it.next();
+				continue;
+			}
+			
+			DR thisone = it.next();
+			
+			if( ! ex.equals(thisone) ){
+				return false;
+			}
+			
+		}
+		
+		return true;
+
+	}
+
+	public C getChildren() {
+		return children;
 	}
 	
 }

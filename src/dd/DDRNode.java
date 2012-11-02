@@ -5,6 +5,8 @@ import graph.Graph;
 import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 
+import add.ADDLeaf;
+
 
 /*
  * Reference to a DDNode
@@ -19,13 +21,11 @@ import java.lang.ref.SoftReference;
 
 public abstract class DDRNode<D extends DDNode>{
 	
-	private static int NOT_SIZE = 5;
-
 	private static final int HASH_MULT = 23;
 
 	private static final int HASH_INIT = 51;
 
-	protected  Boolean negated = null;
+	protected  boolean negated = false;
 	
 	protected D theNode = null;
 	
@@ -39,34 +39,17 @@ public abstract class DDRNode<D extends DDNode>{
 		
 	}
 	
-	protected Number _nHash = null;
+	protected int _nHash;
+	
+	protected boolean hashSet = false;
 			
 	//reduces underlying DDNode
 	//then takes care of double negation
 //	protected abstract DDRNode<D> reduce();
 	
-	@Override
-	public int hashCode(){
-		
-		if( _nHash == null ){
-			
-			int res = HASH_INIT;
-			
-			res = theNode.hashCode() + res*HASH_MULT;
-			
-			res = res*HASH_MULT + (negated ? 1 : 0);
-		
-			_nHash = new Integer(res); 
-			
-			return res;
-			
-		}else{
-			
-			return _nHash.intValue();
-			
-		}
-		
-	}
+	public abstract int getComplementedHash();
+	
+	public abstract int hashCode();
 	
 	public String toGraph(Graph g){
 		//call toGraph on node
@@ -74,33 +57,40 @@ public abstract class DDRNode<D extends DDNode>{
 		
 		String root = this.theNode.toGraph(g);
 		
-		if( negated ){
+		String circleNode = ( negated ) ? "not circle to " : "circle to ";
+		circleNode = circleNode + root;
 		
-			String circleNode = "circle to " + root;
-			
-			g.addNode(circleNode, NOT_SIZE);
+		g.addNode(circleNode);
+//		, NOT_SIZE);
+		
+		if( negated ){
 			g.addNodeLabel(circleNode, "!");
-			g.addNodeStyle(circleNode, "diamond");
-			g.addNodeColor(circleNode, "plum");
-			
-			g.addUniLink(circleNode, root, "black", "solid", "");
-			
-			return circleNode;
+//			g.addNodeStyle(circleNode, "diamond");
+//			g.addNodeColor(circleNode, "plum");
 			
 		}else{
-			return root;
+			g.addNodeLabel(circleNode, "");
 		}
 		
+		g.addUniLink(circleNode, root, "black", "solid", "");
+		
+		return circleNode;
+		
+	}
+
+	@Override
+	public String toString() {
+		return ( negated ? "! " : "" ) + theNode.toString();
+				
 	}
 
 	public int getNegatedHashCode(){
 		
-		if( _nHash == null ){
-			_nHash = new Integer( this.hashCode() );
-			
+		if( !hashSet ){
+			this.hashCode();
 		}
 		
-		return ( ( _nHash.intValue() - (negated ? 1 : 0 ) ) / HASH_MULT );
+		return ( ( _nHash - (negated ? 1 : 0 ) ) / HASH_MULT );
 		
 	}
 
@@ -111,7 +101,7 @@ public abstract class DDRNode<D extends DDNode>{
 			
 			DDRNode<D> thing = (DDRNode<D>)obj;
 			
-			return this.negated.equals(this.negated) && this.theNode.equals(thing.theNode);
+			return this.negated == (this.negated) && this.theNode.equals(thing.theNode);
 			
 		}
 		
@@ -124,10 +114,31 @@ public abstract class DDRNode<D extends DDNode>{
 		return theNode;
 	}
 	
-	private DDRNode<D> plugin(final D aNode) {
+	public DDRNode<D> plugin(final D aNode) {
 		negated = false;
 		this.theNode = aNode;
 		return this;
 	}
+	
+	public void negate(){
+
+		
+		if( theNode instanceof ADDLeaf ){
+			System.err.println("warning : negating a leaf.");
+		}
+		
+		this.negated = !this.negated;
+		
+	}
+
+	public boolean isNegated() {
+		return negated;
+	}
+
+	public void setNegated(boolean negated) {
+		this.negated = negated;
+	}
+	
+	
 	
 }
