@@ -21,31 +21,7 @@ public class ADD implements DD<ADDNode, ADDRNode, ADDINode, ADDLeaf, ADDManager>
 		
 	}
 	
-	public static DDOper getComplement( DDOper op ){
-		
-		DDOper ret = null;
-		
-		switch( op ){
-			case ARITH_DIV: ret = DDOper.ARITH_PROD; break;
-			case ARITH_PROD: ret = DDOper.ARITH_DIV; break;
-			case ARITH_MINUS: ret = DDOper.ARITH_PLUS; break;
-			case ARITH_PLUS: ret = DDOper.ARITH_MINUS; break;
-		}
-		
-		return ret;
-		
-	}
 	
-	public static boolean isCommutative(DDOper op){
-		
-		if( op.equals(DDOper.ARITH_DIV) || op.equals(DDOper.ARITH_MINUS) ){
-			return false;
-		}
-		
-		return true;
-		
-	}
-
 	@Override
 	public ADDRNode reduce(ADDRNode input) {
 

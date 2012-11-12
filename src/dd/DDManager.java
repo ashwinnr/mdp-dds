@@ -48,6 +48,6 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public void nullifyDD( final D input );
 	
-	public void flushCaches();
+	public void flushCaches(boolean clearDeadMaps);
 	
 }

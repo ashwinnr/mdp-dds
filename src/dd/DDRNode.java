@@ -21,25 +21,45 @@ import add.ADDLeaf;
 
 public abstract class DDRNode<D extends DDNode>{
 	
-	private static final int HASH_MULT = 23;
-
-	private static final int HASH_INIT = 51;
+//	private static final int HASH_MULT = 23;
+//
+//	private static final int HASH_INIT = 51;
 
 	protected  boolean negated = false;
 	
 	protected D theNode = null;
 	
-	public void makeNegated(){
+	public String getTestVariable() {
 		
-		int negHash = getNegatedHashCode();
+		if( this.theNode instanceof DDINode ){
+			return ((DDINode)this.theNode).getTestVariable();
+		}else{
+			try {
+				throw new Exception("get testvariable called on leaf");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+		}
 		
-		negated = !negated;
-		
-		_nHash = negHash;
+		return null;
 		
 	}
 	
+	
+//	public void makeNegated(){
+//		
+//		int negHash = getNegatedHashCode();
+//		
+//		negated = !negated;
+//		
+//		_nHash = negHash;
+//		
+//	}
+	
 	protected int _nHash;
+	
+	protected int _nNegHash;
 	
 	protected boolean hashSet = false;
 			
@@ -84,15 +104,15 @@ public abstract class DDRNode<D extends DDNode>{
 				
 	}
 
-	public int getNegatedHashCode(){
-		
-		if( !hashSet ){
-			this.hashCode();
-		}
-		
-		return ( ( _nHash - (negated ? 1 : 0 ) ) / HASH_MULT );
-		
-	}
+//	public int getNegatedHashCode(){
+//		
+//		if( !hashSet ){
+//			this.hashCode();
+//		}
+//		
+//		return ( ( _nHash - (negated ? 1 : 0 ) ) / HASH_MULT );
+//		
+//	}
 
 	@Override
 	public boolean equals(Object obj) {
@@ -137,6 +157,11 @@ public abstract class DDRNode<D extends DDNode>{
 
 	public void setNegated(boolean negated) {
 		this.negated = negated;
+	}
+
+	public void nullify() {
+		this.theNode = null;
+		
 	}
 	
 	
