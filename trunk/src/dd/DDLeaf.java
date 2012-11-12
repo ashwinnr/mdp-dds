@@ -13,6 +13,10 @@ import dd.DD.DDOper;
 
 public abstract class DDLeaf<N> implements DDNode {
 
+		public N getLeafValues() {
+			return leafValues;
+		}
+
 		private static int LEAF_SIZE = 5;
 
 		protected N leafValues;

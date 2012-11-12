@@ -44,7 +44,7 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 		
 		this.children.addAll(child);
 		
-		this._nHashCode = hashCode();
+//		this._nHashCode = hashCode();
 		
 		return this;
 	
@@ -116,38 +116,59 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 			return _nHashCode;
 		}
 		
-		int res = HASH_INIT;
+		int res;
 		
 		int h1 = children._o1.hashCode();
 		
 		int h2 = children._o2.hashCode();
 		
-		int h12 = h1*h1, h22 = h2*h2;
+		//alter : just put them in a list
+		ArrayList<Integer> re = new ArrayList<Integer>();
+		re.add(this.testVariable.hashCode());
+		re.add(h1);
+		re.add(h2);
+		re.add( ( children._o1.getNode() instanceof ADDINode ) ? 21 : -11 );
+		re.add( ( children._o2.getNode() instanceof ADDINode ) ? 31 : -5 );
 		
-		//m^5 s + m^4 h1^2 + m^3 h1 + m^2 h2^2 + m h2 
-		
-		res = ( res << HASH_SHIFT - res) + h12;
-		
-		res = ( res << HASH_SHIFT - res) + h1;
-		
-		res = ( res << HASH_SHIFT - res ) + h22;
-		
-		res = ( res << HASH_SHIFT - res) + h2;
+		res = re.hashCode();
 		
 		_nHashCode = res;
 		
 		hashSet = true;
 		
-		int negHash = HASH_INIT;
+		re.clear();
 		
-		negHash = ( negHash << HASH_SHIFT - negHash ) + h22;
+		re.add(this.testVariable.hashCode());
+		re.add(h2);
+		re.add(h1);
+		re.add( ( children._o2.getNode() instanceof ADDINode ) ? 21 : -11 );
+		re.add( ( children._o1.getNode() instanceof ADDINode ) ? 31 : -5 );
 		
-		negHash = ( negHash << HASH_SHIFT - negHash ) + h2;
+		int negHash = re.hashCode();
 		
-		negHash = ( negHash << HASH_SHIFT - negHash ) + h12;
+//		int h12 = h1*h1, h22 = h2*h2;
+//		
+//		//m^5 s + m^4 h1^2 + m^3 h1 + m^2 h2^2 + m h2 
+//		
+//		res = ( res << HASH_SHIFT - res) + h12;
+//		
+//		res = ( res << HASH_SHIFT - res) + h1;
+//		
+//		res = ( res << HASH_SHIFT - res ) + h22;
+//		
+//		res = ( res << HASH_SHIFT - res) + h2;
 		
-		negHash = ( negHash << HASH_SHIFT - negHash ) + h1;
 		
+//				HASH_INIT;
+//		
+//		negHash = ( negHash << HASH_SHIFT - negHash ) + h22;
+//		
+//		negHash = ( negHash << HASH_SHIFT - negHash ) + h2;
+//		
+//		negHash = ( negHash << HASH_SHIFT - negHash ) + h12;
+//		
+//		negHash = ( negHash << HASH_SHIFT - negHash ) + h1;
+//		
 		_nNegHash = negHash;
 		
 		return res;
