@@ -9,7 +9,6 @@ import util.MySoftReference;
 import util.Pair;
 
 import att.grappa.Graph;
-import dd.DD.DDOper;
 import dd.DDLeaf;
 import dd.DDNode;
 

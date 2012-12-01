@@ -1,9 +1,14 @@
 package dd;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import org.apache.commons.collections.map.ReferenceMap;
+
+import util.Pair;
 
 /*
  * interface for DD memory management
@@ -40,7 +45,7 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public void createStore( final int NumDDs  );
 	
-	public void addPermenant( final D input );
+	public void addPermenant( final DR... input );
 	
 	public D getOneNullDD( final boolean leaf );
 	
@@ -49,5 +54,39 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	public void nullifyDD( final D input );
 	
 	public void flushCaches(boolean clearDeadMaps);
+	
+	public DR restrict( final DR input, final String var, final boolean assign );
+	
+	public DR marginalize( final DR input, final String var, final DDMarginalize oper);
+	
+	public enum DDOper{
+		ARITH_PLUS, ARITH_MINUS, ARITH_PROD, ARITH_DIV, ARITH_MAX, ARITH_MIN
+	};
+	
+	public enum DDMarginalize{
+		MARGINALIZE_SUM, MARGINALIZE_MAX
+	};
+	
+	public enum APPROX_TYPE{
+		LOWER, UPPER, AVERAGE, RANGE
+	};
+
+	public DR approximate(DR input, double epsilon, APPROX_TYPE type);
+	
+	public DR remapVars(DR input, Map<String, String> remap); //remaps key.toString() to value.toString()
+	
+	public DR evaluate(DR input, Map<?, Boolean> remap); //evaluates key.toString() to boolean
+	
+	public Set<DR> getNodes(DR input);
+	
+	public Set<DL> getLeaves(DR input);
+	
+	public Set<String> getVars(DR input);
+	
+	public List<Map<String,Boolean>> enumeratePaths(DR input, boolean leaf);
+	
+	public boolean compare(DR input1, DR input2);
+	
+	public DR scalarMultiply( DR input, double scalar );
 	
 }
