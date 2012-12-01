@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 
 import add.ADDLeaf;
-import dd.DD.DDOper;
 
 public abstract class DDLeaf<N> implements DDNode {
 
