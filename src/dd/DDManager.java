@@ -3,10 +3,13 @@ package dd;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.logging.Logger;
 
 import org.apache.commons.collections.map.ReferenceMap;
+
+import add.ADDRNode;
 
 import util.Pair;
 
@@ -83,10 +86,16 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public Set<String> getVars(DR input);
 	
-	public List<Map<String,Boolean>> enumeratePaths(DR input, boolean leaf);
+	public List<NavigableMap<String,Boolean>> enumeratePaths(DR input, boolean leaf);
 	
 	public boolean compare(DR input1, DR input2);
 	
 	public DR scalarMultiply( DR input, double scalar );
+	
+	public void showGraph( final DR... input );
+
+	public boolean removePermenant( final DR... arr);
+
+	NavigableMap<String, Boolean> findFirstOneLeaf(DR input);
 	
 }
