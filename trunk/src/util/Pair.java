@@ -21,7 +21,7 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 	protected static Logger LOGGER = Logger.getLogger(Pair.class.getName());
 
 	public int HASH_SHIFT = 3;
-	public int HASH_INIT = 1;
+	public int HASH_INIT = 13;
 
 	public Pair(K1 o1, K2 o2) {
 		_o1 = o1;
@@ -38,27 +38,22 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 	//sixth degree polynolmial
 		
 		int ret = HASH_INIT;
-		
 		int h1 = _o1.hashCode();
 		int h2 = _o2.hashCode();
-		
-//		System.err.println( "has/h for pair " + this + " " + h1 + " " + h2 );
-		
+
 		ret = ( ( ret << HASH_SHIFT ) - ret ) + h1;
-		
-//		System.err.println(ret);
-		
 		ret = ( ( ret << HASH_SHIFT) - ret ) + h2;
+		int h22 = h2*h2, h12 = h1*h1;
+		ret = ( ( ret << HASH_SHIFT) - ret ) + (h12);
+		ret = ( ( ret << HASH_SHIFT ) - ret ) + (h22);
+		ret = ( ( ret << HASH_SHIFT ) - ret ) + (h12*h1);
+		ret = ( ( ret << HASH_SHIFT ) - ret ) + (h22*h2);
 		
-//		System.err.println(ret);
-		
-		ret = ( ( ret << HASH_SHIFT) - ret ) + ((h1+h2)/2);
-		
-//		System.err.println(ret);
-		//just using average
-		//so (1,4) and (2,3) wil have same leaf
-		
+		System.out.println( "hash for " + this + " " + h1 + " " + h2 + " " + ret );
+
 		return ret;
+//		int ret = (new int[]{h1, h2}).hashCode();
+//		return ret;
 	}
 	
 	@Override

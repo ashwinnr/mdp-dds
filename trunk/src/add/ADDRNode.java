@@ -177,4 +177,12 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		return ( negated ? inode.getFalseChild() : inode.getTrueChild() );
 	}
 
+	public double getMax() {
+		return theNode.getMax();
+	}
+
+	public double getMin() {
+		return theNode.getMin();
+	}
+
 }

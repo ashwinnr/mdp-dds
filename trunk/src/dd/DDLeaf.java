@@ -11,7 +11,8 @@ import java.util.List;
 import add.ADDLeaf;
 
 public abstract class DDLeaf<N> implements DDNode {
-
+	
+		
 		public N getLeafValues() {
 			return leafValues;
 		}
