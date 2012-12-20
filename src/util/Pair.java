@@ -40,16 +40,20 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 		int ret = HASH_INIT;
 		int h1 = _o1.hashCode();
 		int h2 = _o2.hashCode();
-
-		ret = ( ( ret << HASH_SHIFT ) - ret ) + h1;
-		ret = ( ( ret << HASH_SHIFT) - ret ) + h2;
-		int h22 = h2*h2, h12 = h1*h1;
-		ret = ( ( ret << HASH_SHIFT) - ret ) + (h12);
-		ret = ( ( ret << HASH_SHIFT ) - ret ) + (h22);
-		ret = ( ( ret << HASH_SHIFT ) - ret ) + (h12*h1);
-		ret = ( ( ret << HASH_SHIFT ) - ret ) + (h22*h2);
+//		if( h1 == h2 ){
+//			ret = h1;
+//		}else{
+			ret = ( ( ret << HASH_SHIFT ) - ret ) + h1;
+			if( h1 > 0 ){
+				ret = (int) (( ( ret << HASH_SHIFT ) - ret ) + ( h1 > 0 ? Math.log(h1) : 0 ));
+			}
+			ret = ( ( ret << HASH_SHIFT) - ret ) + h2;
+			if( h2 > 0 ){
+				ret = (int) (( ( ret << HASH_SHIFT ) - ret ) + ( h2 > 0 ? Math.log(h2) : 0 ));
+			}
+//		}
 		
-		System.out.println( "hash for " + this + " " + h1 + " " + h2 + " " + ret );
+//		System.out.println( "hash for " + this + " " + h1 + " " + h2 + " " + ret );
 
 		return ret;
 //		int ret = (new int[]{h1, h2}).hashCode();

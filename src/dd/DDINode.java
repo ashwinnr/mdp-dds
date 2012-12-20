@@ -95,12 +95,14 @@ public abstract class DDINode<D extends DDNode, DR extends DDRNode<D>, C extends
 		if( Double.isNaN(_nMax) || Double.isNaN(_nMin) ){
 		
 			Iterator<DR> iter = children.iterator();
-			
+			_nMax = Double.MIN_VALUE;
+			_nMin = Double.MAX_VALUE;
 			while( iter.hasNext() ){
 			
 				DR dr = iter.next();
-				
-				_nMax = Math.max( dr.getNode().getMax(), 
+				double childMax = dr.getNode().getMax();
+//				System.out.println( "child max : " + childMax );
+				_nMax = Math.max( childMax, 
 						_nMax);
 				
 				_nMin = Math.min( dr.getNode().getMin(), 
