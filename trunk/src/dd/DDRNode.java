@@ -46,7 +46,15 @@ public abstract class DDRNode<D extends DDNode>{
 		
 	}
 	
-	
+
+	public double getMax() {
+		return theNode.getMax();
+	}
+
+	public double getMin() {
+		return theNode.getMin();
+	}
+
 //	public void makeNegated(){
 //		
 //		int negHash = getNegatedHashCode();
