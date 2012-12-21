@@ -2944,6 +2944,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return Double.NEGATIVE_INFINITY;
 	}
 
+	public ADDRNode restrict(ADDRNode input,
+			NavigableMap<String, Boolean> assign) {
+		ADDRNode ret = input;
+		for( Map.Entry<String, Boolean> entry : assign.entrySet() ){
+			ret = restrict(ret, entry.getKey(), entry.getValue());
+		}
+		return ret;
+	}
+
 	//	public void clearDeadNodes(){
 	//
 	//		clearUnaryIntegerMap( madeINodes, madeLeaf );

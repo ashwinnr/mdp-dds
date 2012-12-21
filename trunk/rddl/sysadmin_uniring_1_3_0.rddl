@@ -22,5 +22,5 @@ instance sysadmin_uniring_1_3_0 {
 
 	max-nondef-actions = 1;
 	horizon  = 20;
-	discount = 1.0;
+	discount = 0.9;
 }
