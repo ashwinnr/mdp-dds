@@ -29,7 +29,7 @@ instance sysadmin_star_8_1 {
 		running(c8);
 	};
 
-	max-nondef-actions = 1;
+	max-nondef-actions = 6;
 	horizon  = 40;
-	discount = 1.0;
+	discount = 0.9;
 }

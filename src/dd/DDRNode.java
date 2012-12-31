@@ -67,7 +67,7 @@ public abstract class DDRNode<D extends DDNode>{
 	
 	protected int _nHash;
 	
-	protected int _nNegHash;
+//	protected int _nNegHash;
 	
 	protected boolean hashSet = false;
 			
@@ -75,7 +75,7 @@ public abstract class DDRNode<D extends DDNode>{
 	//then takes care of double negation
 //	protected abstract DDRNode<D> reduce();
 	
-	public abstract int getComplementedHash();
+//	public abstract int getComplementedHash();
 	
 	public abstract int hashCode();
 	

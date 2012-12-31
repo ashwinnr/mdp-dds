@@ -3,14 +3,18 @@ package add;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 import dd.DDNode;
 import dd.DDRNode;
 
 public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 
-	private static final int HASH_SHIFT = 3;
-	private static final int HASH_INIT = 19;
-
+//	private static final int HASH_SHIFT = 3;
+//	private static final int HASH_INIT = 19;
+	private static final int HASH_INIT = 23;
+	private static final int HASH_MULT = 11;
+	
 	public <T extends ADDNode> ADDRNode(T theNode) {
 		
 		this.theNode = theNode;
@@ -51,24 +55,27 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		
 		if( !hashSet ){
 			
-			int ret = HASH_INIT;
-					
 			int child = this.theNode.hashCode();
+			HashCodeBuilder hb = new HashCodeBuilder(HASH_INIT, HASH_MULT);
+			_nHash = hb.append(negated).append(child).hashCode();
+//			System.out.println( "RNode hashcode : " + negated + " " + 
+//					theNode + " " + _nHash );
+//			ret = (( ret << HASH_SHIFT ) - ret ) + ( negated ? 1 : 0 );
+//			ret =  (( ret << HASH_SHIFT ) - ret ) + child;
+//			ret =  (( ret << HASH_SHIFT ) - ret ) + child*child;
+//			
+////			int negRet = ret;
+////			ret = child;
+//			ret =  ( ( ret << HASH_SHIFT ) - ret ) + ( negated ? (int)(child*0.13) : (int)(child*2.51) );
+//			
+////			if( negated ){
+////				ret = -ret;
+////			}
 			
-			ret =  (( ret << HASH_SHIFT ) - ret ) + child;
+//			negRet = ( ( negRet << HASH_SHIFT ) - ret ) 
+//					+ ( !negated ? (int)(child*1.5) : (int)(child*0.25) ); 
 			
-			ret =  (( ret << HASH_SHIFT ) - ret ) + child*child;
-			
-			int negRet = ret;
-			
-			ret =  ( ( ret << HASH_SHIFT ) - ret ) + ( negated ? (int)(child*1.5) : (int)(child*0.25) );
-			
-			_nHash = ret;
-			
-			negRet = ( ( negRet << HASH_SHIFT ) - ret ) 
-					+ ( !negated ? (int)(child*1.5) : (int)(child*0.25) ); 
-			
-			_nNegHash = negRet;
+//			_nNegHash = negRet;
 			
 			hashSet = true;
 			
@@ -84,51 +91,48 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		if( obj instanceof ADDRNode ){
 			
 			ADDRNode o = (ADDRNode)obj;
-			
-			if( this.negated == o.negated ){
-				
-				if( this.theNode instanceof ADDLeaf && o.theNode instanceof ADDLeaf ){
-					
-					return ((ADDLeaf)this.theNode).equals( (ADDLeaf)o.theNode );
-					
-				}else if( this.theNode instanceof ADDINode && o.theNode instanceof ADDINode ){
-					
-					return ((ADDINode)this.theNode).hashCode() == ( (ADDINode) o.theNode ).hashCode();
-					
-				}else{
-					return false;
-				}
-				
+			if( this.getMax() != o.getMax() || this.getMin() != o.getMin() ){
+				return false;
 			}
 			
+			if( this.theNode instanceof ADDLeaf && o.theNode instanceof ADDLeaf ){
+				return ((ADDLeaf)this.theNode).equals( (ADDLeaf)o.theNode );
+			}else if( this.theNode instanceof ADDINode && o.theNode instanceof ADDINode ){
+				
+				if( this.negated == o.negated ){
+					return ((ADDINode)this.theNode).equals( ( (ADDINode) o.theNode ) );
+				}else{
+					return ((ADDINode)this.theNode).getNegatedNode().equals(
+							(ADDINode) o.theNode );
+				}
+			}
 			return false;
-			
 		}
 		
 		return false;
 		
 	}
 
-	@Override
-	public int getComplementedHash() {
-
-		return _nNegHash;
-		
-//		if( theNode instanceof ADDLeaf ){
-//			return hashCode();
-//		}else if( theNode instanceof ADDINode ){
-//			
-//			int oldINodeHash = ((ADDINode) theNode).getNegatedHashCode();
-//			
-//			oldINodeHash = ( oldINodeHash << HASH_SHIFT - oldINodeHash ) + ( !negated  ? HASH_ADD : 0 );
-//			
-//			return oldINodeHash;
-//			
-//		}
+//	@Override
+//	public int getComplementedHash() {
+//
+//		return _nNegHash;
 //		
-//		return -1;
-//		
-	}
+////		if( theNode instanceof ADDLeaf ){
+////			return hashCode();
+////		}else if( theNode instanceof ADDINode ){
+////			
+////			int oldINodeHash = ((ADDINode) theNode).getNegatedHashCode();
+////			
+////			oldINodeHash = ( oldINodeHash << HASH_SHIFT - oldINodeHash ) + ( !negated  ? HASH_ADD : 0 );
+////			
+////			return oldINodeHash;
+////			
+////		}
+////		
+////		return -1;
+////		
+//	}
 
 	public ADDRNode getNegatedNode() {
 		
