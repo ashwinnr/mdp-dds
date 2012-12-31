@@ -23,7 +23,8 @@ domain grid_mdp {
 	
 		GOAL(xpos,ypos) : {non-fluent, bool, default = false};
 		
-		robot-at(xpos, ypos) : {state-fluent, bool, default = false};
+		robot-at(xpos) : {state-fluent, bool, default = false};
+		robot-at(ypos) : {state-fluent, bool, default = false};
 		
 		move-north : {action-fluent, bool, default = false};
 		move-south : {action-fluent, bool, default = false};
@@ -33,9 +34,9 @@ domain grid_mdp {
 	
 	cpfs {
 	
-		robot-at'(?x,?y) =
-		
-			if ( GOAL(?x,?y) ^ robot-at(?x,?y)  )
+		robot-at'(?x) =
+			if ( exists_{?y : ypos}
+				[ GOAL(?x,?y) ^ robot-at(?y) ^ robot-at(?x) ] )
 			then 
 				KronDelta(true)
 			else if (( exists_{?x2 : xpos, ?y2 : ypos} [ GOAL(?x2,?y2) ^ robot-at(?x2,?y2)  ] )

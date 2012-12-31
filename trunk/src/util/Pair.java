@@ -13,15 +13,22 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.logging.Logger;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> > 
 		implements Comparable< Pair<K1,K2> >  {
 
+	private static final int HASH_PRIME1 = 31;
+	private static final int HASH_PRIME2 = 53;
+	private static final int HASH_PRIME_DIFF = 27;
+	private static final int HASH_PRIME_SUM = 101;
+	
 	public K1 _o1 = null;
 	public K2 _o2 = null;
 	protected static Logger LOGGER = Logger.getLogger(Pair.class.getName());
 
-	public int HASH_SHIFT = 3;
-	public int HASH_INIT = 13;
+//	public int HASH_SHIFT = 3;
+//	public int HASH_INIT = 13;
 
 	public Pair(K1 o1, K2 o2) {
 		_o1 = o1;
@@ -33,46 +40,80 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 		_o2 = null;
 	}
 
-	@Override
-	public int hashCode() {
-	//sixth degree polynolmial
-		
-		int ret = HASH_INIT;
-		int h1 = _o1.hashCode();
-		int h2 = _o2.hashCode();
-//		if( h1 == h2 ){
-//			ret = h1;
-//		}else{
-			ret = ( ( ret << HASH_SHIFT ) - ret ) + h1;
-			if( h1 > 0 ){
-				ret = (int) (( ( ret << HASH_SHIFT ) - ret ) + ( h1 > 0 ? Math.log(h1) : 0 ));
-			}
-			ret = ( ( ret << HASH_SHIFT) - ret ) + h2;
-			if( h2 > 0 ){
-				ret = (int) (( ( ret << HASH_SHIFT ) - ret ) + ( h2 > 0 ? Math.log(h2) : 0 ));
-			}
-//		}
-		
-//		System.out.println( "hash for " + this + " " + h1 + " " + h2 + " " + ret );
-
-		return ret;
-//		int ret = (new int[]{h1, h2}).hashCode();
+//	@Override
+//	public int hashCode() {
+//	//sixth degree polynolmial
+//		
+//		int ret = HASH_INIT;
+//		int h1 = _o1.hashCode();
+//		int h2 = _o2.hashCode();
+////		if( h1 == h2 ){
+////			ret = h1;
+////		}else{
+//			ret = ( ( ret << HASH_SHIFT ) - ret ) + h1;
+//			if( h1 > 0 ){
+//				ret = (int) (( ( ret << HASH_SHIFT ) - ret ) + ( h1 > 0 ? Math.log(h1) : 0 ));
+//			}
+//			ret = ( ( ret << HASH_SHIFT) - ret ) + h2;
+//			if( h2 > 0 ){
+//				ret = (int) (( ( ret << HASH_SHIFT ) - ret ) + ( h2 > 0 ? Math.log(h2) : 0 ));
+//			}
+////		}
+//		
+////		System.out.println( "hash for " + this + " " + h1 + " " + h2 + " " + ret );
+//
 //		return ret;
-	}
+////		int ret = (new int[]{h1, h2}).hashCode();
+////		return ret;
+//	}
 	
-	@Override
-	public boolean equals(Object thing) {
-		if (thing instanceof Pair) {
-			Pair<K1,K2> p = (Pair<K1,K2>) thing;
-			return (_o1.equals(p._o1) && _o2.equals(p._o2));
-		} else {
-			return false;
-		}
-	}
+//	
+//	@Override
+//	public boolean equals(Object thing) {
+//		if (thing instanceof Pair) {
+//			Pair<K1,K2> p = (Pair<K1,K2>) thing;
+//			return (_o1.equals(p._o1) && _o2.equals(p._o2));
+//		} else {
+//			return false;
+//		}
+//	}
+//
 
 	@Override
 	public String toString() {
 		return "<" + _o1.toString() + ", " + _o2.toString() + ">";
+	}
+
+	@Override
+	public int hashCode() {
+		int h1 = _o1.hashCode();
+		int h2 = _o2.hashCode();
+		int result = new HashCodeBuilder().append( h1+h2 ).
+				append( h2 ).hashCode();
+//		System.out.println( "Pair hashcode: " + " " + this + " " + result );
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Pair other = (Pair) obj;
+		if (_o1 == null) {
+			if (other._o1 != null)
+				return false;
+		} else if (!_o1.equals(other._o1))
+			return false;
+		if (_o2 == null) {
+			if (other._o2 != null)
+				return false;
+		} else if (!_o2.equals(other._o2))
+			return false;
+		return true;
 	}
 
 	public void copy(Pair<K1, K2> leafVals) {

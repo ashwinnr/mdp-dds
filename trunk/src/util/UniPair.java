@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
+import add.ADDRNode;
+
 public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements Collection<K1> {
 
 	public UniPair(K1 o1, K1 o2) {
@@ -213,6 +215,15 @@ public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements 
 		
 		_o2 = temp;
 		
+	}
+
+	public UniPair<K1> getInvertedPair() {
+		return new UniPair<K1>( _o2, _o1 );
+	}
+	
+	@Override
+	public int hashCode() {
+		return super.hashCode();
 	}
 
 }

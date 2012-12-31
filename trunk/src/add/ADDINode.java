@@ -6,6 +6,8 @@ import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 import util.MySoftReference;
 import util.Pair;
 import util.UniPair;
@@ -14,38 +16,35 @@ import dd.DDINode;
 import dd.DDNode;
 import dd.DDRNode;
 
-public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > implements ADDNode, Comparable<ADDINode> {
+public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > 
+	implements ADDNode, Comparable<ADDINode> {
 
 
+//	private static final int HASH_PRIME_CHILD = 29;
+	private static final int HASH_INIT = 17;
+//	private static final int HASH_PRIME_TRUE = 23;
+	private static final int HASH_MULT = 31;
+	private static final int HASH_INIT_NEG = 19;
+	private static final int HASH_MULT_NEG = 29;
 	private int _nNegHash;
 
 	@Override
 	//returns soft reference to itself
 	public MySoftReference<ADDINode> getNullDD() {
-		
 		this.children = new UniPair<ADDRNode>( new ADDRNode(null), new ADDRNode(null) );
-		
 		this.testVariable = "".intern();
-		
 		return new MySoftReference<ADDINode>(this);
-		
 	}
 
 	@Override
 	public ADDINode plugIn(final String testVar, final UniPair< ADDRNode> child) throws Exception {
 
-		if( child.isDistinct() ){
-			throw new Exception("attempt to construct INode with identical children. Not reduced!");
-		}
-		
-		this.testVariable = testVar.intern();
-		
-		this.children.clear();
-		
-		this.children.addAll(child);
-		
+//		if( child.isDistinct() ){
+//			throw new Exception("attempt to construct INode with identical children. Not reduced!");
+//		}
+		this.testVariable = testVar;//.intern();
+		children = child;
 //		this._nHashCode = hashCode();
-		
 		return this;
 	
 	}
@@ -55,7 +54,8 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 
 		String str = "Inode " + hashCode();
 		
-		g.addNodeLabel(str, this.testVariable);
+		g.addNodeLabel(str, this.testVariable + " ( " + 
+				getMin() + ", " + getMax() + ")" );
 		
 		ADDRNode trueNode = children._o1;
 
@@ -68,7 +68,7 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 		String falseGraph = falseNode.toGraph(g);
 		
 		g.addUniLink(str, falseGraph, "black", "dashed", "");
-
+		
 		return str;
 				
 	}
@@ -115,74 +115,31 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 		if( hashSet ){
 			return _nHashCode;
 		}
+
+		int h0 = testVariable.hashCode();
+		int h_true = children._o1.hashCode();
+		int h_false = children._o2.hashCode();
 		
-		int res;
-		
-		int h1 = children._o1.hashCode();
-		
-		int h2 = children._o2.hashCode();
-		
-		//alter : just put them in a list
-		ArrayList<Integer> re = new ArrayList<Integer>();
-		re.add(this.testVariable.hashCode());
-		re.add(h1);
-		re.add(h2);
-		re.add( ( children._o1.getNode() instanceof ADDINode ) ? 21 : -11 );
-		re.add( ( children._o2.getNode() instanceof ADDINode ) ? 31 : -5 );
-		
-		res = re.hashCode();
-		
-		_nHashCode = res;
-		
+		HashCodeBuilder hb = new HashCodeBuilder( HASH_INIT, HASH_MULT );
+		_nHashCode = hb.append(h0).append( h_true + h_false ).append( h_false ).hashCode();
+
+		hb = null;
+		hb = new HashCodeBuilder( HASH_INIT_NEG, HASH_MULT_NEG );
+		_nNegHash = hb.append(h0).append(h_false + h_true ).append(h_true).hashCode();
+
+//		System.out.println( "Inode hashcode : " + this + " " + this.children + 
+//				" " + h0 + " " + h_true + " " + h_false 
+//				+ " " + _nHashCode + " " + _nNegHash );
 		hashSet = true;
-		
-		re.clear();
-		
-		re.add(this.testVariable.hashCode());
-		re.add(h2);
-		re.add(h1);
-		re.add( ( children._o2.getNode() instanceof ADDINode ) ? 21 : -11 );
-		re.add( ( children._o1.getNode() instanceof ADDINode ) ? 31 : -5 );
-		
-		int negHash = re.hashCode();
-		
-//		int h12 = h1*h1, h22 = h2*h2;
-//		
-//		//m^5 s + m^4 h1^2 + m^3 h1 + m^2 h2^2 + m h2 
-//		
-//		res = ( res << HASH_SHIFT - res) + h12;
-//		
-//		res = ( res << HASH_SHIFT - res) + h1;
-//		
-//		res = ( res << HASH_SHIFT - res ) + h22;
-//		
-//		res = ( res << HASH_SHIFT - res) + h2;
-		
-		
-//				HASH_INIT;
-//		
-//		negHash = ( negHash << HASH_SHIFT - negHash ) + h22;
-//		
-//		negHash = ( negHash << HASH_SHIFT - negHash ) + h2;
-//		
-//		negHash = ( negHash << HASH_SHIFT - negHash ) + h12;
-//		
-//		negHash = ( negHash << HASH_SHIFT - negHash ) + h1;
-//		
-		_nNegHash = negHash;
-		
-		return res;
+		return _nHashCode;
 		
 	}
 
 	public int getNegatedHashCode() {
-
 		if( !hashSet ){
 			hashCode();
 		}
-
 		return _nNegHash;
-		
 	}
 
 	public ADDRNode getTrueChild() {
@@ -191,6 +148,24 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> > imp
 	
 	public ADDRNode getFalseChild(){
 		return this.children._o2;
+	}
+
+	public boolean negatedEquals(ADDINode other) {
+		return this.testVariable == other.testVariable && 
+				this.children._o1.equals( other.children._o2 )
+				&& this.children._o2.equals( other.children._o1 );
+	}
+
+	public ADDINode getNegatedNode() {
+		try {
+			ADDINode ret = new ADDINode();
+			ret.plugIn(testVariable, new UniPair<ADDRNode>( children._o2, children._o1 ) );
+			return ret;
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+		return null;
 	}
 	
 

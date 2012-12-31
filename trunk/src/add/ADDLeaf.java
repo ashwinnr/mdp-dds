@@ -50,10 +50,19 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 		}
 		
 		return -1;
-		
-		
 	}
 
-	
+	@Override
+	public int hashCode() {
+		int ret;
+		if( this.leafValues._o1 == Double.NEGATIVE_INFINITY ){
+			ret = -1;
+		}else{
+			ret = super.hashCode();
+		}
+		
+//		System.out.println( "Leaf hashcode : " + this + " " + ret );
+		return ret;
+	}
 
 }
