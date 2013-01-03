@@ -38,9 +38,9 @@ import dd.DDManager;
 
 public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
-	private static FileHandler allHandler;
-
-	private static final String blanky = "".intern();
+//	private static FileHandler allHandler;
+//
+//	private static final String blanky = "".intern();
 
 	private static final double BytesToMB = 1024*1024;
 	private static final boolean LOGGING_ON = false;
@@ -54,19 +54,19 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 
-	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
+//	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
 
 	protected static int STORE_INCREMENT;
 
-	static{
-		try {
-			allHandler = new FileHandler("./log/" + ADDManager.class.getName());
-			LOGGER.addHandler(allHandler);
-		} catch (SecurityException | IOException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-	}
+//	static{
+//		try {
+//			allHandler = new FileHandler("./log/" + ADDManager.class.getName());
+//			LOGGER.addHandler(allHandler);
+//		} catch (SecurityException | IOException e) {
+//			e.printStackTrace();
+//			System.exit(1);
+//		}
+//	}
 
 	public static DDOper getCompliment( DDOper op ){
 
@@ -884,7 +884,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		STORE_INCREMENT = incrDDs;
 
-		LOGGER.addHandler(allHandler);
+//		LOGGER.addHandler(allHandler);
 
 		DD_ZERO = getLeaf(0.0d, 0.0d);
 
@@ -905,7 +905,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	private synchronized void addPair( final ADDRNode a, final ADDRNode b, 
 			final DDOper op, final ADDRNode res ){
 
-			LOGGER.entering(this.getClass().getName(), "add pair");
+//			LOGGER.entering(this.getClass().getName(), "add pair");
 
 			if( applyCache.get(op) == null ){
 				applyCache.put(op, new ConcurrentHashMap< Pair< 
@@ -922,7 +922,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					new MySoftReference<ADDRNode>(b) ), 
 					new MySoftReference<ADDRNode>(res) );
 
-			LOGGER.exiting(this.getClass().getName(), "add pair");
+//			LOGGER.exiting(this.getClass().getName(), "add pair");
 			
 	}
 
@@ -972,14 +972,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	@Override
 	public synchronized void addPermenant(final ADDRNode... input) {
 
-		LOGGER.entering( this.getClass().getName(), "Add permenant");
+//		LOGGER.entering( this.getClass().getName(), "Add permenant");
 
 		for( ADDRNode rnode : input ){
 			boolean ret = permenantNodes.add( rnode );
-			LOGGER.fine(" adding permenant " + input + ". Was not already in set " + ret );
+//			LOGGER.fine(" adding permenant " + input + ". Was not already in set " + ret );
 		}
 		
-		LOGGER.exiting( this.getClass().getName(),  "Add permenant");
+//		LOGGER.exiting( this.getClass().getName(),  "Add permenant");
 
 	}
 	
@@ -1076,7 +1076,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 //		flushCaches(false);
 		
-		LOGGER.entering( this.getClass().getName(), "addtostore" );
+//		LOGGER.entering( this.getClass().getName(), "addtostore" );
 
 		if( leaf ){
 
@@ -1092,7 +1092,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 				}catch(OutOfMemoryError e){
 
-					LOGGER.fine("out of memory error. added " + i + " leaves." );
+//					LOGGER.fine("out of memory error. added " + i + " leaves." );
 					e.printStackTrace();
 					System.exit(1);
 					return;
@@ -1115,7 +1115,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 				}catch(OutOfMemoryError e){
 
-					LOGGER.fine("out of memory error. added " + i + " nodes." );
+//					LOGGER.fine("out of memory error. added " + i + " nodes." );
 					e.printStackTrace();
 					System.exit(1);
 					return;
@@ -1126,8 +1126,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		}
 
-		LOGGER.fine("added " + NumDDs + " leaves: " + leaf + " and nodes: " + node);
-		LOGGER.exiting( this.getClass().getName(), "addtostore" );
+//		LOGGER.fine("added " + NumDDs + " leaves: " + leaf + " and nodes: " + node);
+//		LOGGER.exiting( this.getClass().getName(), "addtostore" );
 
 	}
 
@@ -1734,19 +1734,19 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		this.STORE_INCREMENT = NumDDs;
 
-		LOGGER.setUseParentHandlers(false);
+//		LOGGER.setUseParentHandlers(false);
 
-		allHandler.setFormatter( new SimpleFormatter() );
+//		allHandler.setFormatter( new SimpleFormatter() );
 
 //		consoleHandler.setFormatter( new SimpleFormatter() );
 
-		LOGGER.setLevel(Level.SEVERE);//probably parent will have ALL
+//		LOGGER.setLevel(Level.SEVERE);//probably parent will have ALL
 
-		allHandler.setLevel(Level.ALL);
+//		allHandler.setLevel(Level.ALL);
 
 //		consoleHandler.setLevel(Level.WARNING);
 
-		LOGGER.addHandler(allHandler);
+//		LOGGER.addHandler(allHandler);
 
 //		LOGGER.addHandler(consoleHandler);
 
@@ -1756,7 +1756,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		addToStore(NumDDs, true, true);
 
-		LOGGER.exiting( this.getClass().getName() , "create store");
+//		LOGGER.exiting( this.getClass().getName() , "create store");
 
 	}
 
@@ -2225,7 +2225,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDNode getOneNullDD( boolean leaf ) {
 
 
-		LOGGER.entering( this.getClass().getName(), "getOneNullDD");
+//		LOGGER.entering( this.getClass().getName(), "getOneNullDD");
 
 		ADDNode ret = null;
 
@@ -2237,7 +2237,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( aLeaf == null ){
 				//try adding 
 				try{
-					LOGGER.fine("store has no more leaves. Adding " + STORE_INCREMENT + " leaves ");
+//					LOGGER.fine("store has no more leaves. Adding " + STORE_INCREMENT + " leaves ");
 					if( LOGGING_ON ){
 						memorySummary();
 					}
@@ -2259,8 +2259,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( inode == null ){
 				//try adding
 				try{
-					LOGGER.fine("store has no more nodes. Adding "
-							+ STORE_INCREMENT + " nodes ");
+//					LOGGER.fine("store has no more nodes. Adding "
+//							+ STORE_INCREMENT + " nodes ");
 					addToStore(STORE_INCREMENT, false, true);
 					inode = getFirstRealOne(storeINodes);
 					ret = inode;
@@ -2277,7 +2277,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		}
 
-		LOGGER.exiting(this.getClass().getName(), "getOneNullDD");
+//		LOGGER.exiting(this.getClass().getName(), "getOneNullDD");
 
 		if( ret == null ){
 			System.err.println("getonenulld retruning null...");
@@ -2783,13 +2783,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	@Override
 	public void nullifyDD(ADDNode input) {
 
-		LOGGER.entering( this.getClass().getName(), "nullifyDD");
+//		LOGGER.entering( this.getClass().getName(), "nullifyDD");
 
 		input.nullify();
 
 		input = null;
 
-		LOGGER.exiting( this.getClass().getName(), "nullifyDD");
+//		LOGGER.exiting( this.getClass().getName(), "nullifyDD");
 
 	}
 
