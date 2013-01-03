@@ -5,13 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
-import java.util.logging.Logger;
-
-import org.apache.commons.collections.map.ReferenceMap;
-
-import add.ADDRNode;
-
-import util.Pair;
 
 /*
  * interface for DD memory management
