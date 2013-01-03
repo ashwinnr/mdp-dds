@@ -5,14 +5,6 @@
               directory with the processing instruction <?eclipse.ant.import?>
               as the first entry and export the buildfile again. -->
 <project basedir="." default="build" name="MDP-DDs">
-    <property environment="env"/>
-    <property name="ECLIPSE_HOME" value="../../eclipse"/>
-    <property name="debuglevel" value="source,lines,vars"/>
-    <property name="target" value="1.7"/>
-    <property name="source" value="1.7"/>
-    <path id="apache-commons-colections.userclasspath">
-        <pathelement location="../../MDP-DDs/lib/commons-collections-3.2.1.jar"/>
-    </path>
     <path id="MDP-DDs.classpath">
         <pathelement location="bin"/>
         <pathelement location="lib/grappa1_4.jar"/>
@@ -20,7 +12,6 @@
         <pathelement location="lib/jlex.jar"/>
         <pathelement location="lib/xercesImpl.jar"/>
         <pathelement location="lib/xml-apis.jar"/>
-        <path refid="apache-commons-colections.userclasspath"/>
         <pathelement location="lib/commons-lang3-3.1.jar"/>
     </path>
     <target name="init">
@@ -40,8 +31,7 @@
     <target name="build-subprojects"/>
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
-        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}"
-        	fork="yes" executable="/usr/local/common64/jdk1.7.0_10/bin/javac">
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
             <src path="src"/>
             <classpath refid="MDP-DDs.classpath"/>
         </javac>
@@ -140,22 +130,8 @@
     <target name="MPI Star 8">
         <java classname="mdp.solve.solver.MPI" failonerror="true" fork="yes">
             <jvmarg line="-Xms2g -Xmx2g"/>
-            <arg line="./rddl/sysadmin_mdp.rddl ./rddl/sysadmin_star_8_1.rddl 0.1 4 4"/>
+            <arg line="./rddl/sysadmin_mdp.rddl ./rddl/sysadmin_star_12_1.rddl 0.1 42 true 10 10 10 true"/>
             <classpath refid="MDP-DDs.classpath"/>
         </java>
     </target>
-	<target name="SPUDDFAR" depends="clean, build" description="run SPUDDFAR">
-	  <java classname="SPUDDFAR">
-	    <arg line="${args}"/>
-	  	<jvmarg value="-Xms4g"/>
-	  	<jvmarg value="-Xmx4g"/>
-	  </java>
-	</target>
-	<target name="MPI" depends="clean, build" description="run MPI">
-	  <java classname="MPI">
-	    <arg line="${args}"/>
-	  	<jvmarg value="-Xms4g"/>
-	  	<jvmarg value="-Xmx4g"/>
-	  </java>
-	</target>
 </project>
