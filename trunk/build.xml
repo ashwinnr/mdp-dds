@@ -37,6 +37,7 @@
     <target depends="init" name="build-project">
         <echo message="${ant.project.name}: ${ant.file}"/>
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}"
+        	fork = "yes" 
         	executable="/usr/local/common64/jdk1.7.0_10/bin/javac">
             <src path="src"/>
             <classpath refid="MDP-DDs.classpath"/>
