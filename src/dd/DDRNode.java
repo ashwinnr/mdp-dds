@@ -64,17 +64,10 @@ public abstract class DDRNode<D extends DDNode>{
 //		_nHash = negHash;
 //		
 //	}
-	
-	protected int _nHash;
-	
+//	protected int _nHash;
 //	protected int _nNegHash;
-	
-	protected boolean hashSet = false;
-			
-	//reduces underlying DDNode
-	//then takes care of double negation
+//	protected boolean hashSet = false;
 //	protected abstract DDRNode<D> reduce();
-	
 //	public abstract int getComplementedHash();
 	
 	public abstract int hashCode();
@@ -109,7 +102,6 @@ public abstract class DDRNode<D extends DDNode>{
 	@Override
 	public String toString() {
 		return ( negated ? "! " : "" ) + theNode.toString();
-				
 	}
 
 //	public int getNegatedHashCode(){

@@ -24,9 +24,11 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	private static final int HASH_INIT = 17;
 //	private static final int HASH_PRIME_TRUE = 23;
 	private static final int HASH_MULT = 31;
-	private static final int HASH_INIT_NEG = 19;
-	private static final int HASH_MULT_NEG = 29;
-	private int _nNegHash;
+//	private static final int HASH_INIT_NEG = 19;
+//	private static final int HASH_MULT_NEG = 29;
+//	private int _nNegHash;
+//	private static long INODE_COUNTER = 0;
+//	private long INODE_ID = 0;
 
 	@Override
 	//returns soft reference to itself
@@ -39,10 +41,10 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	@Override
 	public ADDINode plugIn(final String testVar, final UniPair< ADDRNode> child) throws Exception {
 
-//		if( child.isDistinct() ){
-//			throw new Exception("attempt to construct INode with identical children. Not reduced!");
-//		}
-		this.testVariable = testVar;//.intern();
+		if( child.isEqual() ){
+			throw new Exception("attempt to construct INode with identical children. Not reduced!");
+		}
+		this.testVariable = testVar.intern();
 		children = child;
 //		this._nHashCode = hashCode();
 		return this;
@@ -68,6 +70,14 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		String falseGraph = falseNode.toGraph(g);
 		
 		g.addUniLink(str, falseGraph, "black", "dashed", "");
+		
+		if( trueGraph.equals( falseGraph ) ){
+			System.err.println("unreduced DD");
+			System.err.println("Hashcodes " + trueNode.hashCode() + " " 
+					+ falseNode.hashCode() );
+			System.err.println("Equals " + trueNode.equals( falseNode ) );		
+			System.exit(1);
+		}
 		
 		return str;
 				
@@ -99,48 +109,66 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		
 	}
 	
-	public void swapChildren(){
-		hashSet = false;
-		this.children.swap();
-	}
+//	public void swapChildren(){
+//		hashSet = false;
+//		this.children.swap();
+//	}
 
 	@Override
-	public void setHashCode(int numb) {
-		_nHashCode = numb;
-		hashSet = true;
+	public boolean equals(Object obj) {
+		if( obj instanceof ADDINode ){
+			ADDINode thing = (ADDINode)obj;
+			//internalized, so use ==
+			final boolean var_equals = this.testVariable == thing.testVariable;
+			final boolean true_id_equals =
+					getTrueChild().getID() == thing.getTrueChild().getID(); 
+			final boolean false_id_equals =
+					getFalseChild().getID() == thing.getFalseChild().getID();
+//			System.out.println( var_equals + " " + true_id_equals + " " 
+//					+ false_id_equals );
+			return var_equals 
+					&& true_id_equals && false_id_equals;
+		}
+		return false;
 	}
 
 	public int hashCode() {
-		
-		if( hashSet ){
-			return _nHashCode;
-		}
-
-		int h0 = testVariable.hashCode();
-		int h_true = children._o1.hashCode();
-		int h_false = children._o2.hashCode();
-		
 		HashCodeBuilder hb = new HashCodeBuilder( HASH_INIT, HASH_MULT );
-		_nHashCode = hb.append(h0).append( h_true + h_false ).append( h_false ).hashCode();
-
-		hb = null;
-		hb = new HashCodeBuilder( HASH_INIT_NEG, HASH_MULT_NEG );
-		_nNegHash = hb.append(h0).append(h_false + h_true ).append(h_true).hashCode();
-
-//		System.out.println( "Inode hashcode : " + this + " " + this.children + 
-//				" " + h0 + " " + h_true + " " + h_false 
-//				+ " " + _nHashCode + " " + _nNegHash );
-		hashSet = true;
-		return _nHashCode;
+		long true_id = getTrueChild().getID();
+		long false_id = getFalseChild().getID();
+		return hb.append( testVariable ).append( true_id + false_id ).
+			append( false_id ).hashCode();
+		
+//		if( hashSet ){
+//			return _nHashCode;
+//		}
+//
+//		int h0 = testVariable.hashCode();
+//		int h_true = children._o1.hashCode();
+//		int h_false = children._o2.hashCode();
+//		
+//		HashCodeBuilder hb = new HashCodeBuilder( HASH_INIT, HASH_MULT );
+//		_nHashCode = hb.append(h0).append( h_true + h_false ).append( h_false ).hashCode();
+//
+//		hb = null;
+//		hb = new HashCodeBuilder( HASH_INIT_NEG, HASH_MULT_NEG );
+//		_nNegHash = hb.append(h0).append(h_false + h_true ).append(h_true).
+//				append( h_true*h_true ).append( h_false*h_true ).hashCode();
+//
+////		System.out.println( "Inode hashcode : " + this + " " + this.children + 
+////				" " + h0 + " " + h_true + " " + h_false 
+////				+ " " + _nHashCode + " " + _nNegHash );
+//		hashSet = true;
+//		return _nHashCode;
 		
 	}
 
-	public int getNegatedHashCode() {
-		if( !hashSet ){
-			hashCode();
-		}
-		return _nNegHash;
-	}
+//	public int getNegatedHashCode() {
+//		if( !hashSet ){
+//			hashCode();
+//		}
+//		return _nNegHash;
+//	}
 
 	public ADDRNode getTrueChild() {
 		return this.children._o1;
@@ -150,11 +178,11 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		return this.children._o2;
 	}
 
-	public boolean negatedEquals(ADDINode other) {
-		return this.testVariable == other.testVariable && 
-				this.children._o1.equals( other.children._o2 )
-				&& this.children._o2.equals( other.children._o1 );
-	}
+//	public boolean negatedEquals(ADDINode other) {
+//		return this.testVariable == other.testVariable && 
+//				this.children._o1.equals( other.children._o2 )
+//				&& this.children._o2.equals( other.children._o1 );
+//	}
 
 	public ADDINode getNegatedNode() {
 		try {
