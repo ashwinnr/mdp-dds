@@ -620,6 +620,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		System.out.println(inod1);
 
+		ADDRNode inod1_copy = man.getINode("X", leaf, leaf2);
+
+		System.out.println(inod1_copy);
+
 		ADDRNode leaf3 = man.getLeaf( 4.3, 6.5 );
 
 		System.out.println(leaf);
@@ -647,7 +651,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		man.memorySummary();
 
 		man.showGraph(leaf, leaf_copy );
-		man.showGraph(inod1, inod3, inod4);
+		man.showGraph(inod1_copy, inod1, inod3, inod4);
 	}
 
 
@@ -805,7 +809,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	private ConcurrentHashMap<ADDRNode, ADDRNode> _constrainCache;
+	private ConcurrentHashMap< Pair<ADDRNode, ADDRNode>, ADDRNode > _constrainCache;
 
 	protected ArrayList< String > _ordering = null;
 
@@ -1070,7 +1074,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	@Override
 	public synchronized void addToStore(final int NumDDs, final boolean leaf, final boolean node) {
 		
-		flushCaches(false);
+//		flushCaches(false);
 		
 		LOGGER.entering( this.getClass().getName(), "addtostore" );
 
@@ -1447,15 +1451,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 				while( it.hasNext() ){
 					Entry<MySoftReference<U>, MySoftReference<T>> thing = it.next();
-//					MySoftReference<U> key = thing.getKey();
+					MySoftReference<U> key = thing.getKey();
 					MySoftReference<T> value = thing.getValue();
-					if( value == null || value.get() == null ){
+					if( key == null || key.get() == null || 
+							value == null || value.get() == null ){
 						it.remove();
 					}
 				}				
 			}
-		}).start();
-		
+		}, "clearDeadEntries").start();
 	}
 
 	public synchronized void clearDeadNodes( final boolean clearDeadMaps) {
@@ -1506,11 +1510,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 				if( clearDeadMaps ){
 					clearMadeNodes();
-					clearApplyCache();	
+//					clearApplyCache();	
+//					Thread.currentThread()
 				}
 		
 			}
-		}).start();
+		}, "flushcaches").start();
 
 		
 
@@ -1560,7 +1565,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode constrain( ADDRNode rnode, ADDRNode rconstrain, ADDRNode violate ){
 
 		if( _constrainCache == null ){
-			_constrainCache = new ConcurrentHashMap<ADDRNode, ADDRNode>();
+			_constrainCache = new ConcurrentHashMap< 
+					Pair< ADDRNode, ADDRNode >, ADDRNode >();
 		}
 
 		_constrainCache.clear();
@@ -1589,7 +1595,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			System.out.println("leaf was reached in input ADD " + rnode);
 			ret = rnode;
 		}else{
-			ADDRNode lookup = _constrainCache.get( rnode );
+			ADDRNode lookup = _constrainCache.get( new Pair<ADDRNode, ADDRNode>
+				( rnode, rconstrain ) );
 			if( lookup != null ){
 //				System.out.println( " cache hit " + rnode + " " + rconstrain + " =  " + lookup );
 				ret = lookup;
@@ -1602,12 +1609,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					if( isEqualVars(rnode, rconstrain) ){
 //						System.out.println("descend both " + rnode.getTestVariable() 
 //								+ " " + rconstrain.getTestVariable() );
-//						System.out.println( rnode.getTestVariable() + " true " );
 						trueAns = constrainInt(rnode.getTrueChild(), 
 								rconstrain.getTrueChild(), violate);
-//						System.out.println( rnode.getTestVariable() + " false " );
+//						System.out.println( rnode.getTestVariable() + " true " 
+//								+ trueAns );
 						falseAns = constrainInt( rnode.getFalseChild(), 
 								rconstrain.getFalseChild(), violate );
+//						System.out.println( rnode.getTestVariable() + " false " 
+//								+ falseAns );
 						ADDRNode ans = makeINode(rnode.getTestVariable(), trueAns, falseAns);
 						ret = ans;
 					}else{
@@ -1616,35 +1625,36 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 						if( isBefore(rnode, rconstrain) ){//descend on rnode
 //							System.out.println("descend rnode " + rnode.getTestVariable() + " "
 //									+ rconstrain.getTestVariable() );
-//							System.out.println( rnode.getTestVariable() + " true " );
 							trueAns = constrainInt(rnode.getTrueChild(), 
 									rconstrain, violate);
-//							System.out.println( rnode.getTestVariable() + " false " );
+//							System.out.println( rnode.getTestVariable() + " true " 
+//									+ trueAns );
 							falseAns = constrainInt( rnode.getFalseChild(), 
 									rconstrain, violate );
+//							System.out.println( rnode.getTestVariable() + " false " 
+//									+ falseAns );
 							ADDRNode ans = makeINode(rnode.getTestVariable(), trueAns, falseAns);
 							ret = ans;
 						}else{
 							//descend on rconstrain
 							//here is the approximation
-							//i will always descend on false brach of constrain
-							//this aboid adding the constrain variable
 							
 							//i want to apply only those constraints that are common to 
 							//both branches
-							//1. take sub-bdds... multiple (1-subbdds)
+							//1. take sub-bdds... multiply (1-subbdds)
 							//will have 1 in common constraints
 							//do 1-that to get common constraints
 							//presuming that the constraint is compact
 							//multiplying the subdds is ok
-//							System.out.println(" getting common constraints " + rnode.getTestVariable() 
+//							System.out.println(" getting common constraints " 
+//									+ rnode.getTestVariable() 
 //									+ " " + rconstrain.getTestVariable() );
 							ADDRNode common = getCommonConstraints( rconstrain );
 							ADDRNode ans = constrainInt( rnode, common, violate);
 							ret = ans;
 						}
 					}
-					_constrainCache.put( rnode, ret );
+					_constrainCache.put( new Pair<ADDRNode, ADDRNode>(rnode, rconstrain), ret );
 				}else{
 					try{
 						throw new Exception("should not be here");
@@ -1879,8 +1889,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	@Override
 	public void flushCaches(boolean clearDeadMaps) {
-		System.out.println( "Flushing : " + applyHit );
-		applyHit = 0;
+//		System.out.println( "Flushing : " + applyHit );
+//		applyHit = 0;
 		this._tempCache.clear();
 		applyCache.clear();
 		reduceCache.clear();
@@ -2311,17 +2321,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					//using the reference queue is important here
 					//because cleardeadnodes uses this function
 					//with create = false
-					lookin.put( getSoftRef(inode), 
-							new MySoftReference<ADDRNode>(looked, deletedNodes) );
 				}else if( looked != null ){
 					// negated node exists in memory
 					// return with a not sign
 					//if create=false and looked=null
-					if( looked != null ){
-						looked = looked.getNegatedNode();					
-					}
+					looked = looked.getNegatedNode();
 				}
 			}
+			lookin.put( getSoftRef(inode), 
+					new MySoftReference<ADDRNode>(looked, deletedNodes) );
 			
 			//sanity - difference should be zero
 //			if( ( !looked.isNegated() && !looked.getNode().equals( inode ) ) 
@@ -2349,15 +2357,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 			}
 			
-			if(! looked.getNode().equals(leaf) ){
-				try {
-					throw new Exception("bad leaf. wanted " + leaf + " got "
-							+ looked + " \n " + leaf.hashCode() + " " + looked.getNode().hashCode() );
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if(! looked.getNode().equals(leaf) ){
+//				try {
+//					throw new Exception("bad leaf. wanted " + leaf + " got "
+//							+ looked + " \n " + leaf.hashCode() + " " + looked.getNode().hashCode() );
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 
 		}
 
@@ -2524,7 +2532,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			e.printStackTrace();
 			System.exit(1);
 		}
-
+		inode.updateMinMax();
 		ADDRNode ret = getRNode(inode, true);
 
 		return ret;

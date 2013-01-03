@@ -89,31 +89,28 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 		int h1 = _o1.hashCode();
 		int h2 = _o2.hashCode();
 		int result = new HashCodeBuilder().append( h1+h2 ).
-				append( h2 ).hashCode();
+				append( h2 ).append( h1*h1 ).append( h1*h2 ).hashCode();
 //		System.out.println( "Pair hashcode: " + " " + this + " " + result );
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if( obj instanceof Pair ){
+			Pair other = (Pair) obj;
+			if (_o1 == null) {
+				if (other._o1 != null)
+					return false;
+			} else if (!_o1.equals(other._o1))
+				return false;
+			if (_o2 == null) {
+				if (other._o2 != null)
+					return false;
+			} else if (!_o2.equals(other._o2))
+				return false;
 			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		Pair other = (Pair) obj;
-		if (_o1 == null) {
-			if (other._o1 != null)
-				return false;
-		} else if (!_o1.equals(other._o1))
-			return false;
-		if (_o2 == null) {
-			if (other._o2 != null)
-				return false;
-		} else if (!_o2.equals(other._o2))
-			return false;
-		return true;
+		}
+		return false;
 	}
 
 	public void copy(Pair<K1, K2> leafVals) {

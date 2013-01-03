@@ -1,18 +1,18 @@
 non-fluents nf_sysadmin_uniring_1_3_0 {
 	domain = sysadmin_mdp_same;
 	objects {
-		computer : {c1,c2,c3,c4};//, c3, c4};
+		computer : {c1,c2};//,c4};//, c3, c4};
 	};
 	non-fluents {
 		REBOOT-PROB = 0.05;
 		CONNECTED(c1,c2);
-		CONNECTED(c2,c3);
-		CONNECTED(c3,c1);
+		CONNECTED(c2,c1);
+		//CONNECTED(c3,c1);
 		//CONNECTED(c4,c1);
 		//CONNECTED(c3, c4);
 		//CONNECTED(c4, c1);
-		//SAME(c1, c2);
-		//SAME(c2, c1);
+		SAME(c1, c2);
+		SAME(c2, c1);
 		//SAME(c3, c1);
 	};
 }
@@ -23,10 +23,10 @@ instance sysadmin_uniring_1_3_0 {
 	init-state {
 		running(c1);
 		running(c2);
-		running(c3);
+		//running(c3);
 	};
 
-	max-nondef-actions = 1;
+	max-nondef-actions = 2;
 	horizon  = 20;
 	discount = 0.9;
 }

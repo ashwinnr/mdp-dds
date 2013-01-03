@@ -148,7 +148,7 @@ public class ADDDecisionTheoreticRegression implements
 							 RDDLFactoredActionSpace>(action);
 				q_map.put( thisAction, this_q );
 			}
-//			_manager.flushCaches(false);
+			_manager.flushCaches(false);
 		}
 		
 		return new UnorderedPair<ADDValueFunction, ADDPolicy>( 
@@ -328,7 +328,7 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
-//		_manager.flushCaches(false);
+		_manager.flushCaches( false );
 		
 		return ret;
 	}
@@ -410,7 +410,7 @@ public class ADDDecisionTheoreticRegression implements
 			}
 			ret = added_rew_constrained;
 		}		
-//		_manager.flushCaches(false);
+		_manager.flushCaches( false );
 		
 		return ret;
 	}
@@ -421,12 +421,15 @@ public class ADDDecisionTheoreticRegression implements
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
 		addConstraint( policy );
 		ret = regress(initial_value_func, withActionVars, false, false);
-		removeConstraint( policy );
+		if( !removeConstraint( policy ) ){
+			System.err.println("policy constraint not found");
+			System.exit(1);
+		}
 		return ret._o1._valueFn;
 	}
 
-	private void removeConstraint( final ADDRNode input ) {
-		_constraints.remove( input );
+	private boolean removeConstraint( final ADDRNode input ) {
+		return _constraints.remove( input );
 	}
 
 	private int addConstraint(ADDRNode policy) {
@@ -444,7 +447,9 @@ public class ADDDecisionTheoreticRegression implements
 		
 		while( steps++ < nSteps && error > epsilon ){
 			new_value_func = regressPolicy(value_func, policy, withActionVars);
-			System.out.println( getBellmanError(new_value_func, value_func) );
+			error = getBellmanError(new_value_func, value_func);
+			System.out.println( "Policy evaluation " + steps + " " +
+					error );
 			value_func = new_value_func;
 		}
 		return value_func;

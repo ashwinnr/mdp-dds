@@ -203,7 +203,7 @@ public class UniPair<K1 extends Comparable<K1> > extends Pair<K1,K1> implements 
 		return null;
 	}
 
-	public boolean isDistinct() {
+	public boolean isEqual() {
 		return _o1.equals(_o2);
 	}
 
