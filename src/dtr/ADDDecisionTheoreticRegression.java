@@ -302,10 +302,14 @@ public class ADDDecisionTheoreticRegression implements
 		
 		ADDRNode ret = input;
 		ADDRNode mult = _manager.apply(ret, this_cpt, DDOper.ARITH_PROD);
+		_manager.flushCaches( false );
 		ADDRNode mult_constrained = applyMDPConstraints(mult, action, _manager.DD_ZERO);
+		_manager.flushCaches( false );
 		
 		ADDRNode summed = _manager.marginalize(mult_constrained, str, DDMarginalize.MARGINALIZE_SUM);
+		_manager.flushCaches( false );
 		ADDRNode summed_constrained = applyMDPConstraints(summed, null, _manager.DD_NEG_INF);
+		_manager.flushCaches( false );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("showing diagrams");
@@ -327,8 +331,6 @@ public class ADDDecisionTheoreticRegression implements
 				System.exit(1);
 			}
 		}
-		
-		_manager.flushCaches( false );
 		
 		return ret;
 	}
@@ -409,8 +411,8 @@ public class ADDDecisionTheoreticRegression implements
 				_manager.showGraph( ret, this_reward, added_rew, added_rew_constrained );
 			}
 			ret = added_rew_constrained;
+			_manager.flushCaches( false );
 		}		
-		_manager.flushCaches( false );
 		
 		return ret;
 	}

@@ -4,7 +4,8 @@ import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 
 
-public class MySoftReference< T extends Comparable<T> > extends SoftReference<T> implements Comparable< MySoftReference<T> > {
+public class MySoftReference< T extends Comparable<T> > extends SoftReference<T> 
+		implements Comparable< MySoftReference<T> > {
 
 	public MySoftReference(T referent) {
 		super(referent);
