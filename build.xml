@@ -29,9 +29,6 @@
             <fileset dir="src">
                 <exclude name="**/*.launch"/>
                 <exclude name="**/*.java"/>
-                <exclude name="add/ADDReduceOper.java"/>
-                <exclude name="add/PrintADDOper.java"/>
-                <exclude name="mdp/simulate/"/>
             </fileset>
         </copy>
     </target>
@@ -46,9 +43,6 @@
         <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}"
         	fork="yes" executable="/usr/local/common64/jdk1.7.0_10/bin/javac">
             <src path="src"/>
-            <exclude name="add/ADDReduceOper.java"/>
-            <exclude name="add/PrintADDOper.java"/>
-            <exclude name="mdp/simulate/"/>
             <classpath refid="MDP-DDs.classpath"/>
         </javac>
     </target>
