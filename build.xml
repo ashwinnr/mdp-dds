@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- WARNING: Eclipse auto-generated file.
+              Any modifications will be overwritten.
+              To include a user specific buildfile here, simply create one in the same
+              directory with the processing instruction <?eclipse.ant.import?>
+              as the first entry and export the buildfile again. -->
+<project basedir="." default="build" name="MDP-DDs">
+    <property environment="env"/>
+    <property name="ECLIPSE_HOME" value="../../eclipse"/>
+    <property name="debuglevel" value="source,lines,vars"/>
+    <property name="target" value="1.7"/>
+    <property name="source" value="1.7"/>
+    <path id="apache-commons-colections.userclasspath">
+        <pathelement location="../../MDP-DDs/lib/commons-collections-3.2.1.jar"/>
+    </path>
+    <path id="MDP-DDs.classpath">
+        <pathelement location="bin"/>
+        <pathelement location="lib/grappa1_4.jar"/>
+        <pathelement location="lib/java_cup.jar"/>
+        <pathelement location="lib/jlex.jar"/>
+        <pathelement location="lib/xercesImpl.jar"/>
+        <pathelement location="lib/xml-apis.jar"/>
+        <path refid="apache-commons-colections.userclasspath"/>
+        <pathelement location="lib/commons-lang3-3.1.jar"/>
+    </path>
+    <target name="init">
+        <mkdir dir="bin"/>
+        <copy includeemptydirs="false" todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.launch"/>
+                <exclude name="**/*.java"/>
+                <exclude name="add/ADDReduceOper.java"/>
+                <exclude name="add/PrintADDOper.java"/>
+                <exclude name="mdp/simulate/"/>
+            </fileset>
+        </copy>
+    </target>
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+    <target depends="clean" name="cleanall"/>
+    <target depends="build-subprojects,build-project" name="build"/>
+    <target name="build-subprojects"/>
+    <target depends="init" name="build-project">
+        <echo message="${ant.project.name}: ${ant.file}"/>
+        <javac debug="true" debuglevel="${debuglevel}" destdir="bin" source="${source}" target="${target}">
+            <src path="src"/>
+            <exclude name="add/ADDReduceOper.java"/>
+            <exclude name="add/PrintADDOper.java"/>
+            <exclude name="mdp/simulate/"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </javac>
+    </target>
+    <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
+    <target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
+        <copy todir="${ant.library.dir}">
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </copy>
+        <unzip dest="${ant.library.dir}">
+            <patternset includes="jdtCompilerAdapter.jar"/>
+            <fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar"/>
+        </unzip>
+    </target>
+    <target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
+        <property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter"/>
+        <antcall target="build"/>
+    </target>
+    <target name="ADDDecisionTheoreticRegression">
+        <java classname="dtr.ADDDecisionTheoreticRegression" failonerror="true" fork="yes">
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="ADDManager">
+        <java classname="add.ADDManager" failonerror="true" fork="yes">
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="ADDReduceOper">
+        <java classname="add.ADDReduceOper" failonerror="true" fork="yes">
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="FAR (1)">
+        <java classname="mdp.solve.solver.FAR" failonerror="true" fork="yes">
+            <arg line="./rddl/sysadmin_mdp_same.rddl ./rddl/sysadmin_uniring_1_3_0.rddl 0.1 4 4"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="MPI small">
+        <java classname="mdp.solve.solver.MPI" failonerror="true" fork="yes">
+            <arg line="./rddl/sysadmin_mdp_same.rddl ./rddl/sysadmin_uniring_1_3_0.rddl 0.1 42 true 10 10 10 true"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="RDDL Elev">
+        <java classname="rddl.mdp.RDDL2ADD" failonerror="true" fork="yes">
+            <arg line="./rddl/elevators_mdp.rddl ./rddl/elevators_5_3.rddl"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="RDDL star">
+        <java classname="rddl.mdp.RDDL2ADD" failonerror="true" fork="yes">
+            <arg line="./rddl/sysadmin_mdp.rddl ./rddl/sysadmin_star_40_6.rddl 0.1 4 4"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="RDDL2ADD IC">
+        <java classname="rddl.mdp.RDDL2ADD" failonerror="true" fork="yes">
+            <arg line="./rddl/inventory_control_combined_mdp.rddl ./rddl/inventory_control_combined_inst_mdp_40_1.rddl"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="RDDL2ADD">
+        <java classname="rddl.mdp.RDDL2ADD" failonerror="true" fork="yes">
+            <arg line="./rddl/sysadmin_mdp_same.rddl ./rddl/sysadmin_uniring_1_3_0.rddl 0.1 4 4"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="SPUDDFAR small">
+        <java classname="mdp.solve.solver.SPUDDFAR" failonerror="true" fork="yes">
+            <arg line="./rddl/sysadmin_mdp_same.rddl ./rddl/sysadmin_uniring_1_3_0.rddl 0.1 42 true 10 10 true"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="SPUDDFAR Star 8 1">
+        <java classname="mdp.solve.solver.SPUDDFAR" failonerror="true" fork="yes">
+            <jvmarg line="-Xms2g -Xmx2g"/>
+            <arg line="./rddl/sysadmin_mdp.rddl ./rddl/sysadmin_star_8_1.rddl 0.1 4 4"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="SPUDDFAR(2)">
+        <java classname="mdp.solve.solver.SPUDDFAR" failonerror="true" fork="yes">
+            <jvmarg line="-Xms2g -Xmx2g"/>
+            <arg line="./rddl/sysadmin_mdp.rddl ./rddl/sysadmin_star_1_6.rddl 0.1 4 4"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="testClearNodes">
+        <java classname="add.ADDManager" failonerror="true" fork="yes">
+            <jvmarg line="-Xmx2g -Xms2g"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+    <target name="MPI Star 8">
+        <java classname="mdp.solve.solver.MPI" failonerror="true" fork="yes">
+            <jvmarg line="-Xms2g -Xmx2g"/>
+            <arg line="./rddl/sysadmin_mdp.rddl ./rddl/sysadmin_star_8_1.rddl 0.1 4 4"/>
+            <classpath refid="MDP-DDs.classpath"/>
+        </java>
+    </target>
+	<target name="SPUDDFAR" depends="clean, build" description="run SPUDDFAR">
+	  <java classname="SPUDDFAR">
+	    <arg line="${args}"/>
+	  	<jvmarg value="-Xms4g"/>
+	  	<jvmarg value="-Xmx4g"/>
+	  </java>
+	</target>
+	<target name="MPI" depends="clean, build" description="run MPI">
+	  <java classname="MPI">
+	    <arg line="${args}"/>
+	  	<jvmarg value="-Xms4g"/>
+	  	<jvmarg value="-Xmx4g"/>
+	  </java>
+	</target>
+</project>
