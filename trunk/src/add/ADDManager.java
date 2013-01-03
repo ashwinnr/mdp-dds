@@ -46,7 +46,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	private static final boolean LOGGING_ON = false;
 //	private final static ConsoleHandler consoleHandler = new ConsoleHandler();
 
-	private static ReferenceQueue<ADDRNode> deletedNodes = new ReferenceQueue<ADDRNode>();
+	private static ReferenceQueue<ADDRNode> deletedRNodes = new ReferenceQueue<ADDRNode>();
+	private static ReferenceQueue<ADDINode> deletedINodes = new ReferenceQueue<ADDINode>();
+	private static ReferenceQueue<ADDLeaf> deletedLeafNodes = new ReferenceQueue<ADDLeaf>();
 
 	//all nodes - soft references - cache has to be cleaned up from reference queue
 	//keep nodes around as long as possible
@@ -314,108 +316,108 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	testgetInode
 	//	
 
-	public static void testClearDeadNodes(int num_nodes ){
-
-		ArrayList<String> ord = new ArrayList<String>();
-
-		for( char ch = 'A'; ch <= 'Z'; ++ch ){
-			ord.add(ch+"");
-			ord.add( Character.toLowerCase(ch) + "" );
-		}
-
-		System.out.println( ord );
-
-		ADDManager man = new ADDManager(100, 100, ord);
-
-		ADDRNode old_leaf = man.getLeaf(0.0d , 0.0d);
-		ADDRNode old_inode = null;
-
-		int i = 0;
-
-		ArrayList<ADDRNode> leaf_list = new ArrayList<ADDRNode>();
-
-		ArrayList<ADDRNode> inode_list = new ArrayList<ADDRNode>();
-
-		for( String chr : ord ){
-
-			ADDRNode leaf = man.getLeaf(i+1.32, i+5.34);
-
-			ADDRNode inode = null;
-
-			if( old_inode == null ){
-				inode = man.getINode(chr+"", leaf, old_leaf);	
-			}else{
-				inode = man.getINode(chr+"", leaf, old_inode);
-			}
-
-
-			leaf_list.add(leaf);
-
-			//			man.showGraph(leaf, inode );
-			//				
-			//			if( old_inode != null ){
-			//				man.showGraph(old_inode);
-			//			}
-
-			inode_list.add(inode);
-
-			double memory = man.getMemoryPercent();
-
-			man.memorySummary();
-
-			man.makeSureNoNull();
-
-			if( memory > 0.8 ){
-				break;
-			}
-
-			old_inode = inode;
-
-			++i;
-
-			System.out.println(chr);
-
-		}
-
-		//		System.out.println(leaf_list);
-
-		man.memorySummary();
-
-		man.clearDeadNodes(true);
-
-		man.memorySummary();
-
-		int deleted = 0;
-
-		for( ADDRNode rnode : leaf_list ){
-			if( man.nullify(rnode) ){
-				++deleted;
-			}
-
-		}
-
-		for( ADDRNode rnode : inode_list ){
-			if( man.nullify(rnode) ){
-				++deleted;
-			}
-		}
-
-		//		System.err.println( "deleted through nullify " + deleted );
-
-		try {
-			System.gc();
-			Thread.sleep(10000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-
-		man.clearDeadNodes(true);
-
-		man.memorySummary();
-
-		man.memorySummary();
-
-	}
+//	public static void testClearDeadNodes(int num_nodes ){
+//
+//		ArrayList<String> ord = new ArrayList<String>();
+//
+//		for( char ch = 'A'; ch <= 'Z'; ++ch ){
+//			ord.add(ch+"");
+//			ord.add( Character.toLowerCase(ch) + "" );
+//		}
+//
+//		System.out.println( ord );
+//
+//		ADDManager man = new ADDManager(100, 100, ord);
+//
+//		ADDRNode old_leaf = man.getLeaf(0.0d , 0.0d);
+//		ADDRNode old_inode = null;
+//
+//		int i = 0;
+//
+//		ArrayList<ADDRNode> leaf_list = new ArrayList<ADDRNode>();
+//
+//		ArrayList<ADDRNode> inode_list = new ArrayList<ADDRNode>();
+//
+//		for( String chr : ord ){
+//
+//			ADDRNode leaf = man.getLeaf(i+1.32, i+5.34);
+//
+//			ADDRNode inode = null;
+//
+//			if( old_inode == null ){
+//				inode = man.getINode(chr+"", leaf, old_leaf);	
+//			}else{
+//				inode = man.getINode(chr+"", leaf, old_inode);
+//			}
+//
+//
+//			leaf_list.add(leaf);
+//
+//			//			man.showGraph(leaf, inode );
+//			//				
+//			//			if( old_inode != null ){
+//			//				man.showGraph(old_inode);
+//			//			}
+//
+//			inode_list.add(inode);
+//
+//			double memory = man.getMemoryPercent();
+//
+//			man.memorySummary();
+//
+//			man.makeSureNoNull();
+//
+//			if( memory > 0.8 ){
+//				break;
+//			}
+//
+//			old_inode = inode;
+//
+//			++i;
+//
+//			System.out.println(chr);
+//
+//		}
+//
+//		//		System.out.println(leaf_list);
+//
+//		man.memorySummary();
+//
+//		man.clearDeadNodes(true);
+//
+//		man.memorySummary();
+//
+//		int deleted = 0;
+//
+//		for( ADDRNode rnode : leaf_list ){
+//			if( man.nullify(rnode) ){
+//				++deleted;
+//			}
+//
+//		}
+//
+//		for( ADDRNode rnode : inode_list ){
+//			if( man.nullify(rnode) ){
+//				++deleted;
+//			}
+//		}
+//
+//		//		System.err.println( "deleted through nullify " + deleted );
+//
+//		try {
+//			System.gc();
+//			Thread.sleep(10000);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//
+//		man.clearDeadNodes(true);
+//
+//		man.memorySummary();
+//
+//		man.memorySummary();
+//
+//	}
 
 	public static void testConstrain() {
 
@@ -867,9 +869,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	//we will be reducing only INodes 
 	//using RNodes here just to deal with negated edges
-	protected ConcurrentHashMap< MySoftReference< ADDRNode >, MySoftReference< ADDRNode > > reduceCache = 
-			new ConcurrentHashMap<
-			MySoftReference< ADDRNode >, MySoftReference< ADDRNode > >();
+//	protected ConcurrentHashMap< MySoftReference< ADDRNode >, MySoftReference< ADDRNode > > reduceCache = 
+//			new ConcurrentHashMap<
+//			MySoftReference< ADDRNode >, MySoftReference< ADDRNode > >();
 
 	//store of null nodes
 	protected ConcurrentLinkedQueue< MySoftReference<ADDINode> > storeINodes 
@@ -1133,7 +1135,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	private synchronized void addToTempCache(ADDRNode in, ADDRNode ret) {
 
-		_tempCache.put( getSoftRef(in), getSoftRef(ret) );
+		_tempCache.put( getSoftRef(in, deletedRNodes), 
+				getSoftRef(ret, deletedRNodes) );
 
 	}
 
@@ -1468,57 +1471,83 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//get the object in it
 		//remove it from madeINodes or madeLeafs
 		//by using nullify()
+		removeDeadEntries( deletedLeafNodes );
+		removeDeadEntries( deletedINodes );
+		removeDeadEntries( deletedRNodes );
+		if( clearDeadMaps ){
+			clearMadeNodes();
+//			clearApplyCache();	
+//			Thread.currentThread()
+		}
+	}
+
+	private <T> void removeDeadEntries(final ReferenceQueue<T> ref_q) {
+
 		new Thread( new Runnable() {
 			
 			@Override
 			public void run() {
-				Reference<? extends ADDRNode> item;
-
+				Reference<? extends T> item;
 				int total = 0, deleted = 0;
 
-				while( (item = deletedNodes.poll()) != null ){
+				while( (item = ref_q.poll()) != null ){
 
-					ADDRNode rnode = item.get();
+					T entry = item.get();
 
-					if(  rnode != null  ){
-
-						if( !permenantNodes.contains(rnode) ){
-
-							ADDNode node = rnode.getNode();
-
-							if( node instanceof ADDINode ){
-
-								//note : made the change to madeINodes to a bucket map ordered by test variable
-								//so do that here as well
-								//also look if permenant first, perhaps?
-								ADDINode inode = (ADDINode)node;
-								ConcurrentHashMap<MySoftReference<ADDINode>, 
-									MySoftReference<ADDRNode>> innerMap 
-								= madeINodes.get( inode.getTestVariable() );
-								removeMap( inode, innerMap );
-
-							}else if( node instanceof ADDLeaf ){
-								removeMap( (ADDLeaf)node, madeLeaf );
+					if(  entry != null  ){
+						if( entry instanceof ADDLeaf ){
+							ADDLeaf leaf = (ADDLeaf)entry;
+							removeMap(new MySoftReference<ADDLeaf>(leaf), madeLeaf );
+							leaf.nullify();
+							leaf = null;
+						}else if( entry instanceof ADDINode ){
+							ADDINode inode = (ADDINode)entry;
+							removeMap( new MySoftReference<ADDINode>(inode), 
+									madeINodes.get(inode.getTestVariable() ) );
+							inode.nullify();
+							inode = null;
+						}else if( entry instanceof ADDRNode ){
+							ADDRNode rnode = (ADDRNode)entry;
+							if( !permenantNodes.contains(rnode) ){
+								ADDNode node = rnode.getNode();
+								if( node instanceof ADDINode ){
+									ADDINode inode = (ADDINode)node;
+									ConcurrentHashMap<MySoftReference<ADDINode>, 
+										MySoftReference<ADDRNode>> innerMap 
+									= madeINodes.get( inode.getTestVariable() );
+									removeMap( new MySoftReference<ADDINode>(inode), 
+											innerMap );
+									inode.nullify();
+									inode = null;
+								}else if( node instanceof ADDLeaf ){
+									ADDLeaf leaf = (ADDLeaf)node;
+									removeMap( new MySoftReference<ADDLeaf>(
+											leaf),
+											madeLeaf );
+									leaf.nullify();
+									leaf = null;
+								}
+								++deleted;
 							}
-							++deleted;
+	
+						}else{
+							try{
+								throw new Exception("whut whut!");
+							}catch( Exception e ){
+								e.printStackTrace();
+								System.exit(1);
+							}
 						}
+						entry = null;
 					}
 					++total;
 				}
 
-				//		System.err.println( "Total: " + total + " Deleted : " + deleted );
+//				System.err.println( "Total: " + total + " Deleted : " + deleted );
 
-				if( clearDeadMaps ){
-					clearMadeNodes();
-//					clearApplyCache();	
-//					Thread.currentThread()
-				}
 		
 			}
-		}, "flushcaches").start();
-
-		
-
+		}, "flushcaches").start();		
 	}
 
 	private synchronized void clearMadeNodes() {
@@ -1892,14 +1921,64 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
 		this._tempCache.clear();
+//		cacheSummary();
+		double mem_percent = getMemoryPercent();
+//		System.out.println( mem_percent );
 		applyCache.clear();
-		reduceCache.clear();
-		clearDeadNodes(clearDeadMaps);
-
+		applyHit = 0;
+		if( mem_percent > 0.9d ){
+			System.out.println("Low on memory, flushing caches and nodes");
+//			reduceCache.clear();
+//			clearDeadNodes(clearDeadMaps);
+			madeLeaf.clear();
+			madeINodes.clear();
+			restorePermenants( );			
+		}
 	}
 
 	//testaddPair
 	//testlookuppair
+
+	private void cacheSummary() {
+		System.out.println( "Apply hits : " + applyHit );
+		System.out.println("Apply cache size : " + getApplyCacheSize() );
+		System.out.println("Made INodes : " + madeINodes.size() );
+		System.out.println("MadeLeaf nodes : " + madeLeaf.size() );
+		System.out.println("Number of permenants : " + permenantNodes.size() );
+	}
+
+	private int getApplyCacheSize() {
+		int size = 0;
+		for( Entry<DDOper, 
+				ConcurrentHashMap<Pair<MySoftReference<ADDRNode>,
+					MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>>  
+						entry : applyCache.entrySet() ){
+			size += entry.getValue().size();
+		}
+		return size;
+	}
+
+	private void restorePermenants() {
+		for( ADDRNode rnode : permenantNodes ){
+			ADDNode node = rnode.getNode();
+			if( node instanceof ADDLeaf ){
+				madeLeaf.put( getSoftRef((ADDLeaf)node, deletedLeafNodes),
+							getSoftRef(rnode, deletedRNodes) );
+			}else{
+				String testVar = rnode.getTestVariable();
+				ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>
+					innerMap = madeINodes.get( testVar );
+				ADDINode inode = (ADDINode)rnode.getNode();
+				if( innerMap == null ){
+					innerMap = new ConcurrentHashMap< MySoftReference<ADDINode>, 
+						MySoftReference<ADDRNode> >();	
+					madeINodes.put( testVar, innerMap );
+				}
+				innerMap.put( getSoftRef(inode, deletedINodes),
+						getSoftRef(rnode, deletedRNodes) );
+			}
+		}
+	}
 
 	public ADDRNode getBernoulliProb( int num_vars, double prob ){
 
@@ -2308,14 +2387,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				lookin = new ConcurrentHashMap<MySoftReference<ADDINode>,
 						MySoftReference<ADDRNode>>();
 				madeINodes.put(testvar, lookin);
+			}else{
+				looked = lookupMap( getSoftRef(inode, deletedINodes), lookin);	
 			}
-
-			looked = lookupMap( inode, lookin);
 
 			if( looked == null ){
 
 				ADDINode negNode = inode.getNegatedNode();
-				looked = lookupMap( negNode, lookin );
+				looked = lookupMap( getSoftRef(negNode, deletedINodes), lookin );
 				if( looked == null && create ){
 					looked = new ADDRNode(inode);
 					//using the reference queue is important here
@@ -2328,8 +2407,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					looked = looked.getNegatedNode();
 				}
 			}
-			lookin.put( getSoftRef(inode), 
-					new MySoftReference<ADDRNode>(looked, deletedNodes) );
+			lookin.put( getSoftRef(inode, deletedINodes), 
+					getSoftRef(looked, deletedRNodes) );
 			
 			//sanity - difference should be zero
 //			if( ( !looked.isNegated() && !looked.getNode().equals( inode ) ) 
@@ -2346,14 +2425,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else if( obj instanceof ADDLeaf ){
 
 			ADDLeaf leaf = (ADDLeaf)obj;
-			looked = lookupMap(leaf, madeLeaf);
+			looked = lookupMap( getSoftRef(leaf, deletedLeafNodes), madeLeaf);
 			if( looked == null ){
 
 				looked = new ADDRNode(leaf);
 //				System.out.println( leaf + " " + looked + " " + 
 //						leaf.hashCode() + " " + looked.hashCode() );
-				madeLeaf.put( getSoftRef(leaf), 
-						new MySoftReference<ADDRNode>(looked, deletedNodes) );
+				madeLeaf.put( getSoftRef(leaf, deletedLeafNodes), 
+						getSoftRef(looked, deletedRNodes) );
 
 			}
 			
@@ -2373,9 +2452,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	public <T extends Comparable<T> > MySoftReference<T> getSoftRef(T obj){
+	public <T extends Comparable<T> > MySoftReference<T> getSoftRef(T obj,
+			ReferenceQueue<T> que){
 		//obj should have been created here
-		return new MySoftReference<T>( obj );
+		return new MySoftReference<T>( obj , que);
 	}
 
 	@Override
@@ -2438,10 +2518,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	//this method looks up a hash in a map<Integer,Mysoftreference> and gets the underlying object
 	//if it exists
-	public <N extends Comparable<N>> ADDRNode lookupMap( final N node, 
+	public <N extends Comparable<N>> ADDRNode lookupMap( 
+			final MySoftReference<N> soft_ref_node, 
 			Map< MySoftReference<N> , MySoftReference<ADDRNode>> aMap ){
 
-		MySoftReference<ADDRNode> thing = aMap.get( getSoftRef(node) );
+		MySoftReference<ADDRNode> thing = aMap.get( soft_ref_node );
 
 		if( thing == null ){
 			return null;
@@ -2463,7 +2544,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 			//bookkeeping 
 			if( thing != null && gotten == null ){
-				aMap.remove( node );
+				aMap.remove( soft_ref_node );
 			}
 
 			return null;
@@ -2506,10 +2587,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private ADDRNode lookupTempCache(ADDRNode in) {
-
-		MySoftReference<ADDRNode> looked = _tempCache.get( getSoftRef(in) );
+		MySoftReference<ADDRNode> soft_ref = getSoftRef(in, deletedRNodes) ;
+		MySoftReference<ADDRNode> looked = _tempCache.get( 
+				soft_ref );
 		if( looked != null && looked.get() != null ){
 			return looked.get();
+		}else if( looked != null && looked.get() == null ){
+			_tempCache.remove( soft_ref );
 		}
 		return null;
 
@@ -2743,42 +2827,43 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	private boolean nullify(ADDRNode rnode) {
-
-		//recurse?
-
-		ADDNode node = rnode.getNode();
-		boolean deleted = false;
-
-		if( node instanceof ADDLeaf ){
-			MySoftReference<ADDRNode> ret = removeMap( (ADDLeaf)node, madeLeaf );
-			if( ret != null ){
-				deleted = true;
-				ret.get().nullify();
-			}else{
-				deleted = false;
-			}
-		}else{
-			String testvar = ((ADDINode)node).getTestVariable();
-			ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> 
-				innerMap = madeINodes.get(testvar);
-			MySoftReference<ADDRNode> ret = removeMap( 
-					(ADDINode)node, innerMap );
-
-			if( ret == null ){
-				deleted = false;
-			}else{
-				deleted = true;
-				ret.get().nullify();
-			}
-
-		}
-
-		rnode.nullify();
-
-		return deleted;
-
-	}
+//	private boolean nullify(ADDRNode rnode) {
+//
+//		//recurse?
+//
+//		ADDNode node = rnode.getNode();
+//		boolean deleted = false;
+//
+//		if( node instanceof ADDLeaf ){
+//			MySoftReference<ADDRNode> ret = removeMap( 
+//					getSoftRef((ADDLeaf)node, deletedLeafNodes), madeLeaf );
+//			if( ret != null ){
+//				deleted = true;
+//				ret.get().nullify();
+//			}else{
+//				deleted = false;
+//			}
+//		}else{
+//			String testvar = ((ADDINode)node).getTestVariable();
+//			ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> 
+//				innerMap = madeINodes.get(testvar);
+//			MySoftReference<ADDRNode> ret = removeMap( 
+//					getSoftRef((ADDINode)node, deletedINodes), innerMap );
+//
+//			if( ret == null ){
+//				deleted = false;
+//			}else{
+//				deleted = true;
+//				ret.get().nullify();
+//			}
+//
+//		}
+//
+//		rnode.nullify();
+//
+//		return deleted;
+//
+//	}
 
 	@Override
 	public void nullifyDD(ADDNode input) {
@@ -2858,10 +2943,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	public synchronized < N extends Comparable<N> > MySoftReference<ADDRNode> 
-	removeMap( final N node, Map< MySoftReference<N> ,MySoftReference<ADDRNode>> aMap ){
+	public synchronized < N extends Comparable<N> > void  
+	removeMap( final MySoftReference<N> soft_node, Map< MySoftReference<N> ,MySoftReference<ADDRNode>> aMap ){
 
-		MySoftReference<N> soft_node = getSoftRef(node);
 		MySoftReference<ADDRNode> thing = aMap.get( soft_node );
 
 		ADDRNode gotten = null;
@@ -2873,8 +2957,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 
 		if( thing != null && gotten != null ){
-			System.err.println( "removed " );
-			return aMap.remove( soft_node );
+//			System.err.println( "removed " );
+			aMap.remove( soft_node );
+			gotten = null;
 		}else if( thing == null ){
 			try {
 				throw new Exception("removeMap did not find item");
@@ -2885,10 +2970,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 			//also, bookkeeping 
 			if( thing != null && gotten == null ){
-				return aMap.remove( soft_node );
+				aMap.remove( soft_node );
 			}
 		}
-		return null;
+		return;
 	}
 
 	@Override

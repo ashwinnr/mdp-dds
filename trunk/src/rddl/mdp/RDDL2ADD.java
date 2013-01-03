@@ -56,7 +56,7 @@ import add.ADDRNode;
 public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	private static final int MANAGER_STORE_INIT_SIZE = 400000;
-	private static final int MANAGER_STORE_INCR_SIZE = 100000;
+	private static final int MANAGER_STORE_INCR_SIZE = 10000;
 	
 	protected ADDManager _manager;
 	private boolean _bCPFDeterministic;
@@ -263,6 +263,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			INSTANCE i = pInstance._tmInstanceNodes.entrySet().iterator().next().getValue();
 			
 			NONFLUENTS n = pInstance._tmNonFluentNodes.entrySet().iterator().next().getValue();
+			System.out.println("concurrency : " + i._nNonDefActions );
 
 			_bCPFDeterministic = d._bCPFDeterministic;
 
