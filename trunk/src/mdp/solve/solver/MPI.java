@@ -92,7 +92,7 @@ public class MPI implements Runnable {
 			
 			prev_error = error;
 
-			if( error < EPSILON*(1-DISCOUNT)/(2*DISCOUNT) ){
+			if( error < EPSILON ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
 				break;
 			}
 			
@@ -114,7 +114,7 @@ public class MPI implements Runnable {
 		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
-		System.out.println("CPT time: " + _cptTimer.GetTimeSoFarAndResetInMinutes() );
+		System.out.println("CPT time: " + _cptTimer.GetElapsedTimeInMinutes() );
 		System.out.println("Final BE = " + prev_error );
 		System.out.println("Size of value fn. = " + _manager.countNodes(_valueDD) );
 		System.out.println("Size of policy = " + 
