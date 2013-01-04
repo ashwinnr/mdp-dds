@@ -118,6 +118,8 @@ public class ADDDecisionTheoreticRegression implements
 			}
 			
 			v_func = _manager.apply( v_func, this_q, DDOper.ARITH_MAX );
+			_manager.flushCaches( false );
+			
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("showing diagrams: " + action );
 				_manager.showGraph(this_q, v_func);
@@ -222,6 +224,7 @@ public class ADDDecisionTheoreticRegression implements
 				}
 			}
 			ret = maxd;
+			_manager.flushCaches(false);
 		}
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
