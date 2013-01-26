@@ -369,7 +369,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			if( constraint instanceof BOOL_EXPR ){
 				BOOL_EXPR be = (BOOL_EXPR)constraint;
 				addConstraint(be);
-				_manager.flushCaches(true);
+				_manager.flushCaches( );
 			}else{
 				System.err.println("Constraint not tpye of bool expr");
 				System.exit(1);
@@ -462,89 +462,63 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 							}
 						}else{
 							Map<String, Boolean> thisAct = acts.get(act);
-							
 							Map<String, ADDRNode> inner = _actionCpts.get( thisAct );
-							
 							if( inner == null ){
-								
 								inner = new TreeMap<String, ADDRNode >();
-								
 								_actionCpts.put( thisAct, inner );
-								
 							}
-							
 							inner.put( cpt_var+"'", cpt);
-							
 						}
 
 						_manager.addPermenant(cpt);
-						_manager.flushCaches(true);
-						
+						_manager.flushCaches( );
 						if( __debug_level.compareTo(DEBUG_LEVEL.DIAGRAMS) == 0 ) {
 							System.out.println("Displaying CPT for " + cpt_var+"'");
 							_manager.showGraph(cpt);
 							System.out.println("Press any key");
 							System.in.read();
 						}
-						
 					}
 				}
-
 			}
 
 			////
-
+			final ArrayList<ADDRNode> this_reward 
+				= convertAddExpr2ADD(rew_expr, !withActionVars);
 			if( !withActionVars ){
 				rew_expr.collectGFluents(new HashMap<LVAR, LCONST>(), _state, rewardRelVars );
 				Map<String, Boolean> action = acts.get(act);
 				setAction(action);
 				rewardRelVars = removeActionVars(rewardRelVars);
+				Map<String, Boolean> thisAct = acts.get(act);
+				_actionRewards.put( thisAct, this_reward );
+			}else if( _rewards == null ){
+				_rewards = this_reward;
+			}
+
+			for( ADDRNode rew : this_reward ){
+				_manager.addPermenant(rew);
 			}
 
 			if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.println("Reward relevant vars : " + rewardRelVars );
 			}
+				
+			_manager.flushCaches( );
 
-			try {
-				_rewards = convertAddExpr2ADD(rew_expr, !withActionVars);
-
-				if( __debug_level.compareTo(DEBUG_LEVEL.DIAGRAMS) == 0 ) {
-					System.out.println("Displaying reward");
-					
-					for( ADDRNode rew : _rewards ){
-						_manager.showGraph(rew);
-					}
-					System.out.println("Press key");
-					System.in.read();
-					
+			if( __debug_level.compareTo(DEBUG_LEVEL.DIAGRAMS) == 0 ) {
+				System.out.println("Displaying reward for action " + acts.get(act) );
+				
+				for( ADDRNode rew : _rewards ){
+					_manager.showGraph(rew);
 				}
-
-			} catch (Exception e) {
-				e.printStackTrace();
-			}		
-
-			if( !withActionVars ){
-				Map<String, Boolean> thisAct = acts.get(act);
-				
-				ArrayList<ADDRNode> inner = _actionRewards.get( thisAct );
-				
-				if( inner == null ){
-					inner = new ArrayList<ADDRNode>(_rewards);
-					_actionRewards.put( thisAct, inner );
-				}
-				
+				System.out.println("Press key");
+				System.in.read();
 			}
-
-			for( ADDRNode rew : _rewards ){
-				_manager.addPermenant(rew);
-			}
-			
-			_manager.flushCaches(true);
 
 			if( !withActionVars ){
 				unsetAction( acts.get(act) );
 			}
-
 		}
 
 //		translateReward(withActionVars);
@@ -781,8 +755,12 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			PVAR_NAME pvar = getPVar(name);
 			
 			if( pvar == null ){
-				System.err.println("null here");
-				System.exit(2);
+				try{
+					throw new Exception("null here " + name);
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(2);					
+				}
 			}
 			
 			ArrayList<LCONST> terms = getTerms(pvar, name);
@@ -826,13 +804,10 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 					}
 				}	
 			}
-			
+//			System.out.println("Full actions: " + _regOrder );
 		}
-		
-//		System.out.println("Full actions: " + _regOrder );
-		
+
 		return _regOrder;
-		
 	}
 
 	private List<NavigableMap<String, Boolean>> enumerateOthers(

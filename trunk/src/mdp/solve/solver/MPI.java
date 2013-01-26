@@ -22,6 +22,8 @@ public class MPI implements Runnable {
 	private ADDManager _manager;
 	private Timer _cptTimer;
 	private Timer _solutionTimer;
+	private Timer _evalTimer;
+	private Timer _improvTimer;
 	private int HORIZON;
 	private double DISCOUNT;
 	private int _nStates;
@@ -29,6 +31,9 @@ public class MPI implements Runnable {
 	private boolean _useDiscounting;
 	private int _evalSteps;
 	private boolean _FAR;
+	private int _bellman_backups;
+	private int _eval_backups;
+	private int eval_backups;
 	
 	public MPI(String domain, String instance, double epsilon,
 			ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> bq,
@@ -64,16 +69,20 @@ public class MPI implements Runnable {
 		int iter = 1;
 
 		_solutionTimer = new Timer();
+		_improvTimer = new Timer();
+		_evalTimer = new Timer();
 		double prev_error = Double.NEGATIVE_INFINITY;
 
 		while( true ) {
 			_solutionTimer.ResumeTimer();
-			_manager.addPermenant(_valueDD);
+//			_manager.addPermenant(_valueDD);
+			_improvTimer.ResumeTimer();
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, true ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
+			_improvTimer.PauseTimer();
 			System.out.println( "MPI iter = " + iter + " BE = " + error + " time = " + 
 					_solutionTimer.GetElapsedTimeInMinutes() + " size of value "
 					+ _manager.countNodes(newValueDD._o1.getValueFn()) 
@@ -96,16 +105,20 @@ public class MPI implements Runnable {
 				break;
 			}
 			
-			_manager.removePermenant(_valueDD);
+//			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
 			_policyDD = _FAR ? newValueDD._o2._bddPolicy : 
 				newValueDD._o2._addPolicy;
 			_policy = newValueDD._o2;
 			_solutionTimer.ResumeTimer();
+			_evalTimer.ResumeTimer();
 			//policy eval
-			ADDRNode evaluated 
+			UnorderedPair<ADDRNode, Integer> evaluation 
 				= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, EPSILON, _FAR);
+			ADDRNode evaluated = evaluation._o1;
+			eval_backups += evaluation._o2;
 			_solutionTimer.PauseTimer();
+			_evalTimer.PauseTimer();
 			_valueDD = evaluated;
 			++iter;
 		}
@@ -115,10 +128,14 @@ public class MPI implements Runnable {
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetElapsedTimeInMinutes() );
+		System.out.println("Eval time: " + _evalTimer.GetElapsedTimeInMinutes() );
+		System.out.println("Improve time: " + _improvTimer.GetElapsedTimeInMinutes() );
 		System.out.println("Final BE = " + prev_error );
 		System.out.println("Size of value fn. = " + _manager.countNodes(_valueDD) );
 		System.out.println("Size of policy = " + 
 				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
+		System.out.println("Eval backups = " + eval_backups );
+		System.out.println("Bellman backups = " + iter );
 //		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	

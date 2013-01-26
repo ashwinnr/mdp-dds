@@ -22,19 +22,19 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 
 	public <T extends SymbolicValueFunction<D,DR,DI,DL,S,A>,
 			U extends SymbolicPolicy<D,DR,DI,DL,S,A> > UnorderedPair<T,U>
-		regress( DR input, final boolean withActionVars, final boolean keepQ, final boolean makePolicy );
+		regress( final DR input, final boolean withActionVars, final boolean keepQ, final boolean makePolicy );
 	
 	public DR 
-		applyMDPConstraints( DR input, NavigableMap<String, Boolean> action, DR violate );
+		applyMDPConstraints( final DR input, NavigableMap<String, Boolean> action, DR violate );
 	
 	public DR
 		regressAction( final DR primed, final NavigableMap<String, Boolean> action );
 	
 	public DR
-		regressPolicy( DR initial_value_func, DR policy, final boolean withActionVars );
+		regressPolicy( final DR initial_value_func, final DR policy, final boolean withActionVars );
 	
-	public DR 
-		evaluatePolicy( DR initial_value_func, DR policy, final int nSteps, 
+	public UnorderedPair<DR, Integer>
+		evaluatePolicy( final DR initial_value_func, final DR policy, final int nSteps, 
 			final double epsilon, final boolean withActionVars );
 	
 }

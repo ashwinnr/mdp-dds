@@ -37,14 +37,14 @@ public abstract class DDINode<D extends DDNode, DR extends DDRNode<D>, C extends
 	
 	public abstract DDINode<D,DR,C> plugIn(final String testVar, final C child ) throws Exception;
 
-	@Override
-	public void nullify() {
-//		this._nHashCode = -1;
-		this._nMax = this._nMin = Double.NaN;
-		this.children = null;
-		this.testVariable = null;
-//		hashSet = false;
-	}
+//	@Override
+//	public void nullify() {
+////		this._nHashCode = -1;
+//		this._nMax = this._nMin = Double.NaN;
+//		this.children = null;
+//		this.testVariable = null;
+////		hashSet = false;
+//	}
 	
 	@Override
 	public String toString() {

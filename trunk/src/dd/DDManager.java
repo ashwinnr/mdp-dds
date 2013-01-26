@@ -47,9 +47,9 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public void addToStore( final int soManyDDs,  final boolean leaf, final boolean node );
 	
-	public void nullifyDD( final D input );
+//	public void nullifyDD( final D input );
 	
-	public void flushCaches(boolean clearDeadMaps);
+	public void flushCaches();// final DR save );
 	
 	public DR restrict( final DR input, final String var, final boolean assign );
 	
@@ -73,13 +73,13 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public DR evaluate(DR input, Map<?, Boolean> remap); //evaluates key.toString() to boolean
 	
-	public Set<DR> getNodes(DR input);
+	public Set<DR> getNodes(DR input, final boolean leaves);
 	
 	public Set<DL> getLeaves(DR input);
 	
 	public Set<String> getVars(DR input);
 	
-	public List<NavigableMap<String,Boolean>> enumeratePaths(DR input, boolean leaf,
+	public List<NavigableMap<String, Boolean>> enumeratePaths(DR input, boolean leaf,
 			 final boolean leafValSpecified, 
 				final double leafVal);
 	
@@ -89,8 +89,7 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public void showGraph( final DR... input );
 
-	public boolean removePermenant( final DR... arr);
+	public void removePermenant( final DR... arr);
 
-	NavigableMap<String, Boolean> findFirstOneLeaf(DR input);
 	
 }

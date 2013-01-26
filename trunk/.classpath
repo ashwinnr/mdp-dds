@@ -7,5 +7,7 @@
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/jlex.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/xercesImpl.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/commons-lang3-3.1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/apache-commons-colections"/>
+	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/guava-14.0-rc1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
