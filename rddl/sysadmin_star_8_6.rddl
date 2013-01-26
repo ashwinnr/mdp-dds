@@ -1,4 +1,4 @@
-non-fluents nf_sysadmin_star_8_3 {
+non-fluents nf_sysadmin_star_8_6 {
 	domain = sysadmin_mdp;
 	objects {
 		computer : {c1,c2,c3,c4,c5,c6,c7,c8};
@@ -15,9 +15,9 @@ CONNECTED(c3 ,c8);
 	};
 }
 
-instance sysadmin_star_8_3 {
+instance sysadmin_star_8_6 {
 	domain = sysadmin_mdp;
-	non-fluents = nf_sysadmin_star_8_3;
+	non-fluents = nf_sysadmin_star_8_6;
 	init-state {
 		running(c1);
 		running(c2);
@@ -29,7 +29,7 @@ instance sysadmin_star_8_3 {
 		running(c8);
 	};
 
-	max-nondef-actions = 3;
+	max-nondef-actions = 6;
 	horizon  = 40;
 	discount = 0.9;
 }

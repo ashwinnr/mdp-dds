@@ -1,7 +1,7 @@
-non-fluents nf_sysadmin_star_8_3 {
+non-fluents nf_sysadmin_star_7_4 {
 	domain = sysadmin_mdp;
 	objects {
-		computer : {c1,c2,c3,c4,c5,c6,c7,c8};
+		computer : {c1,c2,c3,c4,c5,c6,c7};
 	};
 	non-fluents {
 		REBOOT-PROB = 0.05;
@@ -11,13 +11,12 @@ CONNECTED(c1 ,c4);
 CONNECTED(c2 ,c5);
 CONNECTED(c2 ,c6);
 CONNECTED(c2 ,c7);
-CONNECTED(c3 ,c8);
 	};
 }
 
-instance sysadmin_star_8_3 {
+instance sysadmin_star_7_4 {
 	domain = sysadmin_mdp;
-	non-fluents = nf_sysadmin_star_8_3;
+	non-fluents = nf_sysadmin_star_7_4;
 	init-state {
 		running(c1);
 		running(c2);
@@ -26,10 +25,9 @@ instance sysadmin_star_8_3 {
 		running(c5);
 		running(c6);
 		running(c7);
-		running(c8);
 	};
 
-	max-nondef-actions = 3;
+	max-nondef-actions = 4;
 	horizon  = 40;
 	discount = 0.9;
 }
