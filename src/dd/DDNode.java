@@ -29,7 +29,7 @@ public interface DDNode{
 		
 		public boolean equals(Object arg);
 		
-		public  void nullify();
+//		public  void nullify();
 		
 		public abstract void updateMinMax();
 		

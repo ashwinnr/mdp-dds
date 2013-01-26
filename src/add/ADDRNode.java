@@ -14,16 +14,24 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 
 //	private static final int HASH_SHIFT = 3;
 //	private static final int HASH_INIT = 19;
-	private static final int HASH_INIT = 23;
-	private static final int HASH_MULT = 11;
+//	private static final int HASH_INIT = 23;
+//	private static final int HASH_MULT = 11;
 	private long GLOBAL_ID;
-	private static long GLOBAL_ID_COUNTER = 0;
+	private static long GLOBAL_ID_COUNTER = 1;
 	
 	public long getID(){
 		return GLOBAL_ID;
 	}
 	
 	public <T extends ADDNode> ADDRNode(T theNode) {
+		if( GLOBAL_ID_COUNTER == 0 ){
+			try{
+				throw new Exception("ID wrapped around");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		this.GLOBAL_ID = GLOBAL_ID_COUNTER++;
 		this.theNode = theNode;
 		this.negated = false;
@@ -114,8 +122,12 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 //				System.out.println("node equals " + node_equals );
 				final boolean id_equals = getID() == o.getID();
 				if( negated_equals && node_equals && !id_equals ){
-					System.err.println("duplicate RNodes!");
-					System.exit(1);
+					try{
+						throw new Exception( "duplicate RNodes!");
+					}catch( Exception e  ){
+						e.printStackTrace();
+						System.exit(1);	
+					}
 				}
 				return negated_equals && node_equals;
 //				//probably here because this and o have same hashcode
@@ -196,12 +208,12 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		
 	}
 
-	@Override
-	public void nullify() {
-
-		this.theNode.nullify();
-		
-	}
+//	@Override
+//	public void nullify() {
+//
+//		this.theNode.nullify();
+//		
+//	}
 
 	public ADDRNode getFalseChild(){
 		

@@ -119,7 +119,7 @@ public class ADDPolicy extends
 			}
 		}else{
 			ADDRNode ret = _manager.restrict(_bddPolicy, state.getFactoredState());
-			NavigableMap<String, Boolean> act = _manager.findFirstOneLeaf( ret );
+			NavigableMap<String, Boolean> act = _manager.findFirstOneLeafAction( ret );
 			return (U) new FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>(act);
 		}
 		return null;

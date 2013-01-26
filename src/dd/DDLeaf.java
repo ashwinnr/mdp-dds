@@ -54,10 +54,10 @@ public abstract class DDLeaf<N> implements DDNode {
 		
 		public abstract DDLeaf<N> plugIn( final N leafVals );
 
-		@Override
-		public void nullify() {
-			this.leafValues = null;
-		}
+//		@Override
+//		public void nullify() {
+//			this.leafValues = null;
+//		}
 		
 		@Override
 		public String toString() {

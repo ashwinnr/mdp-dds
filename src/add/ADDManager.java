@@ -2,36 +2,38 @@ package add;
 
 import graph.Graph;
 
-import java.io.IOException;
-import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-
-import util.Timer;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
+import java.util.concurrent.ExecutionException;
 
 import util.MySoftReference;
 import util.Pair;
+import util.Timer;
 import util.UniPair;
-import util.UnorderedPair;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.cache.RemovalListener;
+import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 
 import dd.DDManager;
 
@@ -39,26 +41,21 @@ import dd.DDManager;
 public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 //	private static FileHandler allHandler;
-//
 //	private static final String blanky = "".intern();
-
 	private static final double BytesToMB = 1024*1024;
 	private static final boolean LOGGING_ON = false;
 //	private final static ConsoleHandler consoleHandler = new ConsoleHandler();
-
-	private static ReferenceQueue<ADDRNode> deletedRNodes = new ReferenceQueue<ADDRNode>();
-	private static ReferenceQueue<ADDINode> deletedINodes = new ReferenceQueue<ADDINode>();
-	private static ReferenceQueue<ADDLeaf> deletedLeafNodes = new ReferenceQueue<ADDLeaf>();
-
 	//all nodes - soft references - cache has to be cleaned up from reference queue
 	//keep nodes around as long as possible
 	//don't do this since ADDRNode might have a bad hash performance
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
-
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
-
-	protected static int STORE_INCREMENT;
+	private static final long CONSTRAIN_CACHE_SIZE = 100_000;
+	private static final long TEMP_UNARY_CACHE = 100_000;
+	private static final long APPLY_CACHE_SIZE = 100_000;
+	private static final boolean USE_SOFT_VALUES = true;
+	protected int STORE_INCREMENT;
 
 //	static{
 //		try {
@@ -70,8 +67,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		}
 //	}
 
-	public static DDOper getCompliment( DDOper op ){
+	public static DDOper getCompliment( final DDOper op ){
 
+		Objects.requireNonNull(op, "DDOper was null" );
+		
 		DDOper ret = null;
 
 		switch( op ){
@@ -89,8 +88,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	public static boolean isCommutative(DDOper op){
-
+	public static boolean isCommutative(final DDOper op){
+		Objects.requireNonNull(op, "DDOper null" );
 		if( op.equals(DDOper.ARITH_DIV) || op.equals(DDOper.ARITH_MINUS) ){
 			return false;
 		}
@@ -250,150 +249,121 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-
-	public static void testBernoulliConstraints(int nvars, double prob, 
-			boolean disjoint, int num_disjoint ) {
-
-		ArrayList<String> ord = new ArrayList<String>();
-
-		for( int i = 0 ; i < nvars; ++i ){
-			ord.add("X"+i);
-		}
-
-		if( disjoint ){
-			for( int i = 0 ; i < num_disjoint ; ++i ){
-				ord.add("X"+(nvars+i));	
-			}
-		}
-
-
-		ADDManager man = new ADDManager(100, 100, ord);
-
-		ADDRNode diag = man.getBernoulliProb(nvars, 0.75);
-
-		man.showGraph(diag);
-		
-		ADDRNode constr = man.DD_ONE;
-
-		int j = ( disjoint ) ? nvars : 0;
-
-		for( int i = 0 ; i < num_disjoint ; ++i ){
-			ADDRNode thisOne = man.getIndicatorDiagram("X"+(j+i), true );
-			//			man.showGraph(thisOne);
-			constr = man.apply(constr, thisOne, DDOper.ARITH_PROD);
-			//			man.showGraph(constr);
-		}
-
-		System.out.println( man.countNodes(diag, constr) );
-
-//		man.showGraph(diag, constr);
-
-		Timer conTime = new Timer();
-
-		ADDRNode coned = man.constrain(diag, constr, man.DD_ZERO);
-
-		double cTime = conTime.GetTimeSoFarAndResetInMinutes();
-
-		man.clearDeadNodes(true);
-
-		conTime.ResetTimer();
-
-		ADDRNode multd = man.apply(diag, constr, DDOper.ARITH_PROD );
-
-		double multTime = conTime.GetTimeSoFarAndResetInMinutes();
-
-		man.clearDeadNodes(true);
-
-		System.out.println( man.countNodes(diag, coned, multd) + " " + cTime + " " + multTime );
-
-		//		man.showGraph( coned, multd );
-
-
-	}
+//	public static void testBernoulliConstraints(int nvars, double prob, 
+//			boolean disjoint, int num_disjoint ) {
+//
+//		ArrayList<String> ord = new ArrayList<String>();
+//
+//		for( int i = 0 ; i < nvars; ++i ){
+//			ord.add("X"+i);
+//		}
+//
+//		if( disjoint ){
+//			for( int i = 0 ; i < num_disjoint ; ++i ){
+//				ord.add("X"+(nvars+i));	
+//			}
+//		}
+//
+//
+//		ADDManager man = new ADDManager(100, 100, ord);
+//
+//		ADDRNode diag = man.getBernoulliProb(nvars, 0.75);
+//
+//		man.showGraph(diag);
+//		
+//		ADDRNode constr = man.DD_ONE;
+//
+//		int j = ( disjoint ) ? nvars : 0;
+//
+//		for( int i = 0 ; i < num_disjoint ; ++i ){
+//			ADDRNode thisOne = man.getIndicatorDiagram("X"+(j+i), true );
+//			//			man.showGraph(thisOne);
+//			constr = man.apply(constr, thisOne, DDOper.ARITH_PROD);
+//			//			man.showGraph(constr);
+//		}
+//
+//		System.out.println( man.countNodes(diag, constr) );
+//
+////		man.showGraph(diag, constr);
+//
+//		Timer conTime = new Timer();
+//
+//		ADDRNode coned = man.constrain(diag, constr, man.DD_ZERO);
+//
+//		double cTime = conTime.GetTimeSoFarAndResetInMinutes();
+//
+//		man.clearDeadNodes(true);
+//
+//		conTime.ResetTimer();
+//
+//		ADDRNode multd = man.apply(diag, constr, DDOper.ARITH_PROD );
+//
+//		double multTime = conTime.GetTimeSoFarAndResetInMinutes();
+//
+//		man.clearDeadNodes(true);
+//
+//		System.out.println( man.countNodes(diag, coned, multd) + " " + cTime + " " + multTime );
+//
+//		//		man.showGraph( coned, multd );
+//
+//
+//	}
 
 	//	testApplyLeafOp
 	//	testWhichBefore
 	//	testgetInode
-	//	
 
 //	public static void testClearDeadNodes(int num_nodes ){
 //
 //		ArrayList<String> ord = new ArrayList<String>();
-//
 //		for( char ch = 'A'; ch <= 'Z'; ++ch ){
 //			ord.add(ch+"");
 //			ord.add( Character.toLowerCase(ch) + "" );
 //		}
-//
 //		System.out.println( ord );
-//
 //		ADDManager man = new ADDManager(100, 100, ord);
-//
 //		ADDRNode old_leaf = man.getLeaf(0.0d , 0.0d);
 //		ADDRNode old_inode = null;
 //
 //		int i = 0;
-//
 //		ArrayList<ADDRNode> leaf_list = new ArrayList<ADDRNode>();
-//
 //		ArrayList<ADDRNode> inode_list = new ArrayList<ADDRNode>();
-//
 //		for( String chr : ord ){
-//
 //			ADDRNode leaf = man.getLeaf(i+1.32, i+5.34);
-//
 //			ADDRNode inode = null;
-//
 //			if( old_inode == null ){
 //				inode = man.getINode(chr+"", leaf, old_leaf);	
 //			}else{
 //				inode = man.getINode(chr+"", leaf, old_inode);
 //			}
-//
-//
 //			leaf_list.add(leaf);
-//
-//			//			man.showGraph(leaf, inode );
-//			//				
-//			//			if( old_inode != null ){
-//			//				man.showGraph(old_inode);
-//			//			}
+//			man.showGraph(leaf, inode );
+//			if( old_inode != null ){
+//				man.showGraph(old_inode);
+//			}
 //
 //			inode_list.add(inode);
-//
 //			double memory = man.getMemoryPercent();
-//
 //			man.memorySummary();
-//
 //			man.makeSureNoNull();
-//
 //			if( memory > 0.8 ){
 //				break;
 //			}
 //
 //			old_inode = inode;
-//
 //			++i;
-//
 //			System.out.println(chr);
-//
 //		}
-//
-//		//		System.out.println(leaf_list);
-//
+//		System.out.println(leaf_list);
 //		man.memorySummary();
-//
 //		man.clearDeadNodes(true);
-//
 //		man.memorySummary();
-//
 //		int deleted = 0;
 //
 //		for( ADDRNode rnode : leaf_list ){
 //			if( man.nullify(rnode) ){
 //				++deleted;
 //			}
-//
 //		}
 //
 //		for( ADDRNode rnode : inode_list ){
@@ -402,8 +372,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			}
 //		}
 //
-//		//		System.err.println( "deleted through nullify " + deleted );
-//
+//		System.err.println( "deleted through nullify " + deleted );
 //		try {
 //			System.gc();
 //			Thread.sleep(10000);
@@ -501,7 +470,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		man.showGraph(inode2);
 
-		System.out.println( man.getNodes(inode2) );
+		System.out.println( man.getNodes(inode2, true) );
 
 	}
 
@@ -625,7 +594,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		ADDRNode inod1_copy = man.getINode("X", leaf, leaf2);
 
 		System.out.println(inod1_copy);
+		
+		ADDRNode inod1_copy_2 = man.makeINode("X", leaf, leaf2 );
 
+		System.out.println( inod1_copy_2 );
+		
 		ADDRNode leaf3 = man.getLeaf( 4.3, 6.5 );
 
 		System.out.println(leaf);
@@ -655,7 +628,6 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		man.showGraph(leaf, leaf_copy );
 		man.showGraph(inod1_copy, inod1, inod3, inod4);
 	}
-
 
 	public static void testGraph(){
 
@@ -715,67 +687,67 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	public static String testRandomizedConstraints( int nvars, double prob, double constr_prob ){
-
-		ArrayList<String> ord = new ArrayList<String>();
-
-		for( int i = 0 ; i < nvars; ++i ){
-			ord.add("X"+i);
-		}
-
-		ADDManager man = new ADDManager(100, 100, ord);
-
-		ADDRNode diag = man.DD_ONE, constr = man.DD_ONE;
-
-		Random rand = new Random( );
-
-
-		for( int i = 0 ; i < nvars; ++i ){
-
-			double r = rand.nextDouble();
-
-			if( r < constr_prob ){
-				ADDRNode thisOne = man.getIndicatorDiagram("X"+i, true);
-				constr = man.apply( thisOne, constr, DDOper.ARITH_PROD);
-			}
-
-			r = rand.nextDouble();
-
-			if( r < prob ){
-				double v = rand.nextDouble();
-
-				ADDRNode inode = man.getINode("X"+i, man.getLeaf(v, v), man.getLeaf(1-v, 1-v) );
-				diag = man.apply( diag, inode, DDOper.ARITH_PROD );
-			}
-
-		}
-
-		man.flushCaches(true);
-
-		Timer conTime = new Timer();
-
-		ADDRNode coned = man.constrain(diag, constr, man.DD_ZERO);
-
-		double cTime = conTime.GetTimeSoFarAndResetInMinutes();
-
-		man.flushCaches(true);
-
-		conTime.ResetTimer();
-
-		ADDRNode multd = man.apply(diag, constr, DDOper.ARITH_PROD );
-
-		double multTime = conTime.GetTimeSoFarAndResetInMinutes();
-
-		man.flushCaches(true);
-
-		String str =  prob + " " + constr_prob + " " + man.countNodes(diag, constr) + " " +  
-				man.countNodes(coned, multd) + " " + cTime + " " + multTime ;
-
-		System.out.println( str );
-
-		return str; 
-
-	}
+//	public static String testRandomizedConstraints( int nvars, double prob, double constr_prob ){
+//
+//		ArrayList<String> ord = new ArrayList<String>();
+//
+//		for( int i = 0 ; i < nvars; ++i ){
+//			ord.add("X"+i);
+//		}
+//
+//		ADDManager man = new ADDManager(100, 100, ord);
+//
+//		ADDRNode diag = man.DD_ONE, constr = man.DD_ONE;
+//
+//		Random rand = new Random( );
+//
+//
+//		for( int i = 0 ; i < nvars; ++i ){
+//
+//			double r = rand.nextDouble();
+//
+//			if( r < constr_prob ){
+//				ADDRNode thisOne = man.getIndicatorDiagram("X"+i, true);
+//				constr = man.apply( thisOne, constr, DDOper.ARITH_PROD);
+//			}
+//
+//			r = rand.nextDouble();
+//
+//			if( r < prob ){
+//				double v = rand.nextDouble();
+//
+//				ADDRNode inode = man.getINode("X"+i, man.getLeaf(v, v), man.getLeaf(1-v, 1-v) );
+//				diag = man.apply( diag, inode, DDOper.ARITH_PROD );
+//			}
+//
+//		}
+//
+//		man.flushCaches(true);
+//
+//		Timer conTime = new Timer();
+//
+//		ADDRNode coned = man.constrain(diag, constr, man.DD_ZERO);
+//
+//		double cTime = conTime.GetTimeSoFarAndResetInMinutes();
+//
+//		man.flushCaches(true);
+//
+//		conTime.ResetTimer();
+//
+//		ADDRNode multd = man.apply(diag, constr, DDOper.ARITH_PROD );
+//
+//		double multTime = conTime.GetTimeSoFarAndResetInMinutes();
+//
+//		man.flushCaches(true);
+//
+//		String str =  prob + " " + constr_prob + " " + man.countNodes(diag, constr) + " " +  
+//				man.countNodes(coned, multd) + " " + cTime + " " + multTime ;
+//
+//		System.out.println( str );
+//
+//		return str; 
+//
+//	}
 
 	public static void testRestrict(){
 
@@ -811,121 +783,117 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	private ConcurrentHashMap< Pair<ADDRNode, ADDRNode>, ADDRNode > _constrainCache;
+	private Cache< Pair<ADDRNode, ADDRNode>, ADDRNode > _constrainCache
+		= CacheBuilder.newBuilder().maximumSize( CONSTRAIN_CACHE_SIZE )
+			.softValues().recordStats().build( );
 
 	protected ArrayList< String > _ordering = null;
-
 	protected Runtime _runtime = Runtime.getRuntime();
-
-	//Done: 
-	//1. draw diagrams from am iid distribution
-	//2. measure old and new constraints
-
-	//addnode -> addnode cache for general purpose - NOTE: cear after use always
-	private ConcurrentHashMap<
-	MySoftReference<ADDRNode>, MySoftReference<ADDRNode> > _tempCache 
-	= new ConcurrentHashMap< MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>();
+	private Cache< ADDRNode, ADDRNode > _tempUnaryCache 
+		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE )
+			.recordStats().softValues().build();
 
 	//caches can be in terms of RNodes
-	protected ConcurrentHashMap< DDOper, ConcurrentHashMap< 
-	Pair< MySoftReference<ADDRNode>,  MySoftReference<ADDRNode> >  , MySoftReference<ADDRNode> > > 
-	applyCache = new ConcurrentHashMap< 
-	DDOper, ConcurrentHashMap< Pair< MySoftReference< ADDRNode >, MySoftReference< ADDRNode > >, 
-	MySoftReference<ADDRNode> > > ();
-
-	//next, getRandomADDs
-	//constrain - with a cache -  as a method
-	//use whichBefore()
-
-	//compare taht with apply
-
-
-
+	protected ConcurrentHashMap< DDOper, Cache< 
+		Pair< ADDRNode, ADDRNode >, ADDRNode > > 
+			applyCache = new ConcurrentHashMap< 
+				DDOper, Cache< Pair< ADDRNode, ADDRNode >, ADDRNode > >();
 	private int applyHit = 0;
-
 	public ADDRNode DD_ZERO, DD_ONE, DD_NEG_INF;
 
-	//done:
-	//1. Write restrict operator
-	//2. test restrict
-	//3. write marginalize - max and sum
-
 	protected ConcurrentHashMap< String,
-	ConcurrentHashMap< MySoftReference<ADDINode>, MySoftReference<ADDRNode> > > 
+	Cache< ADDINode, ADDRNode > > 
 		madeINodes = new ConcurrentHashMap< String, 
-		ConcurrentHashMap< MySoftReference<ADDINode>, MySoftReference<ADDRNode> > >();
+		Cache< ADDINode, ADDRNode> >();
 
-	protected ConcurrentHashMap< MySoftReference<ADDLeaf>, MySoftReference<ADDRNode> > madeLeaf 
-	= new ConcurrentHashMap< MySoftReference<ADDLeaf>, MySoftReference<ADDRNode> >();
+	protected LoadingCache< ADDLeaf, ADDRNode > madeLeaf 
+	= ( USE_SOFT_VALUES ) ? CacheBuilder.newBuilder().recordStats().softValues().
+			removalListener( new RemovalListener<ADDLeaf, ADDRNode>( ) {
+				@Override
+				public void onRemoval(
+						RemovalNotification<ADDLeaf, ADDRNode> arg) {
+//					System.err.println("removed " + arg.toString() );
+					ADDLeaf leaf = arg.getKey();
+//					leaf.nullify();
+					leaf = null;
+				}
+			}).
+			build(
+			new CacheLoader<ADDLeaf, ADDRNode>() {
+				@Override
+				public ADDRNode load(final ADDLeaf leaf) throws Exception {
+					return new ADDRNode( leaf );
+				}
+			}) :
+				CacheBuilder.newBuilder().recordStats().
+				removalListener( new RemovalListener<ADDLeaf, ADDRNode>( ) {
+					@Override
+					public void onRemoval(
+							RemovalNotification<ADDLeaf, ADDRNode> arg) {
+						System.out.println("removed " + arg.toString() );
+						ADDLeaf leaf = arg.getKey();
+						leaf = null;
+					}
+				}).
+				build(
+				new CacheLoader<ADDLeaf, ADDRNode>() {
+					@Override
+					public ADDRNode load(final ADDLeaf leaf) throws Exception {
+						return new ADDRNode( leaf );
+					}
+				});
 
 	//never deleted
-	protected Set< ADDRNode > permenantNodes = Collections.newSetFromMap( 
-			new ConcurrentHashMap< ADDRNode, Boolean >() );
+//	protected Set< ADDRNode > permenantNodes = Collections.newSetFromMap( 
+//			new ConcurrentHashMap< ADDRNode, Boolean >() );
 
-	//Done : 
-	//1. write constrain operator
-	//2. compare with apply
-	//3. generate from functions
-
-	//we will be reducing only INodes 
-	//using RNodes here just to deal with negated edges
-//	protected ConcurrentHashMap< MySoftReference< ADDRNode >, MySoftReference< ADDRNode > > reduceCache = 
-//			new ConcurrentHashMap<
-//			MySoftReference< ADDRNode >, MySoftReference< ADDRNode > >();
-
+//	protected ConcurrentHashMap< String,
+//		Map< ADDINode, ADDRNode > > 
+//			permanentMadeINodes = new ConcurrentHashMap< String, 
+//				Map< ADDINode, ADDRNode> >();
+	
 	//store of null nodes
 	protected ConcurrentLinkedQueue< MySoftReference<ADDINode> > storeINodes 
 	= new ConcurrentLinkedQueue< MySoftReference<ADDINode> >();
 
 	protected ConcurrentLinkedQueue< MySoftReference<ADDLeaf> > storeLeaf 
 	= new ConcurrentLinkedQueue< MySoftReference<ADDLeaf> >();
+	
+	protected Multiset< ADDRNode > permanentNodes 
+		= HashMultiset.create();
+	
 	public ADDManager( final int initNumDDs, final int incrDDs, 
-			ArrayList<String> ordering ){
-
+			final ArrayList<String> ordering ){
+		Objects.requireNonNull(ordering, "ordering is null" );
 		addToStore( initNumDDs, true, true );
-
 		STORE_INCREMENT = incrDDs;
-
-//		LOGGER.addHandler(allHandler);
-
 		DD_ZERO = getLeaf(0.0d, 0.0d);
-
 		DD_ONE = getLeaf(1.0d, 1.0d);
-
 		DD_NEG_INF = getLeaf(getNegativeInfValue(), getNegativeInfValue());
-
 		_ordering = ordering;
-		
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
-
 	}
 
-	//	protected ReferenceQueue< ADDINode > deletedINodes = new ReferenceQueue< ADDINode >();
-
-	//	protected ReferenceQueue< ADDLeaf > deletedLeafNodes = new ReferenceQueue< ADDLeaf>();
-
-	private synchronized void addPair( final ADDRNode a, final ADDRNode b, 
+	private synchronized void addPair( final ADDRNode op1, final ADDRNode op2, 
 			final DDOper op, final ADDRNode res ){
-
-//			LOGGER.entering(this.getClass().getName(), "add pair");
-
+			
+			Objects.requireNonNull(op1, "addpair null");
+			Objects.requireNonNull(op2, "addpair null");
+			Objects.requireNonNull(res, "addpair null");
+			Objects.requireNonNull(op, "op null");
+			
 			if( applyCache.get(op) == null ){
-				applyCache.put(op, new ConcurrentHashMap< Pair< 
-						MySoftReference<ADDRNode>, MySoftReference<ADDRNode> >, 
-						MySoftReference<ADDRNode> >());
+				final Cache< Pair<ADDRNode, ADDRNode>, ADDRNode > inner_cache 
+					= CacheBuilder.newBuilder().maximumSize( APPLY_CACHE_SIZE )
+							.recordStats().softValues().build();
+				applyCache.put(op, 
+						inner_cache);
 			}
 
-			ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>, 
-			MySoftReference<ADDRNode>> theMap =
-			applyCache.get(op);
-
-			theMap.put( new Pair< MySoftReference<ADDRNode>, MySoftReference<ADDRNode> >( 
-					new MySoftReference<ADDRNode>(a),
-					new MySoftReference<ADDRNode>(b) ), 
-					new MySoftReference<ADDRNode>(res) );
-
-//			LOGGER.exiting(this.getClass().getName(), "add pair");
-			
+			Cache<Pair<ADDRNode, ADDRNode>, ADDRNode> inner_cache =
+					applyCache.get(op);
+			inner_cache.put( new Pair<ADDRNode, ADDRNode>(
+					op1, op2), res );
 	}
 
 	public static void testApplyCache(){
@@ -973,20 +941,43 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	@Override
 	public synchronized void addPermenant(final ADDRNode... input) {
-
-//		LOGGER.entering( this.getClass().getName(), "Add permenant");
-
+		Objects.requireNonNull( input );
 		for( ADDRNode rnode : input ){
-			boolean ret = permenantNodes.add( rnode );
-//			LOGGER.fine(" adding permenant " + input + ". Was not already in set " + ret );
+			cacheNode( rnode );
 		}
-		
-//		LOGGER.exiting( this.getClass().getName(),  "Add permenant");
-
 	}
 	
-	@Override
-	public NavigableMap<String, Boolean> findFirstOneLeaf(final ADDRNode input){
+	private void cacheNode(final ADDRNode input) {
+		final Set<ADDRNode> nodes = getNodes( input , true);
+		for( final ADDRNode rnode : nodes ){
+			permanentNodes.add( rnode );
+//				return; 
+//			}
+//			
+//			final String test_var = rnode.getTestVariable();
+//			Map<ADDINode, ADDRNode> inner = permanentMadeINodes.get( test_var );
+//			if( inner == null ){
+//				inner = new HashMap< ADDINode, ADDRNode >();
+//				CacheBuilder.newBuilder().recordStats().
+//						removalListener( new RemovalListener<ADDINode, ADDRNode>() {
+//							@Override
+//							public void onRemoval(
+//									RemovalNotification<ADDINode, ADDRNode> arg0) {
+//								try{
+//									throw new Exception("perm. inode removed " + arg0.toString() );
+//								}catch( Exception e ){
+//									e.printStackTrace();
+//									System.exit(1);
+//								}
+//							}
+//						}).build();	
+			}
+//			inner.put( (ADDINode)node, rnode );
+//		}
+	}
+
+	public NavigableMap<String, Boolean> findFirstOneLeafAction(final ADDRNode input){
+		Objects.requireNonNull( input );
 		ADDRNode ret = input;
 		NavigableMap<String, Boolean> action = new TreeMap<String, Boolean>();
 		
@@ -1016,35 +1007,41 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				}
 			}
 		}
-		
 		return action;
-		
 	}
 	
 	@Override
-	public boolean removePermenant( final ADDRNode... input ){
-		boolean ret = true;
-		for( ADDRNode in : input ){
-			ret = ret && permenantNodes.remove(in);
+	public void removePermenant( final ADDRNode... input ){
+		Objects.requireNonNull( input );
+		for( final ADDRNode in : input ){ 
+			final Set<ADDRNode> nodes = getNodes( in,  true );
+			for( final ADDRNode rnode : nodes ){
+				permanentNodes.remove( rnode );
+			}
+//			this_node = in.getNode();
+//			if( this_node instanceof ADDINode ){
+//				permanentMadeINodes.get( in.getTestVariable() ).remove( (ADDINode)this_node );
+//				removePermenant( in.getTrueChild() );
+//				removePermenant( in.getFalseChild() );
+//			}else{
+//				permanentMadeLeaf.remove( (ADDLeaf)this_node );
+//			}
 		}
-		return ret;
 	}
 
 	public synchronized void addToApplyCache( ADDRNode a, ADDRNode b, DDOper op, ADDRNode res ){
-
+		Objects.requireNonNull( new Object[]{a,b,res} );
+		Objects.requireNonNull(op);
 		addPair(a,b,op,res);
 
 		if( isCommutative(op) ){
 			addPair(b, a, op, res);
 		}
 
-		DDOper compOp = getCompliment(op);
-
+		final DDOper compOp = getCompliment(op);
 		if( op.equals(DDOper.ARITH_MAX) || op.equals(DDOper.ARITH_MIN) ){
-
 			addPair(res, b, compOp, b);
 			addPair(res, a, compOp, a);
-
 		}else{
 
 			//a+b=c => c-a=b, c-b=a, 
@@ -1071,88 +1068,52 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	// a,b -> c
 	// d,e -> c
 	// want to get c,b -> a
-
-
 	@Override
 	public synchronized void addToStore(final int NumDDs, final boolean leaf, final boolean node) {
-		
-//		flushCaches(false);
-		
-//		LOGGER.entering( this.getClass().getName(), "addtostore" );
 
 		if( leaf ){
-
-			int i = 0;
-
-			for( i = 0 ; i < NumDDs; ++i ){
-
+			for( int i = 0 ; i < NumDDs; ++i ){
 				try{
-
 					ADDLeaf aLeaf = new ADDLeaf();
-
 					storeLeaf.add( aLeaf.getNullDD() );
-
 				}catch(OutOfMemoryError e){
-
-//					LOGGER.fine("out of memory error. added " + i + " leaves." );
 					e.printStackTrace();
 					System.exit(1);
 					return;
-
 				}
-
 			}	
-
 		}
-
+		
 		if( node ){
-
-			int i = 0;
-
-			for( i = 0 ; i < NumDDs; ++i ){
-
+			for( int i = 0 ; i < NumDDs; ++i ){
 				try{
-
 					storeINodes.add( new ADDINode().getNullDD() );
-
 				}catch(OutOfMemoryError e){
-
-//					LOGGER.fine("out of memory error. added " + i + " nodes." );
 					e.printStackTrace();
 					System.exit(1);
 					return;
-
 				}
-
 			}	
-
 		}
-
-//		LOGGER.fine("added " + NumDDs + " leaves: " + leaf + " and nodes: " + node);
-//		LOGGER.exiting( this.getClass().getName(), "addtostore" );
-
 	}
 
-	private synchronized void addToTempCache(ADDRNode in, ADDRNode ret) {
-
-		_tempCache.put( getSoftRef(in, deletedRNodes), 
-				getSoftRef(ret, deletedRNodes) );
-
+	private synchronized void addToUnaryTempCache(final ADDRNode in, final ADDRNode ret) {
+		Objects.requireNonNull( new Object[]{ in, ret } );
+		_tempUnaryCache.put( in, ret );
 	}
-
 	
 	//< thresh & strict ? 1: 0 
 	//<= thresh & !strict ? 1 : 0
 	//sets neg inf to 0 always
-	public ADDRNode threshold( ADDRNode input, final double threshold, final boolean strict ){
-		clearTempCache();
+	public ADDRNode threshold( final ADDRNode input, final double threshold, final boolean strict ){
+		Objects.requireNonNull( input );
+		clearTempUnaryCache();
 		ADDRNode ret = thresholdInt( input, threshold, strict );
-		clearTempCache();
+		clearTempUnaryCache();
 		return ret;
 	}
 
 	private double thresholdDouble( final double val , final double thresh, final boolean strict ){
-		
 		if( val == getNegativeInfValue() ){
 			return 0;
 		}else if( strict ){
@@ -1160,55 +1121,43 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else{
 			return val <= thresh ? 1 : 0;
 		}
-		
 	}
 	
-	private ADDRNode thresholdInt( ADDRNode input, final double threshold, final boolean strict ){
-	
-		ADDNode node = input.getNode();
-		
+	private ADDRNode thresholdInt( final ADDRNode input, final double threshold, final boolean strict ){
+		Objects.requireNonNull( input );
+		final ADDNode node = input.getNode();
+
 		if( node instanceof ADDLeaf ){
-			
-			ADDLeaf leaf = (ADDLeaf)node;
-			Pair<Double, Double> value = leaf.getLeafValues(); 
-			double val1 = thresholdDouble( value._o1, threshold, strict );
-			double val2 = thresholdDouble( value._o2, threshold, strict );
-			
+			final ADDLeaf leaf = (ADDLeaf)node;
+			final Pair<Double, Double> value = leaf.getLeafValues(); 
+			final double val1 = thresholdDouble( value._o1, threshold, strict );
+			final double val2 = thresholdDouble( value._o2, threshold, strict );
 			return getLeaf( val1, val2 );
-			
 		}else{
-			
-			ADDRNode ret = lookupTempCache(input);
-			
+			ADDRNode ret = lookupTempUnaryCache(input);
 			if( ret == null ){
-				String var = input.getTestVariable();
-
-				ADDRNode truth = thresholdInt( input.getTrueChild(), threshold, strict );
-				ADDRNode falseth = thresholdInt( input.getFalseChild(), threshold, strict );
-				
+				final String var = input.getTestVariable();
+				final ADDRNode truth = thresholdInt( input.getTrueChild(), threshold, strict );
+				final ADDRNode falseth = thresholdInt( input.getFalseChild(), threshold, strict );
 				ret = getINode( var, truth, falseth );
-				addToTempCache(input, ret);
-				
+				addToUnaryTempCache(input, ret);
 			}
-			
 			return ret;
-			
 		}
-		
 	}
 	
-	private void clearTempCache(){
-		_tempCache.clear();
+	private void clearTempUnaryCache(){
+		_tempUnaryCache.invalidateAll();
 	}
 	
-	
-	public ADDRNode apply(ADDRNode op1, ADDRNode op2,
-			DDOper op) {
-
+	public ADDRNode apply( final ADDRNode op1, final ADDRNode op2,
+			final DDOper op) {
+		Objects.requireNonNull( new Object[]{ op1, op2 });
+		Objects.requireNonNull( op );
 		//not able to construct Inodes with indicator due to neg inf
 		//special rule : 0 prod neginf = 0
-		boolean op1_zero = op1.equals(DD_ZERO);
-		boolean op2_zero = op2.equals(DD_ZERO);
+		final boolean op1_zero = op1.equals(DD_ZERO);
+		final boolean op2_zero = op2.equals(DD_ZERO);
 		
 		if( op1_zero || op2_zero ){
 			switch( op ){
@@ -1236,31 +1185,25 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		
-		boolean op1_neg_inf = op1.equals(DD_NEG_INF);
-		boolean op2_neg_inf =  op2.equals(DD_NEG_INF);
-
-		if( ( op1_neg_inf || op2_neg_inf ) && !op.equals(DDOper.ARITH_MAX) ){
-			return DD_NEG_INF;
-		}else if( op1_neg_inf || op2_neg_inf ){
+		final boolean op1_neg_inf = op1.equals(DD_NEG_INF);
+		final boolean op2_neg_inf =  op2.equals(DD_NEG_INF);
+		final boolean is_neg_inf = ( op1_neg_inf || op2_neg_inf );
+		
+		if( is_neg_inf && op.equals(DDOper.ARITH_MAX) ){
 			return op1_neg_inf ? op2 : op1;
+		}else if( is_neg_inf ){
+			return DD_NEG_INF;
 		}
 
-		//get the nodes
-		//descend simultaneously until cache hit or leaf pair
-
-		ADDNode node1 = op1.getNode();
-		ADDNode node2 = op2.getNode();
-
+		final ADDNode node1 = op1.getNode();
+		final ADDNode node2 = op2.getNode();
 		ADDRNode ret = null;
-
 		if( node1 instanceof ADDLeaf && node2 instanceof ADDLeaf ){
 			//we're done here
 			ret = applyLeafOp( op1, op2, op);
 //			System.out.println("Leaf op : " + node1 + " " + op + " " + node2 + " = " + ret);
 		}else{
-
-			ADDRNode lookup = lookupPair(op1, op2, op);
-
+			final ADDRNode lookup = lookupPair(op1, op2, op);
 			if( lookup != null ){
 				++applyHit ;
 				ret = lookup;	
@@ -1269,13 +1212,20 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				if( node1 instanceof ADDINode && node2 instanceof ADDINode 
 						&& isEqualVars(op1, op2) ){
 					//check if equal test vars
-					ADDRNode trueAns = apply( op1.getTrueChild(), op2.getTrueChild(), op );
-					ADDRNode falseAns = apply( op1.getFalseChild(), op2.getFalseChild(), op);
+					final ADDRNode true_child_op1 = op1.getTrueChild();
+					final ADDRNode false_child_op1 = op1.getFalseChild();
+					final ADDRNode true_child_op2 = op2.getTrueChild();
+					final ADDRNode false_child_op2 = op2.getFalseChild();
+					
+					final ADDRNode trueAns = apply( 
+							true_child_op1, true_child_op2, op );
+					final ADDRNode falseAns = apply( 
+							false_child_op1, false_child_op2, op);
 					ret = makeINode(op1.getTestVariable(), trueAns, falseAns);
 				}else{
 					//unequal test vars
 					//descend on one
-					ADDRNode trueAns, falseAns;
+					final ADDRNode trueAns, falseAns;
 					if( isBefore( op1, op2 ) ){//descend op1
 						trueAns = apply( op1.getTrueChild(), op2, op );
 						falseAns = apply( op1.getFalseChild(), op2, op );
@@ -1290,89 +1240,48 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 		addToApplyCache(op1, op2, op, ret);					
 		return ret;
-
 	}
 
-	public ADDRNode applyLeafOp(ADDRNode rnode1, ADDRNode rnode2, DDOper op) {
-
-		ADDLeaf node1 = (ADDLeaf) rnode1.getNode();
-
-		ADDLeaf node2 = (ADDLeaf) rnode2.getNode();
-
-		Pair<Double, Double> leaf1 = node1.getLeafValues();
-
-		Pair<Double, Double> leaf2 = node2.getLeafValues();
-
+	public ADDRNode applyLeafOp(final ADDRNode rnode1, final ADDRNode rnode2, 
+			final DDOper op) {
+		Objects.requireNonNull( new Object[]{rnode1, rnode2} );
+		Objects.requireNonNull( op );
+		
+		final ADDLeaf node1 = (ADDLeaf) rnode1.getNode();
+		final ADDLeaf node2 = (ADDLeaf) rnode2.getNode();
+		final Pair<Double, Double> leaf1 = node1.getLeafValues();
+		final Pair<Double, Double> leaf2 = node2.getLeafValues();
 		ADDRNode ret = null;
 
 		switch( op ){
 
 		case ARITH_PLUS : 
-
-			if( rnode1.equals(DD_ZERO) ){
-				ret = rnode2;
-			}else if( rnode2.equals(DD_ZERO) ){
-				ret = rnode1;
-			}else{
-				ret = getLeaf(leaf1._o1 + leaf2._o1,  leaf1._o2 + leaf2._o2);
-			}
-
+			ret = getLeaf(leaf1._o1 + leaf2._o1,  leaf1._o2 + leaf2._o2);
 			break;
 
 		case ARITH_MINUS : 
-
-			if( rnode2.equals(DD_ZERO) ){
-				ret = rnode1;
-			}else{
-				ret = getLeaf(leaf1._o1 - leaf2._o1, leaf1._o2 - leaf2._o2);
-			}
-
+			ret = getLeaf(leaf1._o1 - leaf2._o1, leaf1._o2 - leaf2._o2);
 			break;
 
 		case ARITH_PROD : 
-
-			if( rnode1.equals(DD_ZERO) ){
-				ret = DD_ZERO;
-			}else if( rnode2.equals(DD_ZERO)){
-				ret = DD_ZERO;
-			}else if( rnode1.equals(DD_ONE) ){
-				ret = rnode2;
-			}else if( rnode2.equals(DD_ONE) ){
-				ret = rnode1;
-			}else{
-				ret = getLeaf( leaf1._o1 * leaf2._o1, leaf1._o2 * leaf2._o2);	
-			}
-
-
+			ret = getLeaf( leaf1._o1 * leaf2._o1, leaf1._o2 * leaf2._o2);	
 			break;
 
 		case ARITH_DIV:
-
-			if( rnode1.equals(DD_ZERO) ){
-				ret = DD_ZERO;
-			}else if( rnode2.equals(DD_ONE) ){
-				ret = rnode1;
-			}
-
 			try{
 				ret = getLeaf(leaf1._o1 / leaf2._o1, leaf1._o2 / leaf2._o2);
 			}catch( ArithmeticException e ){
 				e.printStackTrace();
 				System.exit(1);
 			}
-
 			break;
 
 		case ARITH_MAX :
-
 			ret = getLeaf( Math.max(leaf1._o1, leaf2._o1), Math.max(leaf1._o2, leaf2._o2) );
-
 			break;
 
 		case ARITH_MIN :
-
 			ret = getLeaf( Math.min(leaf1._o1, leaf2._o1), Math.min(leaf1._o2, leaf2._o2) );
-
 			break;
 
 		default : 	
@@ -1395,221 +1304,211 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return null;
 	} 
 
-	public synchronized void clearApplyCache(){
+//	public synchronized void clearApplyCache(){
+//
+//		Set<Entry<DDOper, ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, 
+//		MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>>> maps = applyCache.entrySet();
+//
+//		Iterator<Entry<DDOper, ConcurrentHashMap<Pair<MySoftReference<ADDRNode>,
+//		MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>>> it = maps.iterator();
+//
+//		while( it.hasNext() ){
+//
+//			Entry<DDOper, ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, 
+//			MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>> inner = it.next();
+//
+//			ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>,
+//			MySoftReference<ADDRNode>> innerMap = inner.getValue();
+//
+//			Set<Entry<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>,
+//			MySoftReference<ADDRNode>>> innerSet = innerMap.entrySet();
+//
+//			Iterator<Entry<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>,
+//			MySoftReference<ADDRNode>>> itIn = innerSet.iterator();
+//
+//			while( itIn.hasNext() ){
+//
+//				Entry<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>, 
+//				MySoftReference<ADDRNode>> thing = itIn.next();
+//
+//				Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>> key = thing.getKey();
+//				MySoftReference<ADDRNode> value = thing.getValue();
+//
+//				if( value == null || value.get() == null 
+//						|| key._o1 == null || key._o2 == null
+//						|| key._o1.get() == null || key._o2.get() == null ){
+//
+//					itIn.remove();
+//
+//				}
+//
+//			}
+//
+//		}
+//
+//	}
 
-		Set<Entry<DDOper, ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, 
-		MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>>> maps = applyCache.entrySet();
+//	public synchronized
+//	<T extends Comparable<T>, U extends Comparable<U>>
+//		void clearDeadEntries( final ConcurrentHashMap<
+//				MySoftReference<U>, MySoftReference<T> > map ){
+//
+//		new Thread( new Runnable() {
+//			
+//			@Override
+//			public void run() {
+//				Set<Entry<MySoftReference<U>, MySoftReference<T>>> set = map.entrySet();
+//
+//				Iterator<Entry<MySoftReference<U>, MySoftReference<T>>> it = set.iterator();
+//
+//				while( it.hasNext() ){
+//					Entry<MySoftReference<U>, MySoftReference<T>> thing = it.next();
+//					MySoftReference<U> key = thing.getKey();
+//					MySoftReference<T> value = thing.getValue();
+//					if( key == null || key.get() == null || 
+//							value == null || value.get() == null ){
+//						it.remove();
+//					}
+//				}				
+//			}
+//		}, "clearDeadEntries").start();
+//	}
+//
+//	public synchronized void clearDeadNodes( final boolean clearDeadMaps) {
+//
+//		//take references from ref queue
+//		//get the object in it
+//		//remove it from madeINodes or madeLeafs
+//		//by using nullify()
+//		removeDeadEntries( deletedLeafNodes );
+//		removeDeadEntries( deletedINodes );
+//		removeDeadEntries( deletedRNodes );
+//		if( clearDeadMaps ){
+//			clearMadeNodes();
+////			clearApplyCache();	
+////			Thread.currentThread()
+//		}
+//	}
 
-		Iterator<Entry<DDOper, ConcurrentHashMap<Pair<MySoftReference<ADDRNode>,
-		MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>>> it = maps.iterator();
-
-		while( it.hasNext() ){
-
-			Entry<DDOper, ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, 
-			MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>> inner = it.next();
-
-			ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>,
-			MySoftReference<ADDRNode>> innerMap = inner.getValue();
-
-			Set<Entry<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>,
-			MySoftReference<ADDRNode>>> innerSet = innerMap.entrySet();
-
-			Iterator<Entry<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>,
-			MySoftReference<ADDRNode>>> itIn = innerSet.iterator();
-
-			while( itIn.hasNext() ){
-
-				Entry<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>, 
-				MySoftReference<ADDRNode>> thing = itIn.next();
-
-				Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>> key = thing.getKey();
-				MySoftReference<ADDRNode> value = thing.getValue();
-
-				if( value == null || value.get() == null 
-						|| key._o1 == null || key._o2 == null
-						|| key._o1.get() == null || key._o2.get() == null ){
-
-					itIn.remove();
-
-				}
-
-			}
-
-		}
-
-	}
-
-	public synchronized
-	<T extends Comparable<T>, U extends Comparable<U>>
-		void clearDeadEntries( final ConcurrentHashMap<
-				MySoftReference<U>, MySoftReference<T> > map ){
-
-		new Thread( new Runnable() {
-			
-			@Override
-			public void run() {
-				Set<Entry<MySoftReference<U>, MySoftReference<T>>> set = map.entrySet();
-
-				Iterator<Entry<MySoftReference<U>, MySoftReference<T>>> it = set.iterator();
-
-				while( it.hasNext() ){
-					Entry<MySoftReference<U>, MySoftReference<T>> thing = it.next();
-					MySoftReference<U> key = thing.getKey();
-					MySoftReference<T> value = thing.getValue();
-					if( key == null || key.get() == null || 
-							value == null || value.get() == null ){
-						it.remove();
-					}
-				}				
-			}
-		}, "clearDeadEntries").start();
-	}
-
-	public synchronized void clearDeadNodes( final boolean clearDeadMaps) {
-
-		//take references from ref queue
-		//get the object in it
-		//remove it from madeINodes or madeLeafs
-		//by using nullify()
-		removeDeadEntries( deletedLeafNodes );
-		removeDeadEntries( deletedINodes );
-		removeDeadEntries( deletedRNodes );
-		if( clearDeadMaps ){
-			clearMadeNodes();
-//			clearApplyCache();	
-//			Thread.currentThread()
-		}
-	}
-
-	private <T> void removeDeadEntries(final ReferenceQueue<T> ref_q) {
-
-		new Thread( new Runnable() {
-			
-			@Override
-			public void run() {
-				Reference<? extends T> item;
-				int total = 0, deleted = 0;
-
-				while( (item = ref_q.poll()) != null ){
-
-					T entry = item.get();
-
-					if(  entry != null  ){
-						if( entry instanceof ADDLeaf ){
-							ADDLeaf leaf = (ADDLeaf)entry;
-							removeMap(new MySoftReference<ADDLeaf>(leaf), madeLeaf );
-							leaf.nullify();
-							leaf = null;
-						}else if( entry instanceof ADDINode ){
-							ADDINode inode = (ADDINode)entry;
-							removeMap( new MySoftReference<ADDINode>(inode), 
-									madeINodes.get(inode.getTestVariable() ) );
-							inode.nullify();
-							inode = null;
-						}else if( entry instanceof ADDRNode ){
-							ADDRNode rnode = (ADDRNode)entry;
-							if( !permenantNodes.contains(rnode) ){
-								ADDNode node = rnode.getNode();
-								if( node instanceof ADDINode ){
-									ADDINode inode = (ADDINode)node;
-									ConcurrentHashMap<MySoftReference<ADDINode>, 
-										MySoftReference<ADDRNode>> innerMap 
-									= madeINodes.get( inode.getTestVariable() );
-									removeMap( new MySoftReference<ADDINode>(inode), 
-											innerMap );
-									inode.nullify();
-									inode = null;
-								}else if( node instanceof ADDLeaf ){
-									ADDLeaf leaf = (ADDLeaf)node;
-									removeMap( new MySoftReference<ADDLeaf>(
-											leaf),
-											madeLeaf );
-									leaf.nullify();
-									leaf = null;
-								}
-								++deleted;
-							}
-	
-						}else{
-							try{
-								throw new Exception("whut whut!");
-							}catch( Exception e ){
-								e.printStackTrace();
-								System.exit(1);
-							}
-						}
-						entry = null;
-					}
-					++total;
-				}
-
+//	private <T> void removeDeadEntries(final ReferenceQueue<T> ref_q) {
+//
+//		new Thread( new Runnable() {
+//			
+//			@Override
+//			public void run() {
+//				Reference<? extends T> item;
+//				int total = 0, deleted = 0;
+//
+//				while( (item = ref_q.poll()) != null ){
+//
+//					T entry = item.get();
+//
+//					if(  entry != null  ){
+//						if( entry instanceof ADDLeaf ){
+//							ADDLeaf leaf = (ADDLeaf)entry;
+//							removeMap(new MySoftReference<ADDLeaf>(leaf), madeLeaf );
+//							leaf.nullify();
+//							leaf = null;
+//						}else if( entry instanceof ADDINode ){
+//							ADDINode inode = (ADDINode)entry;
+//							removeMap( new MySoftReference<ADDINode>(inode), 
+//									madeINodes.get(inode.getTestVariable() ) );
+//							inode.nullify();
+//							inode = null;
+//						}else if( entry instanceof ADDRNode ){
+//							ADDRNode rnode = (ADDRNode)entry;
+//							if( !permenantNodes.contains(rnode) ){
+//								ADDNode node = rnode.getNode();
+//								if( node instanceof ADDINode ){
+//									ADDINode inode = (ADDINode)node;
+//									ConcurrentHashMap<MySoftReference<ADDINode>, 
+//										MySoftReference<ADDRNode>> innerMap 
+//									= madeINodes.get( inode.getTestVariable() );
+//									removeMap( new MySoftReference<ADDINode>(inode), 
+//											innerMap );
+//									inode.nullify();
+//									inode = null;
+//								}else if( node instanceof ADDLeaf ){
+//									ADDLeaf leaf = (ADDLeaf)node;
+//									removeMap( new MySoftReference<ADDLeaf>(
+//											leaf),
+//											madeLeaf );
+//									leaf.nullify();
+//									leaf = null;
+//								}
+//								++deleted;
+//							}
+//	
+//						}else{
+//							try{
+//								throw new Exception("whut whut!");
+//							}catch( Exception e ){
+//								e.printStackTrace();
+//								System.exit(1);
+//							}
+//						}
+//						entry = null;
+//					}
+//					++total;
+//				}
+//
 //				System.err.println( "Total: " + total + " Deleted : " + deleted );
-
-		
-			}
-		}, "flushcaches").start();		
-	}
-
-	private synchronized void clearMadeNodes() {
-
-		Set<Entry<String, ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>>>
-			map = madeINodes.entrySet();
-
-		Iterator<Entry<String, ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>>> 
-			itOut = map.iterator();
-
-		while( itOut.hasNext() ){
-
-			Entry<String, ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>> 
-				inner = itOut.next();
-			ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> 
-				innerMap = inner.getValue();
-			clearDeadEntries(innerMap);
-		}
-
-		clearDeadEntries(madeLeaf);
-
-	}
-
-
-	//done:
-	//1. maps of Inode and Dnode separately
-	//2. method for Inode, Dnode to RNode(must check for negation)
-	//3. soft references to Rnodes
-	//4. update clear null entries etc
+//		
+//			}
+//		}, "flushcaches").start();		
+//	}
+//
+//	private synchronized void clearMadeNodes() {
+//
+//		Set<Entry<String, ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>>>
+//			map = madeINodes.entrySet();
+//
+//		Iterator<Entry<String, ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>>> 
+//			itOut = map.iterator();
+//
+//		while( itOut.hasNext() ){
+//
+//			Entry<String, ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>> 
+//				inner = itOut.next();
+//			ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> 
+//				innerMap = inner.getValue();
+//			clearDeadEntries(innerMap);
+//		}
+//
+//		clearDeadEntries(madeLeaf);
+//
+//	}
 
 	@Override
-	public boolean compare(ADDRNode input1, ADDRNode input2) {
-
-		ADDRNode diff = apply( input1, input2, DDOper.ARITH_MINUS );
-
+	public boolean compare(final ADDRNode input1, final ADDRNode input2) {
+		Objects.requireNonNull( new Object[]{input1, input2} );
+		final ADDRNode diff = apply( input1, input2, DDOper.ARITH_MINUS );
 		if( diff.equals(DD_ZERO) ){
 			return true;
 		}
-
 		return false;
-
 	}
 
-	public ADDRNode constrain( ADDRNode rnode, ADDRNode rconstrain, ADDRNode violate ){
+	public ADDRNode constrain( final ADDRNode rnode, final ADDRNode rconstrain, 
+			final ADDRNode violate ){
 
-		if( _constrainCache == null ){
-			_constrainCache = new ConcurrentHashMap< 
-					Pair< ADDRNode, ADDRNode >, ADDRNode >();
-		}
-
-		_constrainCache.clear();
-		ADDRNode ret = constrainInt(rnode, rconstrain, violate);
-		_constrainCache.clear();
+//		if( _constrainCache == null ){
+//			_constrainCache = new ConcurrentHashMap< 
+//					Pair< ADDRNode, ADDRNode >, ADDRNode >();
+//		}
+		_constrainCache.invalidateAll();
+		final ADDRNode ret = constrainInt(rnode, rconstrain, violate);
+		_constrainCache.invalidateAll();
 		return ret;
 	}
 
 	//constraint diagram is a BDD
 	//replaces constrained parts of rnode with violate
-	public ADDRNode constrainInt( ADDRNode rnode, ADDRNode rconstrain, ADDRNode violate ){
-
-		ADDNode node = rnode.getNode();
-		ADDNode constr = rconstrain.getNode();
+	public ADDRNode constrainInt( final ADDRNode rnode, 
+			final ADDRNode rconstrain, final ADDRNode violate ){
+		Objects.requireNonNull( new Object[]{ rnode, rconstrain, violate } );
+		final ADDNode node = rnode.getNode();
+		final ADDNode constr = rconstrain.getNode();
 		ADDRNode ret = null;
 
 		if( rconstrain.equals(DD_ZERO) ){
@@ -1624,182 +1523,152 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			System.out.println("leaf was reached in input ADD " + rnode);
 			ret = rnode;
 		}else{
-			ADDRNode lookup = _constrainCache.get( new Pair<ADDRNode, ADDRNode>
-				( rnode, rconstrain ) );
-			if( lookup != null ){
-//				System.out.println( " cache hit " + rnode + " " + rconstrain + " =  " + lookup );
-				ret = lookup;
-			}else{
-
-				//not both leaf
-				if( node instanceof ADDINode && constr instanceof ADDINode ){
-					ADDRNode trueAns, falseAns;
-					
-					if( isEqualVars(rnode, rconstrain) ){
-//						System.out.println("descend both " + rnode.getTestVariable() 
-//								+ " " + rconstrain.getTestVariable() );
-						trueAns = constrainInt(rnode.getTrueChild(), 
-								rconstrain.getTrueChild(), violate);
-//						System.out.println( rnode.getTestVariable() + " true " 
-//								+ trueAns );
-						falseAns = constrainInt( rnode.getFalseChild(), 
-								rconstrain.getFalseChild(), violate );
-//						System.out.println( rnode.getTestVariable() + " false " 
-//								+ falseAns );
-						ADDRNode ans = makeINode(rnode.getTestVariable(), trueAns, falseAns);
-						ret = ans;
-					}else{
-						//descend just one
-						//one inode at least
-						if( isBefore(rnode, rconstrain) ){//descend on rnode
-//							System.out.println("descend rnode " + rnode.getTestVariable() + " "
-//									+ rconstrain.getTestVariable() );
-							trueAns = constrainInt(rnode.getTrueChild(), 
-									rconstrain, violate);
-//							System.out.println( rnode.getTestVariable() + " true " 
-//									+ trueAns );
-							falseAns = constrainInt( rnode.getFalseChild(), 
-									rconstrain, violate );
-//							System.out.println( rnode.getTestVariable() + " false " 
-//									+ falseAns );
-							ADDRNode ans = makeINode(rnode.getTestVariable(), trueAns, falseAns);
-							ret = ans;
-						}else{
-							//descend on rconstrain
-							//here is the approximation
-							
-							//i want to apply only those constraints that are common to 
-							//both branches
-							//1. take sub-bdds... multiply (1-subbdds)
-							//will have 1 in common constraints
-							//do 1-that to get common constraints
-							//presuming that the constraint is compact
-							//multiplying the subdds is ok
-//							System.out.println(" getting common constraints " 
-//									+ rnode.getTestVariable() 
-//									+ " " + rconstrain.getTestVariable() );
-							ADDRNode common = getCommonConstraints( rconstrain );
-							ADDRNode ans = constrainInt( rnode, common, violate);
-							ret = ans;
-						}
-					}
-					_constrainCache.put( new Pair<ADDRNode, ADDRNode>(rnode, rconstrain), ret );
-				}else{
-					try{
-						throw new Exception("should not be here");
-					}catch( Exception e ){
-						e.printStackTrace();
-						System.exit(1);
-					}
-				}
+			ADDRNode lookup;
+			try {
+				lookup = _constrainCache.get( new Pair<ADDRNode, ADDRNode>
+					( rnode, rconstrain ), new Callable<ADDRNode>() {
+						@Override
+						public ADDRNode call() throws Exception {
+							//not both leaf
+							if( node instanceof ADDINode && constr instanceof ADDINode ){
+								final ADDRNode trueAns, falseAns;
+								
+								if( isEqualVars(rnode, rconstrain) ){
+//								System.out.println("descend both " + rnode.getTestVariable() 
+//										+ " " + rconstrain.getTestVariable() );
+									final ADDRNode rnode_true = rnode.getTrueChild();
+									final ADDRNode rnode_false = rnode.getFalseChild();
+									final ADDRNode rconstrain_true = rconstrain.getTrueChild();
+									final ADDRNode rconstrain_false = rconstrain.getFalseChild();
+									
+									trueAns = constrainInt(rnode_true, 
+											rconstrain_true, violate);
+//								System.out.println( rnode.getTestVariable() + " true " 
+//										+ trueAns );
+									falseAns = constrainInt( rnode_false, 
+											rconstrain_false, violate );
+//								System.out.println( rnode.getTestVariable() + " false " 
+//										+ falseAns );
+									final ADDRNode ans = makeINode(rnode.getTestVariable(), trueAns, falseAns);
+									return ans;
+								}else{
+									//descend just one
+									//one inode at least
+									if( isBefore(rnode, rconstrain) ){//descend on rnode
+//									System.out.println("descend rnode " + rnode.getTestVariable() + " "
+//											+ rconstrain.getTestVariable() );
+										trueAns = constrainInt(rnode.getTrueChild(), 
+												rconstrain, violate);
+//									System.out.println( rnode.getTestVariable() + " true " 
+//											+ trueAns );
+										falseAns = constrainInt( rnode.getFalseChild(), 
+												rconstrain, violate );
+//									System.out.println( rnode.getTestVariable() + " false " 
+//											+ falseAns );
+										final ADDRNode ans = makeINode(rnode.getTestVariable(), trueAns, falseAns);
+										return ans;
+									}else{
+										//descend on rconstrain
+										//here is the approximation
+										
+										//i want to apply only those constraints that are common to 
+										//both branches
+										//1. take sub-bdds... multiply (1-subbdds)
+										//will have 1 in common constraints
+										//do 1-that to get common constraints
+										//presuming that the constraint is compact
+										//multiplying the subdds is ok
+//									System.out.println(" getting common constraints " 
+//											+ rnode.getTestVariable() 
+//											+ " " + rconstrain.getTestVariable() );
+										final ADDRNode common = getCommonConstraints( rconstrain );
+										final ADDRNode ans = constrainInt( rnode, common, violate);
+										return ans;
+									}
+								}
+							}else{
+								throw new ExecutionException("not two Inodes", null);
+							}
+					} } );
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+				lookup = null;
+				System.exit(1);
 			}
+			ret = lookup;
 		}
 //		showGraph(rnode, rconstrain, ret);
 		return ret;
 	}
 
 	//WARNING: constrain should be a BDD
-	private ADDRNode getCommonConstraints(ADDRNode rconstrain) {
-		ADDRNode truth = rconstrain.getTrueChild();
-		ADDRNode falseth = rconstrain.getFalseChild();
-		ADDRNode one_minus_truth = apply( DD_ONE, truth, DDOper.ARITH_MINUS);
-		ADDRNode one_minus_falseth = apply( DD_ONE, falseth, DDOper.ARITH_MINUS);
-		ADDRNode common_one = apply( one_minus_falseth, one_minus_truth, DDOper.ARITH_PROD );
-		return apply( DD_ONE, common_one, DDOper.ARITH_MINUS );
+	private ADDRNode getCommonConstraints(final ADDRNode rconstrain) {
+		Objects.requireNonNull(rconstrain);
+		final ADDRNode truth = rconstrain.getTrueChild();
+		final ADDRNode falseth = rconstrain.getFalseChild();
+		final ADDRNode one_minus_truth = apply( DD_ONE, truth, DDOper.ARITH_MINUS);
+		final ADDRNode one_minus_falseth = apply( DD_ONE, falseth, DDOper.ARITH_MINUS);
+		final ADDRNode common_one = apply( one_minus_falseth, one_minus_truth, DDOper.ARITH_PROD );
+		final ADDRNode ret = apply( DD_ONE, common_one, DDOper.ARITH_MINUS );
+		Objects.requireNonNull( new Object[]{ ret, truth, falseth, one_minus_falseth,
+				one_minus_truth, common_one } );
+		return ret;
 	}
 
-	public ArrayList<Integer> countNodes( ADDRNode... rnodes ){
-
-		int i = 0;
-
+	public List<Integer> countNodes( final ADDRNode... rnodes ){
+		Objects.requireNonNull( rnodes );
 		ArrayList<Integer> ret = new ArrayList<Integer>();
-
 		for( ADDRNode rnode : rnodes ){
 			ret.add( countNodesInt( rnode , new HashSet<ADDRNode>() ) );
 		}
-
-		return ret; 
+		return Collections.unmodifiableList( ret ); 
 	}
 
-	private int countNodesInt( ADDRNode rnode, HashSet<ADDRNode> seen ){
-
+	private int countNodesInt( final ADDRNode rnode, final HashSet<ADDRNode> seen ){
+		Objects.requireNonNull( rnode );
+		Objects.requireNonNull( seen );
 		if( seen.contains(rnode) ){
 			return 0;
 		}
-
-		ADDNode node = rnode.getNode();
-
+		final ADDNode node = rnode.getNode();
 		if( node instanceof ADDLeaf ){
 			return 0;
 		}
-
 		seen.add( rnode );
-
-		int trueCount = countNodesInt( rnode.getTrueChild(), seen );
-		int falseCount = countNodesInt( rnode.getFalseChild(), seen );
-
+		final int trueCount = countNodesInt( rnode.getTrueChild(), seen );
+		final int falseCount = countNodesInt( rnode.getFalseChild(), seen );
 		return 1 + trueCount + falseCount;
-
 	}
 
-	public int countPaths( ADDRNode rnode ){
-
-		ADDNode node = rnode.getNode();
-
+	public int countPaths( final ADDRNode rnode ){
+		Objects.requireNonNull( rnode );
+		final ADDNode node = rnode.getNode();
 		if( node instanceof ADDLeaf ){
 			return 1;
 		}
-
-		int trueCount = countPaths( rnode.getTrueChild() );
-		int falseCount = countPaths( rnode.getFalseChild() );
-
+		final int trueCount = countPaths( rnode.getTrueChild() );
+		final int falseCount = countPaths( rnode.getFalseChild() );
 		return trueCount + falseCount;
-
 	}
 
-	//parent is going to be ADD
 	@Override
 	public void createStore( final int NumDDs ) {
-
 		this.STORE_INCREMENT = NumDDs;
-
-//		LOGGER.setUseParentHandlers(false);
-
-//		allHandler.setFormatter( new SimpleFormatter() );
-
-//		consoleHandler.setFormatter( new SimpleFormatter() );
-
-//		LOGGER.setLevel(Level.SEVERE);//probably parent will have ALL
-
-//		allHandler.setLevel(Level.ALL);
-
-//		consoleHandler.setLevel(Level.WARNING);
-
-//		LOGGER.addHandler(allHandler);
-
-//		LOGGER.addHandler(consoleHandler);
-
 		storeINodes = new ConcurrentLinkedQueue< MySoftReference<ADDINode> >();
-
 		storeLeaf = new ConcurrentLinkedQueue< MySoftReference<ADDLeaf> >();
-
 		addToStore(NumDDs, true, true);
-
-//		LOGGER.exiting( this.getClass().getName() , "create store");
-
 	}
 
 	@Override
-	public List<NavigableMap<String,Boolean>> enumeratePaths(ADDRNode input, 
-			final boolean leaf, final boolean leafValSpecified, 
+	public List<NavigableMap<String,Boolean>> enumeratePaths(
+			final ADDRNode input, 
+			final boolean include_leaves, final boolean specified_leaves_only, 
 			final double leafVal) {
-
-		List<NavigableMap<String, Boolean>> ret = new ArrayList< NavigableMap<String, Boolean> > () ;
-
-		enumeratePathsInt( input, ret, null, leaf, leafValSpecified, leafVal);
-
-		return ret;
-
+		Objects.requireNonNull( input );
+		final List<NavigableMap<String, Boolean>> ret 
+			= new ArrayList< NavigableMap<String, Boolean> > () ;
+		enumeratePathsInt( input, ret, null, include_leaves, specified_leaves_only, leafVal);
+		return Collections.unmodifiableList( ret );
 	}
 
 	public static void testEnumeratePaths( ){
@@ -1826,66 +1695,58 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-
 	private void enumeratePathsInt(final ADDRNode input,
-			List<NavigableMap<String, Boolean>> ret, 
+			final List<NavigableMap<String, Boolean>> all_paths, 
 			NavigableMap<String,Boolean> current, 
-			final boolean leaf, 
-			final boolean leafValSpecified, 
+			final boolean include_leaves, 
+			final boolean specified_leaves_only, 
 			final double leafVal ) {
 
+		Objects.requireNonNull( input );
+		Objects.requireNonNull( all_paths );
+		
 		if( current == null ){
 			//root node
 			current = new TreeMap<String, Boolean>();
 		}
 
-		ADDNode node = input.getNode();
-
+		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
-			
-			if( leaf ){
-				current.put( node.toString(), false) ;
-			}
-			
-			if( !current.isEmpty() ){
-				if( leafValSpecified && ((ADDLeaf)node).getLeafValues()._o1 == leafVal ){
-					ret.add( current );	
-				}else if( !leafValSpecified ){
-					ret.add( current );	
+			if( include_leaves ){
+				if( !specified_leaves_only ||
+						( specified_leaves_only && ((ADDLeaf)node).getLeafValues()._o1 == leafVal ) ){
+					current.put( node.toString(), false) ;
 				}
 			}
 			
+			if( current.size() > 0 ){ 
+				all_paths.add( current );	
+			}
+			
 		}else{
+			final TreeMap<String, Boolean> truth = new TreeMap<String, Boolean>(current);
+			final String testVar = input.getTestVariable();
+			truth.put( testVar, true );
+			enumeratePathsInt(input.getTrueChild(), all_paths, truth, include_leaves, 
+					specified_leaves_only, leafVal);
 
-			TreeMap<String, Boolean> truth = new TreeMap<String, Boolean>(current);
-			truth.put( input.getTestVariable(), true );
-
-			enumeratePathsInt(input.getTrueChild(), ret, truth, leaf, 
-					leafValSpecified, leafVal);
-
-			TreeMap<String, Boolean> falseth = new TreeMap<String, Boolean>(current);
-			falseth.put( input.getTestVariable(), false );
-
-			enumeratePathsInt( input.getFalseChild(), ret, falseth, leaf, 
-					leafValSpecified, leafVal );
-
+			final TreeMap<String, Boolean> falseth = new TreeMap<String, Boolean>(current);
+			falseth.put( testVar, false );
+			enumeratePathsInt( input.getFalseChild(), all_paths, falseth, include_leaves, 
+					specified_leaves_only, leafVal );
 		}
-
 	}
 
 	@Override
-	public ADDRNode evaluate(ADDRNode input, Map<?, Boolean> assign) {
-
+	public ADDRNode evaluate(final ADDRNode input, final Map<?, Boolean> assign) {
+		Objects.requireNonNull( input );
 		ADDRNode ret = input;
-
 		while( !( ret.getNode() instanceof ADDLeaf ) ){
-			String testVar = ret.getTestVariable();
-			boolean value = assign.get( testVar );
+			final String testVar = ret.getTestVariable();
+			final boolean value = assign.get( testVar );
 			ret = ( value ) ?  ret.getTrueChild() : ret.getFalseChild();
 		}
-
 		return ret;
-
 	}
 
 	public static void testEvaluate(){
@@ -1917,70 +1778,109 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public void flushCaches(boolean clearDeadMaps) {
+	public void flushCaches( ){// final ADDRNode save ) {
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
-		this._tempCache.clear();
+//		this._tempCache.clear();
+//		final double mem_percent = getMemoryPercent();
+//		if( mem_percent > 0.9d ){
+//			cacheSummary();
+		for( Map.Entry< DDOper, Cache< 
+				Pair< ADDRNode, ADDRNode >, ADDRNode > > 
+					entry : applyCache.entrySet() ){
+			final Cache< 
+				Pair< ADDRNode, ADDRNode >, ADDRNode > 
+					this_cache = entry.getValue();
+			this_cache.invalidateAll();
+		}
+		_tempUnaryCache.invalidateAll();
+		_constrainCache.invalidateAll();
+		madeLeaf.cleanUp();
+		for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
+			inner.cleanUp();
+		}
+//				inner.getValue().invalidateAll();
+//				inner.getValue().putAll( permanentMadeINodes.get( inner.getKey() ).asMap() );
+//			}
+//			madeLeaf.invalidateAll();
+//			madeLeaf.putAll( permanentMadeLeaf.asMap() );
+//			for( Map.Entry< String,
+//					Cache< ADDINode, ADDRNode > > inner : madeINodes.entrySet() ){
+//				inner.getValue().invalidateAll();
+//				inner.getValue().putAll( permanentMadeINodes.get( inner.getKey() ).asMap() );
+//			}
+//		}
 //		cacheSummary();
-		double mem_percent = getMemoryPercent();
 //		System.out.println( mem_percent );
-		applyCache.clear();
-		applyHit = 0;
-		if( mem_percent > 0.9d ){
-			System.out.println("Low on memory, flushing caches and nodes");
+		
+//			System.out.println("Low on memory, flushing caches and nodes");
 //			reduceCache.clear();
 //			clearDeadNodes(clearDeadMaps);
-			madeLeaf.clear();
-			madeINodes.clear();
-			restorePermenants( );			
-		}
+////			madeLeaf.clear();
+////			madeINodes.clear();
+//			restorePermenants( );			
+//		}
+			
 	}
 
 	//testaddPair
 	//testlookuppair
 
-	private void cacheSummary() {
+//	private void clearAll(final ADDRNode... save) {
+//		madeLeaf.invalidateAll();
+//		for( Map.Entry<String, Cache<ADDINode, ADDRNode>> entry : madeINodes.entrySet() ){
+//			entry.getValue().invalidateAll();
+//		}
+//		for( ADDRNode rnode : save ){
+//			cacheNode( rnode );
+//		}
+//	}
+
+	public void cacheSummary() {
 		System.out.println( "Apply hits : " + applyHit );
 		System.out.println("Apply cache size : " + getApplyCacheSize() );
-		System.out.println("Made INodes : " + madeINodes.size() );
+		System.out.println("Made INodes : " + getNumINodes() );
 		System.out.println("MadeLeaf nodes : " + madeLeaf.size() );
-		System.out.println("Number of permenants : " + permenantNodes.size() );
+//		System.out.println("Permenant Inodes : " + perm.size() );
+		System.out.println( "Leaf cache stats : ");
+		System.out.println( madeLeaf.stats().toString() );
+		for( Map.Entry< String, Cache<ADDINode, ADDRNode > > entry 
+				: madeINodes.entrySet() ){
+			System.out.println( " MadeInodes for " + entry.getKey() );
+			System.out.println( entry.getValue().stats().toString() );
+		}
 	}
 
 	private int getApplyCacheSize() {
 		int size = 0;
 		for( Entry<DDOper, 
-				ConcurrentHashMap<Pair<MySoftReference<ADDRNode>,
-					MySoftReference<ADDRNode>>, MySoftReference<ADDRNode>>>  
+				 Cache< 
+					Pair< ADDRNode, ADDRNode >, ADDRNode > >  
 						entry : applyCache.entrySet() ){
 			size += entry.getValue().size();
 		}
 		return size;
 	}
+//
+//	private void restorePermenants() {
+//		for( final ADDRNode rnode : permenantNodes ){
+//			final ADDNode node = rnode.getNode();
+//			Objects.requireNonNull( rnode );
+//			Objects.requireNonNull( node );
+//			
+//			if( node instanceof ADDLeaf ){
+//				madeLeaf.put( (ADDLeaf) node, rnode );
+//			}else{
+//				final String testVar = rnode.getTestVariable();
+//				Cache<ADDINode, ADDRNode> innerMap = madeINodes.get( testVar );
+//				final ADDINode inode = (ADDINode)rnode.getNode();
+//				Objects.requireNonNull( innerMap );
+//				innerMap.put( inode, rnode );
+//			}
+//		}
+//	}
 
-	private void restorePermenants() {
-		for( ADDRNode rnode : permenantNodes ){
-			ADDNode node = rnode.getNode();
-			if( node instanceof ADDLeaf ){
-				madeLeaf.put( getSoftRef((ADDLeaf)node, deletedLeafNodes),
-							getSoftRef(rnode, deletedRNodes) );
-			}else{
-				String testVar = rnode.getTestVariable();
-				ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>
-					innerMap = madeINodes.get( testVar );
-				ADDINode inode = (ADDINode)rnode.getNode();
-				if( innerMap == null ){
-					innerMap = new ConcurrentHashMap< MySoftReference<ADDINode>, 
-						MySoftReference<ADDRNode> >();	
-					madeINodes.put( testVar, innerMap );
-				}
-				innerMap.put( getSoftRef(inode, deletedINodes),
-						getSoftRef(rnode, deletedRNodes) );
-			}
-		}
-	}
-
-	public ADDRNode getBernoulliProb( int num_vars, double prob ){
+	public ADDRNode getBernoulliProb( final int num_vars, final double prob ){
 
 		ArrayList<String> ord = new ArrayList<String>();
 		for( int i = 0 ; i < num_vars; ++i ){
@@ -2014,54 +1914,54 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private synchronized <T extends Comparable<T> > T getFirstRealOne(
-			ConcurrentLinkedQueue<MySoftReference<T>> store) {
+			final ConcurrentLinkedQueue<MySoftReference<T>> store) {
 
 		MySoftReference<T> loc = null;
-
 		while( (loc = store.poll()) != null ){
-
-			T got = loc.get();
+			final T got = loc.get();
 			if( got != null ){
 				return got;
 			}
 		}
-
 		return null;
-
 	}
 
-	public ADDRNode getIndicatorDiagram(String testVar, boolean b) {
-
-		ADDINode inode = (ADDINode) getOneNullDD(false);
-
-		if( inode == null ){
-			System.err.println("can't make more inodes");
-		}
-
-		ADDINode ret = null;
-		//plug in
-		try {
-
-			if( b ){
-				ret = inode.plugIn( testVar, new UniPair<ADDRNode>( DD_ONE, DD_ZERO ) );
-			}else{
-				ret = inode.plugIn( testVar, new UniPair<ADDRNode>( DD_ZERO, DD_ONE ) );
-			}
-
-		} catch (Exception e) {
-			ret = null;
-			//			e.printStackTrace();
-		}
-
-		return getRNode(ret, true);
-
+	public ADDRNode getIndicatorDiagram(final String testVar, final boolean b) {
+		Objects.requireNonNull( testVar );
+		final ADDRNode ret = 
+				getINode(testVar, b ? DD_ONE : DD_ZERO,  b ? DD_ZERO : DD_ONE );
+		return ret;
+//		ADDINode inode = (ADDINode) getOneNullDD(false);
+//
+//		if( inode == null ){
+//			System.err.println("can't make more inodes");
+//		}
+//
+//		ADDINode ret = null;
+//		//plug in
+//		try {
+//
+//			if( b ){
+//				ret = inode.plugIn( testVar, new UniPair<ADDRNode>( DD_ONE, DD_ZERO ) );
+//			}else{
+//				ret = inode.plugIn( testVar, new UniPair<ADDRNode>( DD_ZERO, DD_ONE ) );
+//			}
+//
+//		} catch (Exception e) {
+//			ret = null;
+//			//			e.printStackTrace();
+//		}
+//
+//		return getRNode(ret, true);
 	}
+	
 	//creates new null inode
 	//plugs into that inode
 	//get Rnode - gets unique version of that node
 	//returns falsebranch if truebranch.equals(falsebranch)
 	//WARNING: assumes truebranch and falsebranch are reduced
-	public ADDRNode getINode( String testVar, ADDRNode trueBranch, ADDRNode falseBranch ){
+	public ADDRNode getINode( final String testVar, 
+			final ADDRNode trueBranch, final ADDRNode falseBranch ){
 
 		//if you have RNode it should be that
 		//under that node
@@ -2069,20 +1969,20 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//for inodes under
 
 		//obvious reduction
-
+		Objects.requireNonNull( trueBranch );
+		Objects.requireNonNull( falseBranch );
+		Objects.requireNonNull( testVar );
+		
 		if( trueBranch == null || falseBranch == null ){
 			return null;
 		}
-
-		//similarly, create=true here0
 
 		if( trueBranch.equals(falseBranch) ){
 			return trueBranch;
 		}
 
-		ADDNode trueNode = trueBranch.getNode() ;
-		ADDNode falseNode = falseBranch.getNode();
-
+		final ADDNode trueNode = trueBranch.getNode() ;
+		final ADDNode falseNode = falseBranch.getNode();
 		ADDRNode ret = null;
 
 		if( trueNode instanceof ADDLeaf && falseNode instanceof ADDLeaf ){
@@ -2102,7 +2002,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( trueBranch.equals(DD_NEG_INF) ){
 				true_br = makeINode(testVar, DD_NEG_INF, DD_ZERO);
 			}else{
-				ADDRNode trueComp = getIndicatorDiagram( testVar, true );
+				final ADDRNode trueComp = getIndicatorDiagram( testVar, true );
 				true_br = apply( trueComp, trueBranch, DDOper.ARITH_PROD );
 			}
 
@@ -2110,7 +2010,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( falseBranch.equals(DD_NEG_INF) ){
 				false_br = makeINode(testVar, DD_ZERO, DD_NEG_INF);
 			}else{
-				ADDRNode falseComp = getIndicatorDiagram( testVar, false );
+				final ADDRNode falseComp = getIndicatorDiagram( testVar, false );
 				false_br = apply( falseComp, falseBranch, DDOper.ARITH_PROD );
 			}
 
@@ -2167,40 +2067,28 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//plugs in
 	//getRNode
 	public ADDRNode getLeaf( Double low, Double high ){
-
+		Objects.requireNonNull( low );
+		Objects.requireNonNull( high );
 		//getLeaf assumes create=true
 		//for getRNode
 		//if you want just lookup, us getRNode and get the getNode()
-
-		ADDLeaf leaf = (ADDLeaf) getOneNullDD(true);
-
-		if( leaf == null ){
-			System.err.println("can't make more leaves");
-			if( LOGGING_ON ){
-				memorySummary();
-			}
-			//			System.exit(1);
-		}
-
+		final ADDLeaf leaf = (ADDLeaf) getOneNullDD(true);
+		Objects.requireNonNull( leaf );
 		ADDLeaf ret = null;
-
 		try{
 			ret = leaf.plugIn( new Pair<Double, Double>(low, high) );
 		}catch(NullPointerException e){
 			ret = null;
 		}
 		return getRNode( ret, true );
-
 	}
 
 	@Override
-	public Set<ADDLeaf> getLeaves(ADDRNode input) {
+	public Set<ADDLeaf> getLeaves(final ADDRNode input) {
+		Objects.requireNonNull( input );
 		TreeSet<ADDLeaf> ret = new TreeSet<ADDLeaf>();
-
 		getLeavesInt( input, ret, new TreeSet<ADDRNode>() );
-
-		return ret;
-
+		return Collections.unmodifiableSet( ret );
 	}
 
 	public static void testGetLeaves(){
@@ -2226,14 +2114,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	private void getLeavesInt(ADDRNode input, TreeSet<ADDLeaf> leaves,
-			TreeSet<ADDRNode> visited ) {
+	private void getLeavesInt( final ADDRNode input, final TreeSet<ADDLeaf> leaves,
+			final TreeSet<ADDRNode> visited ) {
 
 		if( visited.contains(input) ){
 			return;
 		}
-
-		ADDNode node = input.getNode();
+		final ADDNode node = input.getNode();
 
 		if( node instanceof ADDLeaf ){
 			leaves.add((ADDLeaf) node);
@@ -2242,9 +2129,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			getLeavesInt(input.getTrueChild(), leaves, visited);
 			getLeavesInt(input.getFalseChild(), leaves, visited);
 		}
-
 		return;
-
 	}
 
 	private String getMemoryMBs() {
@@ -2260,59 +2145,47 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public Set<ADDRNode> getNodes(ADDRNode input) {
-
-		TreeSet<ADDRNode> ret = new TreeSet<ADDRNode>();
-
-		getNodesInt( input, ret );
-
-		return ret;
-
+	public Set<ADDRNode> getNodes(final ADDRNode input, final boolean leaves) {
+		final TreeSet<ADDRNode> ret = new TreeSet<ADDRNode>();
+		getNodesInt( input, ret, leaves);
+		return Collections.unmodifiableSet( ret );
 	}
 
-	private void getNodesInt(ADDRNode input, TreeSet<ADDRNode> nodes ) {
+	private void getNodesInt( final ADDRNode input, 
+			final TreeSet<ADDRNode> nodes, final boolean leaves ) {
 
-		ADDNode node = input.getNode();
-
+		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
+			if( leaves ){
+				nodes.add( input );
+			}
 			return;
 		}
-
 		if( nodes.contains(input) ){
 			return;
 		}
 
 		nodes.add( input );
-
-		getNodesInt( input.getTrueChild(), nodes);
-
-		getNodesInt( input.getFalseChild(), nodes);
-
-
+		getNodesInt( input.getTrueChild(), nodes, leaves);
+		getNodesInt( input.getFalseChild(), nodes, leaves);
 	}
 
 	private int getNumINodes() {
 		int tot  = 0;
-		for( ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>>
-				maps : madeINodes.values() ){
+		for( Cache< ADDINode, ADDRNode> maps : madeINodes.values() ){
 			tot += maps.size();
 		}
 		return tot;
 	}
 
 	@Override
-	public ADDNode getOneNullDD( boolean leaf ) {
-
-
-//		LOGGER.entering( this.getClass().getName(), "getOneNullDD");
-
+	public ADDNode getOneNullDD( final boolean leaf ) {
 		ADDNode ret = null;
 
 		if( leaf ){
 
 			//try
 			ADDLeaf aLeaf = getFirstRealOne(storeLeaf);
-
 			if( aLeaf == null ){
 				//try adding 
 				try{
@@ -2322,10 +2195,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					}
 					addToStore(STORE_INCREMENT, true, false);
 					aLeaf = getFirstRealOne(storeLeaf);
+					Objects.requireNonNull( aLeaf );
 					ret = aLeaf;
 				}catch(OutOfMemoryError e){
 					ret = null;
 					System.err.println( "can't make more leaves" );
+					e.printStackTrace();
+					System.exit(1);
 				}
 			}else{
 				ret = aLeaf;
@@ -2334,7 +2210,6 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else{
 
 			ADDINode inode = getFirstRealOne( storeINodes );
-
 			if( inode == null ){
 				//try adding
 				try{
@@ -2342,6 +2217,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //							+ STORE_INCREMENT + " nodes ");
 					addToStore(STORE_INCREMENT, false, true);
 					inode = getFirstRealOne(storeINodes);
+					Objects.requireNonNull( inode );
 					ret = inode;
 					if( LOGGING_ON ){
 						memorySummary();
@@ -2349,70 +2225,82 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				}catch( OutOfMemoryError e ){
 					ret = null;
 					System.err.println("cant create more inodes");
+					e.printStackTrace();
+					System.exit(1);
 				}
 			}else{
 				ret = inode;
 			}
-
-		}
-
-//		LOGGER.exiting(this.getClass().getName(), "getOneNullDD");
-
-		if( ret == null ){
-			System.err.println("getonenulld retruning null...");
-			//			memorySummary();
-			//			System.exit(1);
 		}
 
 		return ret;
-
 	}
 
 	//main methods of getting RNode from INode and Leaf
 	//gets the canonical copy - including negated edges
-	public <T extends ADDNode> ADDRNode getRNode( T obj, boolean create ){
-
-		if( obj == null ){
-			return null;
-		}
+	public <T extends ADDNode> ADDRNode getRNode( final T obj, 
+			final boolean create ){
+		Objects.requireNonNull( obj );
 
 		ADDRNode looked = null;
 		if( obj instanceof ADDINode ){
-			ADDINode inode = (ADDINode)obj;
-			String testvar = inode.getTestVariable();
-			ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> 
-				lookin = madeINodes.get(testvar);
+			final ADDINode inode = (ADDINode)obj;
+			final String testvar = inode.getTestVariable();
+			Cache<ADDINode, ADDRNode> look_in_cache = madeINodes.get(testvar);
 
-			if( lookin == null ){
-				lookin = new ConcurrentHashMap<MySoftReference<ADDINode>,
-						MySoftReference<ADDRNode>>();
-				madeINodes.put(testvar, lookin);
-			}else{
-				looked = lookupMap( getSoftRef(inode, deletedINodes), lookin);	
+			if( look_in_cache == null ){
+				if( USE_SOFT_VALUES ){
+					look_in_cache = CacheBuilder.newBuilder().recordStats().softValues().
+							removalListener( 
+									new RemovalListener<ADDINode, ADDRNode>() {
+								@Override
+								public void onRemoval( final RemovalNotification<ADDINode, ADDRNode> arg ) {
+//									System.err.println( "removed Inode " + arg.toString() );
+									ADDINode node = arg.getKey();
+									node = null;
+								}
+							}).build();
+				}else{
+					look_in_cache = CacheBuilder.newBuilder().recordStats().
+							removalListener( 
+									new RemovalListener<ADDINode, ADDRNode>() {
+								@Override
+								public void onRemoval( final RemovalNotification<ADDINode, ADDRNode> arg ) {
+//									System.out.println( "removed Inode " + testvar );
+//									System.out.println( arg.toString() );
+									ADDINode inode = arg.getKey();
+									inode = null;
+								}
+							}).build();
+				}
+				
+				madeINodes.put(testvar, look_in_cache);
 			}
+			
+			looked = look_in_cache.getIfPresent( inode );
 
 			if( looked == null ){
 
-				ADDINode negNode = inode.getNegatedNode();
-				looked = lookupMap( getSoftRef(negNode, deletedINodes), lookin );
+				final ADDINode negNode = inode.getNegatedNode();
+				looked = look_in_cache.getIfPresent( negNode );
+				
 				if( looked == null && create ){
 					looked = new ADDRNode(inode);
-					//using the reference queue is important here
-					//because cleardeadnodes uses this function
-					//with create = false
+//					System.out.println( "created new rnode " + looked.hashCode() + " for inode : " + inode );
+					look_in_cache.put( inode, looked );
 				}else if( looked != null ){
 					// negated node exists in memory
 					// return with a not sign
 					//if create=false and looked=null
 					looked = looked.getNegatedNode();
+					look_in_cache.put( inode, looked );
 				}
 			}
-			lookin.put( getSoftRef(inode, deletedINodes), 
-					getSoftRef(looked, deletedRNodes) );
 			
 			//sanity - difference should be zero
 //			if( ( !looked.isNegated() && !looked.getNode().equals( inode ) ) 
-//					|| ( looked.isNegated() && !((ADDINode)looked.getNode()).negatedEquals( inode ) ) ){
+//					|| ( looked.isNegated() && 
+//							!((ADDINode)looked.getNode()).getNegatedNode().equals( inode ) ) ){
 //				try {
 //					throw new Exception("bad inode. wanted " + inode + " got "
 //							+ looked + " \n " + inode.hashCode() + " " + looked.getNode().hashCode() );
@@ -2424,16 +2312,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		}else if( obj instanceof ADDLeaf ){
 
-			ADDLeaf leaf = (ADDLeaf)obj;
-			looked = lookupMap( getSoftRef(leaf, deletedLeafNodes), madeLeaf);
-			if( looked == null ){
-
-				looked = new ADDRNode(leaf);
-//				System.out.println( leaf + " " + looked + " " + 
-//						leaf.hashCode() + " " + looked.hashCode() );
-				madeLeaf.put( getSoftRef(leaf, deletedLeafNodes), 
-						getSoftRef(looked, deletedRNodes) );
-
+			final ADDLeaf leaf = (ADDLeaf)obj;
+			try {
+				looked = madeLeaf.get( leaf );
+			} catch (ExecutionException e1) {
+				e1.printStackTrace();
+				System.exit(1);
 			}
 			
 //			if(! looked.getNode().equals(leaf) ){
@@ -2445,158 +2329,121 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //					System.exit(1);
 //				}
 //			}
-
 		}
-
 		return looked;
-
 	}
 
-	public <T extends Comparable<T> > MySoftReference<T> getSoftRef(T obj,
-			ReferenceQueue<T> que){
-		//obj should have been created here
-		return new MySoftReference<T>( obj , que);
-	}
+//	public <T extends Comparable<T> > MySoftReference<T> getSoftRef(T obj,
+//			ReferenceQueue<T> que){
+//		//obj should have been created here
+//		MySoftReference<T> ret = new MySoftReference<T>( obj , que);
+//		obj = null;
+//		return ret;
+//	}
 
 	@Override
-	public Set<String> getVars(ADDRNode input) {
-
-		TreeSet<ADDRNode> seen = new TreeSet<ADDRNode>();
-
-		TreeSet<String> vars = new TreeSet<String>();
-
+	public Set<String> getVars(final ADDRNode input) {
+		Objects.requireNonNull( input );
+		final TreeSet<ADDRNode> seen = new TreeSet<ADDRNode>();
+		final TreeSet<String> vars = new TreeSet<String>();
 		getVarsInt( input, seen, vars);
-
-		return vars;
-
+		return Collections.unmodifiableSet( vars );
 	}
 
-	private void getVarsInt(ADDRNode input, TreeSet<ADDRNode> visited, Set<String> vars ) {
-
-		ADDNode node = input.getNode();
-
+	private void getVarsInt(final ADDRNode input, final TreeSet<ADDRNode> visited, 
+			final Set<String> vars ) {
+		Objects.requireNonNull( input );
+		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
 			return;
 		}
-
 		if( visited.contains(input) ){
 			return;
 		}
-
 		vars.add( input.getTestVariable() );
-
 		visited.add( input );
-
 		getVarsInt(input.getTrueChild(), visited, vars);
-
 		getVarsInt(input.getFalseChild(), visited, vars);
-
 	}
 
-	private boolean isEqualVars(ADDRNode node1, ADDRNode node2) {
-		return node1.getTestVariable().equals( 
-				node2.getTestVariable() );//interned , can use ==
+	private boolean isEqualVars(final ADDRNode node1, final ADDRNode node2) {
+		return node1.getTestVariable() ==  
+				node2.getTestVariable();//interned , can use ==
 	}
 
-	public ADDRNode lookupApplyCache( ADDRNode a, ADDRNode b, DDOper op ){
-
+	public ADDRNode lookupApplyCache( final ADDRNode a, final ADDRNode b, final DDOper op ){
+		Objects.requireNonNull( a );
+		Objects.requireNonNull( b );
+		Objects.requireNonNull( op );
+		
 		ADDRNode ret = null;
-
 		ret = lookupPair(a, b, op);
-
 		if( ret == null ){
-
 			if( isCommutative(op) ){
 				ret = lookupPair(b, a, op);
 			}
-
 		}
-
 		return ret;
-
 	}
 
 	//this method looks up a hash in a map<Integer,Mysoftreference> and gets the underlying object
 	//if it exists
-	public <N extends Comparable<N>> ADDRNode lookupMap( 
-			final MySoftReference<N> soft_ref_node, 
-			Map< MySoftReference<N> , MySoftReference<ADDRNode>> aMap ){
+//	public <N extends Comparable<N>> ADDRNode lookupMap( 
+//			final MySoftReference<N> soft_ref_node, 
+//			Map< MySoftReference<N> , MySoftReference<ADDRNode>> aMap ){
+//
+//		MySoftReference<ADDRNode> thing = aMap.get( soft_ref_node );
+//
+//		if( thing == null ){
+//			return null;
+//		}
+//		
+//		ADDRNode gotten = null;
+//
+//		try{
+//			gotten = thing.get();
+//		}catch( NullPointerException e ){
+//			gotten = null;
+//		}
+//
+//		if( thing != null && gotten != null ){
+//
+//			return gotten;
+//
+//		}else{
+//
+//			//bookkeeping 
+//			if( thing != null && gotten == null ){
+//				aMap.remove( soft_ref_node );
+//			}
+//
+//			return null;
+//
+//		}
+//
+//	}
 
-		MySoftReference<ADDRNode> thing = aMap.get( soft_ref_node );
-
-		if( thing == null ){
-			return null;
-		}
+	private ADDRNode lookupPair( final ADDRNode a, final ADDRNode b, final DDOper op ){
+		Objects.requireNonNull( a );
+		Objects.requireNonNull( b );
 		
-		ADDRNode gotten = null;
-
-		try{
-			gotten = thing.get();
-		}catch( NullPointerException e ){
-			gotten = null;
-		}
-
-		if( thing != null && gotten != null ){
-
-			return gotten;
-
-		}else{
-
-			//bookkeeping 
-			if( thing != null && gotten == null ){
-				aMap.remove( soft_ref_node );
-			}
-
-			return null;
-
-		}
-
-	}
-
-	private ADDRNode lookupPair( ADDRNode a, ADDRNode b, DDOper op ){
-
 		ADDRNode ret = null;
-
 		if( applyCache.get(op) == null ){
 			ret = null;
 		}else{
-
-			ConcurrentHashMap<Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>, 
-			MySoftReference<ADDRNode>> theMap =
-			applyCache.get(op);
-
-			MySoftReference<ADDRNode> refa = new MySoftReference<ADDRNode>(a);
-			MySoftReference<ADDRNode> refb = new MySoftReference<ADDRNode>(b);
-
-			Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>> key = 
-					new Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>>( refa, refb );
-
-			if( theMap.containsKey( key ) ){
-				MySoftReference<ADDRNode> thing = theMap.get(key);
-				if( thing != null ){
-					ret = thing.get();
-				}else{
-					theMap.remove(key);
-				}
-			}
-
+			final Cache<Pair<ADDRNode, ADDRNode>, ADDRNode> theMap =
+				applyCache.get(op);
+			final Pair< ADDRNode, ADDRNode> key = 
+					new Pair< ADDRNode, ADDRNode>( a, b );
+			ret = theMap.getIfPresent( key );
 		}
-
 		return ret;
-
 	}
 
-	private ADDRNode lookupTempCache(ADDRNode in) {
-		MySoftReference<ADDRNode> soft_ref = getSoftRef(in, deletedRNodes) ;
-		MySoftReference<ADDRNode> looked = _tempCache.get( 
-				soft_ref );
-		if( looked != null && looked.get() != null ){
-			return looked.get();
-		}else if( looked != null && looked.get() == null ){
-			_tempCache.remove( soft_ref );
-		}
-		return null;
-
+	private ADDRNode lookupTempUnaryCache( final ADDRNode in ) {
+		Objects.requireNonNull( in );
+		final ADDRNode looked = _tempUnaryCache.getIfPresent( in );
+		return looked;
 	}
 
 	//this methoid just constructs the inode
@@ -2609,6 +2456,30 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			return trueBranch;
 		}
 
+		if( trueBranch.getNode() instanceof ADDINode ){
+			final String true_var = trueBranch.getTestVariable();	
+			if( _ordering.indexOf(testVariable) > _ordering.indexOf(true_var) ){
+				try{
+					throw new Exception("makeInode called out of order");
+				}catch( Exception e){
+					e.printStackTrace();
+					System.exit(1);
+				}	
+			}
+		}
+		
+		if( falseBranch.getNode() instanceof ADDINode ){
+			final String false_var = falseBranch.getTestVariable();
+			if( _ordering.indexOf( testVariable ) > _ordering.indexOf(false_var) ){
+				try{
+					throw new Exception("makeInode called out of order");
+				}catch( Exception e){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+		}
+		
 		ADDINode inode = (ADDINode) getOneNullDD(false);
 		try {
 			inode = inode.plugIn(testVariable, new UniPair<ADDRNode>(trueBranch, falseBranch));
@@ -2623,56 +2494,56 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	private void makeSureNoNull() {
-
-		for( ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> setInodes  
-				: madeINodes.values() ){ 
-			for( MySoftReference<ADDRNode> ref : setInodes.values() ){
-				if( ref == null || ref.get() == null ){
-					System.err.println("oops... null madeinode");
-					System.exit(1);
-				}
-			}
-		}
-
-		for( MySoftReference<ADDRNode> ref : madeLeaf.values() ){
-			if( ref == null || ref.get() == null ){
-				System.err.println("oops... null madeinode");
-				System.exit(1);
-			}
-		}
-
-		for( ConcurrentHashMap< 
-				Pair< MySoftReference<ADDRNode>,  MySoftReference<ADDRNode> > 
-		, MySoftReference<ADDRNode> > maps : applyCache.values() ){
-
-			for( Map.Entry<Pair< MySoftReference<ADDRNode>,  MySoftReference<ADDRNode> > 
-			, MySoftReference<ADDRNode> > entry : maps.entrySet() ){
-
-				Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>> key = entry.getKey();
-				MySoftReference<ADDRNode> value = entry.getValue();
-
-				if( value == null || value.get() == null 
-						|| key._o1 == null || key._o2 == null
-						|| key._o1.get() == null || key._o2.get() == null ){
-
-					try {
-						throw new Exception("null entry in apply?");
-					} catch (Exception e) {
-						e.printStackTrace();
-						System.exit(1);
-					}
-
-				}	
-
-			}
-
-
-		}
-
-
-
-	}
+//	private void makeSureNoNull() {
+//
+//		for( ConcurrentHashMap<MySoftReference<ADDINode>, MySoftReference<ADDRNode>> setInodes  
+//				: madeINodes.values() ){ 
+//			for( MySoftReference<ADDRNode> ref : setInodes.values() ){
+//				if( ref == null || ref.get() == null ){
+//					System.err.println("oops... null madeinode");
+//					System.exit(1);
+//				}
+//			}
+//		}
+//
+//		for( MySoftReference<ADDRNode> ref : madeLeaf.values() ){
+//			if( ref == null || ref.get() == null ){
+//				System.err.println("oops... null madeinode");
+//				System.exit(1);
+//			}
+//		}
+//
+//		for( ConcurrentHashMap< 
+//				Pair< MySoftReference<ADDRNode>,  MySoftReference<ADDRNode> > 
+//		, MySoftReference<ADDRNode> > maps : applyCache.values() ){
+//
+//			for( Map.Entry<Pair< MySoftReference<ADDRNode>,  MySoftReference<ADDRNode> > 
+//			, MySoftReference<ADDRNode> > entry : maps.entrySet() ){
+//
+//				Pair<MySoftReference<ADDRNode>, MySoftReference<ADDRNode>> key = entry.getKey();
+//				MySoftReference<ADDRNode> value = entry.getValue();
+//
+//				if( value == null || value.get() == null 
+//						|| key._o1 == null || key._o2 == null
+//						|| key._o1.get() == null || key._o2.get() == null ){
+//
+//					try {
+//						throw new Exception("null entry in apply?");
+//					} catch (Exception e) {
+//						e.printStackTrace();
+//						System.exit(1);
+//					}
+//
+//				}	
+//
+//			}
+//
+//
+//		}
+//
+//
+//
+//	}
 	
 	public static void testMarginalize( ){
 		
@@ -2707,17 +2578,31 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public ADDRNode marginalize(ADDRNode input, final String var, DDMarginalize oper) {
+	public ADDRNode marginalize( final ADDRNode input, final String var, 
+			final DDMarginalize oper) {
+		Objects.requireNonNull( input );
+		Objects.requireNonNull( var );
+		Objects.requireNonNull( oper );
 //		System.out.println("marginalizing " + var + " " + oper);
-		_tempCache.clear();
-		ADDRNode ret = marginalizeInt( input, _ordering.indexOf(var), oper );	
+		_tempUnaryCache.invalidateAll();
+		final int index = _ordering.indexOf(var);
+		if( index == -1 ){
+			try{
+				throw new Exception("cannot marginalize " + var + " not found in ordering" );
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		final ADDRNode ret = marginalizeInt( input, index, oper );	
 //		showGraph( input, ret );
-		_tempCache.clear();
+		_tempUnaryCache.invalidateAll();
 		return ret;
-
 	}
 
-	private ADDRNode marginalizeInt(ADDRNode in, int index, DDMarginalize oper) {
+	private ADDRNode marginalizeInt(final ADDRNode in, final int index, final DDMarginalize oper) {
+		Objects.requireNonNull( in );
+		Objects.requireNonNull( oper );
 		
 		if( in.getNode() instanceof ADDLeaf ){
 //			if( !in.equals(DD_NEG_INF) ){
@@ -2726,15 +2611,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			return in;
 		}
 
-		ADDRNode looked = lookupTempCache( in );
+		final ADDRNode looked = lookupTempUnaryCache( in );
 		ADDRNode ret = null;
 		if( looked != null ){
 //			System.out.println("cache hit " + index );
 //			System.out.println( looked );
 			ret = looked;
 		}else{
-			String testVar = in.getTestVariable();
-			int curIndex = _ordering.indexOf(testVar);
+			final String testVar = in.getTestVariable();
+			final int curIndex = _ordering.indexOf(testVar);
 			if( curIndex == index ){
 //				System.out.println( " marginalize " + in.getTestVariable() );
 				ret = apply( in.getTrueChild(), in.getFalseChild(), getArithOper( oper ) );
@@ -2757,7 +2642,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}else if( curIndex < index ){
 				//recurse
 //				System.out.println( in.getTestVariable() + " true." );
-				ADDRNode true_marg = marginalizeInt( in.getTrueChild(), index, oper);
+				final ADDRNode true_marg = marginalizeInt( in.getTrueChild(), index, oper);
 //				System.out.println( in.getTestVariable() + " true. result was "
 //						+ true_marg );
 //				if( true_marg.equals(DD_NEG_INF) ){
@@ -2769,7 +2654,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //					}
 //				}
 //				System.out.println( in.getTestVariable() + " false." );
-				ADDRNode false_marg = marginalizeInt(in.getFalseChild(), index, oper);
+				final ADDRNode false_marg = marginalizeInt(in.getFalseChild(), index, oper);
 //				System.out.println( in.getTestVariable() + " false. result was "
 //						+ false_marg );
 //				if( false_marg.equals(DD_NEG_INF) ){
@@ -2780,15 +2665,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //						e.printStackTrace();
 //					}
 //				}
-				
+				Objects.requireNonNull( true_marg );
+				Objects.requireNonNull( false_marg );
 				ret = getINode(in.getTestVariable(), true_marg, false_marg);
-				addToTempCache( in, ret );
 				//				System.out.println( "gotten inode = " + ret );
 			}else{
 				//this testvar is beyond the marginalizing variable in the 
 				//ordering. Return as is.
 				ret = in;
 			}
+			addToTempUnaryCache( in, ret );
 		}
 		
 //		if( in.getTestVariable().equals("reboot__c2") || in.getTestVariable().equals("running__c2") ){
@@ -2804,6 +2690,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		return ret;
+	}
+
+	private void addToTempUnaryCache(final ADDRNode in, final ADDRNode ret) {
+		Objects.requireNonNull( in );
+		Objects.requireNonNull( ret );
+		_tempUnaryCache.put( in, ret );
 	}
 
 	private DDOper getArithOper( DDMarginalize oper) {
@@ -2865,18 +2757,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //
 //	}
 
-	@Override
-	public void nullifyDD(ADDNode input) {
-
-//		LOGGER.entering( this.getClass().getName(), "nullifyDD");
-
-		input.nullify();
-
-		input = null;
-
-//		LOGGER.exiting( this.getClass().getName(), "nullifyDD");
-
-	}
+//	@Override
+//	public void nullifyDD(ADDNode input) {
+//		input.nullify();
+//		input = null;
+//	}
 
 	public static void testRemapVars(){
 
@@ -2912,92 +2797,100 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 	
 	@Override
-	public ADDRNode scalarMultiply(ADDRNode input, double scalar) {
-
+	public ADDRNode scalarMultiply(final ADDRNode input, double scalar) {
 		return apply( input, getLeaf(scalar, scalar), DDOper.ARITH_PROD );
-		
 	}
 
 	@Override
-	public ADDRNode remapVars(ADDRNode input, Map<String, String> remap) {
+	public ADDRNode remapVars(final ADDRNode input, final Map<String, String> remap) {
+		_tempUnaryCache.invalidateAll();
+		final ADDRNode ret = remapVarsInt(input, remap);
+		_tempUnaryCache.invalidateAll();
+		return ret;
+	}
 
-		ADDNode node = input.getNode();
-
+	public ADDRNode remapVarsInt(final ADDRNode input, final Map<String, String> remap) {
+		Objects.requireNonNull( input );
+		Objects.requireNonNull( remap );
+		
+		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
 			return input;
 		}
-
-		String var = input.getTestVariable();
-
-		String newVar = remap.get( var );
-
-		ADDRNode truth = input.getTrueChild();
-
-		ADDRNode falseth = input.getFalseChild();//negation taken care of
-
-		ADDRNode remap_true = remapVars( truth , remap );
-
-		ADDRNode remap_false = remapVars( falseth , remap );
-
-		return getINode(newVar, remap_true, remap_false);
-
+		
+		final ADDRNode lookup = lookupTempUnaryCache( input );
+		if( lookup == null ){
+			final String var = input.getTestVariable();
+			final String newVar = remap.get( var );
+			final ADDRNode truth = input.getTrueChild();
+			final ADDRNode falseth = input.getFalseChild();//negation taken care of
+			final ADDRNode remap_true = remapVars( truth , remap );
+			final ADDRNode remap_false = remapVars( falseth , remap );	
+			final ADDRNode ret = getINode(newVar, remap_true, remap_false);
+			return ret;
+		}
+		return lookup;
 	}
 
-	public synchronized < N extends Comparable<N> > void  
-	removeMap( final MySoftReference<N> soft_node, Map< MySoftReference<N> ,MySoftReference<ADDRNode>> aMap ){
-
-		MySoftReference<ADDRNode> thing = aMap.get( soft_node );
-
-		ADDRNode gotten = null;
-
-		try{
-			gotten = thing.get();
-		}catch( NullPointerException e ){
-			gotten = null;
-		}
-
-		if( thing != null && gotten != null ){
-//			System.err.println( "removed " );
-			aMap.remove( soft_node );
-			gotten = null;
-		}else if( thing == null ){
-			try {
-				throw new Exception("removeMap did not find item");
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}else{
-
-			//also, bookkeeping 
-			if( thing != null && gotten == null ){
-				aMap.remove( soft_node );
-			}
-		}
-		return;
-	}
+//	public synchronized < N extends Comparable<N> > void  
+//	removeMap( final MySoftReference<N> soft_node, Map< MySoftReference<N> ,MySoftReference<ADDRNode>> aMap ){
+//
+//		MySoftReference<ADDRNode> thing = aMap.get( soft_node );
+//
+//		ADDRNode gotten = null;
+//
+//		try{
+//			gotten = thing.get();
+//		}catch( NullPointerException e ){
+//			gotten = null;
+//		}
+//
+//		if( thing != null && gotten != null ){
+////			System.err.println( "removed " );
+//			aMap.remove( soft_node );
+//			gotten = null;
+//		}else if( thing == null ){
+//			try {
+//				throw new Exception("removeMap did not find item");
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//			}
+//		}else{
+//
+//			//also, bookkeeping 
+//			if( thing != null && gotten == null ){
+//				aMap.remove( soft_node );
+//			}
+//		}
+//		return;
+//	}
 
 	@Override
-	public ADDRNode restrict(ADDRNode input, String var, boolean assign) {
-
+	public ADDRNode restrict( final ADDRNode input, 
+			final String var, boolean assign) {
+		Objects.requireNonNull( input );
+		Objects.requireNonNull( var );
+		
 		if( input.getNode() instanceof ADDLeaf ){
 			return input;
 		}
 		
-		int index = _ordering.indexOf(var);
+		final int index = _ordering.indexOf(var);
 		if( index == -1 ){
 			System.err.println("var " + var + " could not be found in ordering " + _ordering );
 			System.exit(1);
 		}
-
-
-		_tempCache.clear();
-		ADDRNode ret = restrictInt( input, var, assign, index );
-		_tempCache.clear();
+		_tempUnaryCache.invalidateAll();
+		final ADDRNode ret = restrictInt( input, var, assign, index );
+		_tempUnaryCache.invalidateAll();
 		return ret;
 	}
 
-	private ADDRNode restrictInt( final ADDRNode in, final String var, final boolean assign, 
+	private ADDRNode restrictInt( final ADDRNode in, final String var, 
+			final boolean assign, 
 			final int index ){
+		Objects.requireNonNull( in );
+		Objects.requireNonNull( var );
 		
 		if( in.getNode() instanceof ADDLeaf ){
 //			if( !in.equals(DD_NEG_INF) ){
@@ -3006,47 +2899,47 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			return in;
 		}
 
-		ADDRNode looked = lookupTempCache( in );
+		ADDRNode looked = lookupTempUnaryCache( in );
 		ADDRNode ret = null;
 		if( looked != null ){
 			ret = looked;
 		}else{
-			String testVar = in.getTestVariable();
-			int curIndex = _ordering.indexOf(testVar);
+			final String testVar = in.getTestVariable();
+			final int curIndex = _ordering.indexOf(testVar);
 			if( curIndex == index ){
 				ret = ( assign ) ? in.getTrueChild() : in.getFalseChild();
 			}else if( curIndex < index ){
 				//recurse
-				ADDRNode true_restrict = restrictInt( in.getTrueChild(), var, assign, index);
-				ADDRNode false_restrict = restrictInt(in.getFalseChild(), var, assign, index);
+				final ADDRNode true_restrict = restrictInt( in.getTrueChild(), var, assign, index);
+				final ADDRNode false_restrict = restrictInt(in.getFalseChild(), var, assign, index);
+				Objects.requireNonNull( true_restrict );
+				Objects.requireNonNull( false_restrict );
 				ret = getINode(in.getTestVariable(), true_restrict, false_restrict);
-				addToTempCache( in, ret );
+				addToTempUnaryCache( in, ret );
 			}else{
 				ret = in;
 			}
 		}
-
-		addToTempCache( in, ret );
+		addToTempUnaryCache( in, ret );
 		return ret;
 	}
 
 	//graph vieweiing works
 	//getRNode works w00t!
 	//
-	public void showGraph(ADDRNode... nodes) {
-
+	public void showGraph(final ADDRNode... nodes) {
+		Objects.requireNonNull( nodes );
 		for( ADDRNode node : nodes ){
 			Graph g = new Graph(true, false, false, false);
 			node.toGraph(g);
 			g.launchViewer();
 		}
-
 	}
 
 	private boolean isBefore(final ADDRNode rnode1, final ADDRNode rnode2 ) {
 
-		ADDNode node1 = rnode1.getNode();
-		ADDNode node2 = rnode2.getNode();
+		final ADDNode node1 = rnode1.getNode();
+		final ADDNode node2 = rnode2.getNode();
 		if( node1 instanceof ADDLeaf && node2 instanceof ADDLeaf ){
 			try{
 				throw new Exception("two leaves in isBefore");
@@ -3060,12 +2953,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else if( node1 instanceof ADDINode && node2 instanceof ADDLeaf ){
 			return true;
 		}else{
-
 			//look at testvars
-			String var1 = rnode1.getTestVariable();
-			String var2 = rnode2.getTestVariable();
-			int ind1 = _ordering.indexOf( var1 );
-			int ind2 = _ordering.indexOf( var2 );
+			final String var1 = rnode1.getTestVariable();
+			final String var2 = rnode2.getTestVariable();
+			final int ind1 = _ordering.indexOf( var1 );
+			final int ind2 = _ordering.indexOf( var2 );
 
 			if( ind1 == -1 || ind2 == -1 ){
 				try {
@@ -3093,12 +2985,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return false;
 	}
 
-	public double getNegativeInfValue() {
+	public static double getNegativeInfValue() {
 		return Double.NEGATIVE_INFINITY;
 	}
 
-	public ADDRNode restrict(ADDRNode input,
-			NavigableMap<String, Boolean> assign) {
+	public ADDRNode restrict(final ADDRNode input,
+			final NavigableMap<String, Boolean> assign) {
 		ADDRNode ret = input;
 		for( Map.Entry<String, Boolean> entry : assign.entrySet() ){
 			ret = restrict(ret, entry.getKey(), entry.getValue());
@@ -3115,7 +3007,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
-	public ADDRNode convertNegInfZeroDDToBDD(ADDRNode input) {
+	public ADDRNode convertNegInfZeroDDToBDD(final ADDRNode input) {
 		//convert a DD with zero and neg inf DDs
 		//maps zero to one
 		//neg inf to zero
@@ -3127,7 +3019,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	public boolean hasSuffixVars(final ADDRNode ret,
 			final String suffix ) {
-		Set<ADDRNode> setONodes = getNodes(ret);
+		Set<ADDRNode> setONodes = getNodes(ret, false);
 		for( ADDRNode rn : setONodes ){
 			String testVar = rn.getTestVariable();
 			if( testVar.endsWith(suffix) ){
@@ -3138,7 +3030,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public boolean hasVars(final ADDRNode input, final Set<String> vars) {
-		Set<ADDRNode> nodes = getNodes( input );
+		Set<ADDRNode> nodes = getNodes( input, false );
 		for( ADDRNode rn : nodes ){
 			String testvar = rn.getTestVariable();
 			if( vars.contains( testvar ) ){

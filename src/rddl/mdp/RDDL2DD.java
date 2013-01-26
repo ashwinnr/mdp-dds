@@ -48,7 +48,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	protected Map< Map<String, Boolean>, Map<String, DR> > _actionCpts;
 	
 	//list of rewards
-	protected List<DR> _rewards;
+	protected List<DR> _rewards = null;
 
 	//optional - list of action costs
 	Map< Map<String, Boolean> , ArrayList<DR> > _actionRewards 

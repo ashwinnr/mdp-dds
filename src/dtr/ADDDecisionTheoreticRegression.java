@@ -118,7 +118,7 @@ public class ADDDecisionTheoreticRegression implements
 			}
 			
 			v_func = _manager.apply( v_func, this_q, DDOper.ARITH_MAX );
-			_manager.flushCaches( false );
+			_manager.flushCaches( );
 			
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("showing diagrams: " + action );
@@ -150,7 +150,7 @@ public class ADDDecisionTheoreticRegression implements
 							 RDDLFactoredActionSpace>(action);
 				q_map.put( thisAction, this_q );
 			}
-			_manager.flushCaches(false);
+			_manager.flushCaches( );
 		}
 		
 		return new UnorderedPair<ADDValueFunction, ADDPolicy>( 
@@ -224,7 +224,7 @@ public class ADDDecisionTheoreticRegression implements
 				}
 			}
 			ret = maxd;
-			_manager.flushCaches(false);
+			_manager.flushCaches( );
 		}
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
@@ -305,14 +305,14 @@ public class ADDDecisionTheoreticRegression implements
 		
 		ADDRNode ret = input;
 		ADDRNode mult = _manager.apply(ret, this_cpt, DDOper.ARITH_PROD);
-		_manager.flushCaches( false );
+		_manager.flushCaches(   );
 		ADDRNode mult_constrained = applyMDPConstraints(mult, action, _manager.DD_ZERO);
-		_manager.flushCaches( false );
+		_manager.flushCaches(   );
 		
 		ADDRNode summed = _manager.marginalize(mult_constrained, str, DDMarginalize.MARGINALIZE_SUM);
-		_manager.flushCaches( false );
+		_manager.flushCaches(  );
 		ADDRNode summed_constrained = applyMDPConstraints(summed, null, _manager.DD_NEG_INF);
-		_manager.flushCaches( false );
+		_manager.flushCaches(   );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("showing diagrams");
@@ -414,7 +414,7 @@ public class ADDDecisionTheoreticRegression implements
 				_manager.showGraph( ret, this_reward, added_rew, added_rew_constrained );
 			}
 			ret = added_rew_constrained;
-			_manager.flushCaches( false );
+			_manager.flushCaches( );
 		}		
 		
 		return ret;
@@ -443,7 +443,7 @@ public class ADDDecisionTheoreticRegression implements
 	}
 
 	@Override
-	public ADDRNode evaluatePolicy(
+	public UnorderedPair<ADDRNode, Integer> evaluatePolicy(
 			ADDRNode initial_value_func, ADDRNode policy, final int nSteps, 
 			final double epsilon, final boolean withActionVars ) {
 		int steps = 0;
@@ -457,7 +457,7 @@ public class ADDDecisionTheoreticRegression implements
 					error );
 			value_func = new_value_func;
 		}
-		return value_func;
+		return new UnorderedPair<ADDRNode, Integer>( value_func, steps-1 );
 	}
 
 	public static void main(String[] args) {
@@ -489,7 +489,7 @@ public class ADDDecisionTheoreticRegression implements
 				mdp.getFactoredActionSpace().getActionVariables() );
 		
 		manager.showGraph( ADD_dtr.evaluatePolicy(manager.DD_ZERO, handCodedPolicy, 
-				20, 0.01d, true ) );
+				20, 0.01d, true )._o1 );
 	}
 
 	private static void testRegressPolicy(final boolean withActionVars) throws EvalException {

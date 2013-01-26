@@ -83,7 +83,7 @@ public class SPUDDFAR implements Runnable{
 
 		while( !done ) {
 			_solutionTimer.ResumeTimer();
-			_manager.addPermenant(_valueDD);
+//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, lastiter ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
@@ -92,6 +92,7 @@ public class SPUDDFAR implements Runnable{
 			System.out.println( "iter = " + iter + " BE = " + error + " time = " + 
 					_solutionTimer.GetElapsedTimeInMinutes() + " size of value"
 					+ _manager.countNodes(newValueDD._o1.getValueFn()) );
+//			_manager.cacheSummary();
 			
 			if( prev_error != Double.NEGATIVE_INFINITY
 					&& error > prev_error ){
@@ -115,11 +116,10 @@ public class SPUDDFAR implements Runnable{
 			}
 			
 			++iter;
-			_manager.removePermenant(_valueDD);
+//			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
 		}
-		
-		
+
 		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
@@ -140,6 +140,4 @@ public class SPUDDFAR implements Runnable{
 		t.start();
 		t.join();
 	}
-	
-
 }

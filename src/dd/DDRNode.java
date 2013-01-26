@@ -38,6 +38,7 @@ public abstract class DDRNode<D extends DDNode>{
 				throw new Exception("get testvariable called on leaf");
 			} catch (Exception e) {
 				e.printStackTrace();
+				System.exit(1);
 			}
 			
 		}
