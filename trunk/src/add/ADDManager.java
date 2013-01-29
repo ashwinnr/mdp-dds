@@ -51,9 +51,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
-	private static final long CONSTRAIN_CACHE_SIZE = 100_000;
-	private static final long TEMP_UNARY_CACHE = 100_000;
-	private static final long APPLY_CACHE_SIZE = 100_000;
+	private static final long CONSTRAIN_CACHE_SIZE = 10_000;
+	private static final long TEMP_UNARY_CACHE = 10_000;
+	private static final long APPLY_CACHE_SIZE = 10_000;
 	private static final boolean USE_SOFT_VALUES = true;
 	protected int STORE_INCREMENT;
 
@@ -2281,7 +2281,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 			if( looked == null ){
 
-				final ADDINode negNode = inode.getNegatedNode();
+				final ADDINode negNode = inode.getNegatedNode( ((ADDINode)getOneNullDD(false)) );
 				looked = look_in_cache.getIfPresent( negNode );
 				
 				if( looked == null && create ){
@@ -2296,6 +2296,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					look_in_cache.put( inode, looked );
 				}
 			}
+//			else{
+//				//the inode was present in the cache
+//				//but, we created a new one in checking
+//				//must nullify that?
+//				
+//			}
 			
 			//sanity - difference should be zero
 //			if( ( !looked.isNegated() && !looked.getNode().equals( inode ) ) 
@@ -2314,7 +2320,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 			final ADDLeaf leaf = (ADDLeaf)obj;
 			try {
-				looked = madeLeaf.get( leaf );
+				looked = madeLeaf.get( leaf );//loadingCache, will create if not present
 			} catch (ExecutionException e1) {
 				e1.printStackTrace();
 				System.exit(1);
@@ -2367,8 +2373,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private boolean isEqualVars(final ADDRNode node1, final ADDRNode node2) {
-		return node1.getTestVariable() ==  
-				node2.getTestVariable();//interned , can use ==
+		return node1.getTestVariable().equals(   
+				node2.getTestVariable() );//interned , can use ==
 	}
 
 	public ADDRNode lookupApplyCache( final ADDRNode a, final ADDRNode b, final DDOper op ){
@@ -2482,14 +2488,17 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 		ADDINode inode = (ADDINode) getOneNullDD(false);
 		try {
-			inode = inode.plugIn(testVariable, new UniPair<ADDRNode>(trueBranch, falseBranch));
+			inode = inode.plugIn(testVariable, trueBranch, falseBranch );
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
-		inode.updateMinMax();
+		
 		ADDRNode ret = getRNode(inode, true);
-
+		if( ret.getNode() != inode ){
+			inode = null;//found in cache
+		}
+		ret.getNode().updateMinMax();
 		return ret;
 
 	}

@@ -26,6 +26,7 @@ public class FactoredRandomStateGenerator<S extends FactoredStateSpace>
 		for( String s : _stateVars ){
 			ret.put( s, _rand.nextBoolean() );
 		}
+		//TODO  : check constraints
 		FactoredState<S> fas = new FactoredState<S>();
 		fas.setFactoredState(ret);
 		return fas;
