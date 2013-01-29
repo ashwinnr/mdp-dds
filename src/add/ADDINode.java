@@ -5,6 +5,7 @@ import graph.Graph;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -34,18 +35,20 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	//returns soft reference to itself
 	public MySoftReference<ADDINode> getNullDD() {
 		this.children = new UniPair<ADDRNode>( new ADDRNode(null), new ADDRNode(null) );
-		this.testVariable = "".intern();
+		this.testVariable = null;//"";//.intern();
 		return new MySoftReference<ADDINode>(this);
 	}
 
 	@Override
-	public ADDINode plugIn(final String testVar, final UniPair< ADDRNode> child) throws Exception {
+	public ADDINode plugIn(final String testVar, final ADDRNode true_child,
+			final ADDRNode false_child ) throws Exception {
 
-		if( child.isEqual() ){
+		if( true_child.equals( false_child ) ){
 			throw new Exception("attempt to construct INode with identical children. Not reduced!");
 		}
-		this.testVariable = testVar.intern();
-		children = child;
+		this.testVariable = testVar;//.intern();
+		children._o1 = true_child;
+		children._o2 = false_child;
 //		this._nHashCode = hashCode();
 		return this;
 	
@@ -119,7 +122,8 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		if( obj instanceof ADDINode ){
 			ADDINode thing = (ADDINode)obj;
 			//internalized, so use ==
-			final boolean var_equals = this.testVariable == thing.testVariable;
+			//WARNING : internalization
+			final boolean var_equals = this.testVariable.equals( thing.testVariable );
 			final boolean true_id_equals =
 					getTrueChild().getID() == thing.getTrueChild().getID(); 
 			final boolean false_id_equals =
@@ -184,11 +188,11 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 //				&& this.children._o2.equals( other.children._o1 );
 //	}
 
-	public ADDINode getNegatedNode() {
+	public ADDINode getNegatedNode( final ADDINode null_inode ) {
+		Objects.requireNonNull( null_inode );
 		try {
-			ADDINode ret = new ADDINode();
-			ret.plugIn(testVariable, new UniPair<ADDRNode>( children._o2, children._o1 ) );
-			return ret;
+			null_inode.plugIn(testVariable, children._o2, children._o1 );
+			return null_inode;
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);

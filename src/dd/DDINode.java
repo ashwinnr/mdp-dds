@@ -35,7 +35,8 @@ public abstract class DDINode<D extends DDNode, DR extends DDRNode<D>, C extends
 
 	public abstract int hashCode();
 	
-	public abstract DDINode<D,DR,C> plugIn(final String testVar, final C child ) throws Exception;
+	public abstract DDINode<D,DR,C> plugIn(final String testVar, 
+			final DR true_child, final DR false_child ) throws Exception;
 
 //	@Override
 //	public void nullify() {

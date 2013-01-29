@@ -56,7 +56,7 @@ import add.ADDRNode;
 public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	private static final int MANAGER_STORE_INIT_SIZE = 400000;
-	private static final int MANAGER_STORE_INCR_SIZE = 10000;
+	private static final int MANAGER_STORE_INCR_SIZE = 1000;
 	
 	protected ADDManager _manager;
 	private boolean _bCPFDeterministic;
