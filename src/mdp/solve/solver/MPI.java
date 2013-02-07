@@ -35,6 +35,7 @@ public class MPI implements Runnable {
 	private int _eval_backups;
 	private int eval_backups;
 	private RDDL2ADD _mdp;
+	private boolean CONSTRAIN_NAIVELY;
 	
 	public MPI(String domain, String instance, double epsilon,
 			ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> bq,
@@ -43,8 +44,10 @@ public class MPI implements Runnable {
 			final int numStates,
 			final int numRounds,
 			final int evalSteps,
-			final boolean FAR ) {
+			final boolean FAR ,
+			final boolean constrain_naively ) {
 		_FAR = FAR;
+		CONSTRAIN_NAIVELY = constrain_naively;
 		_evalSteps = evalSteps;
 		_bq = bq;
 		EPSILON = epsilon;
@@ -82,7 +85,7 @@ public class MPI implements Runnable {
 			final boolean makePolicy = ( _evalSteps > 0 || lastiter ) ? true : false;
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, 
-						makePolicy  ); 
+						makePolicy  , CONSTRAIN_NAIVELY ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -119,7 +122,8 @@ public class MPI implements Runnable {
 						false );
 				//policy eval
 				UnorderedPair<ADDRNode, Integer> evaluation 
-					= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, EPSILON, _FAR);
+					= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, 
+							EPSILON, _FAR, CONSTRAIN_NAIVELY);
 				ADDRNode evaluated = evaluation._o1;
 				eval_backups += evaluation._o2;
 				_solutionTimer.PauseTimer();
@@ -135,7 +139,6 @@ public class MPI implements Runnable {
 				lastiter = true;
 			}
 		}
-		
 		
 		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
@@ -157,7 +160,7 @@ public class MPI implements Runnable {
 				null, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]), Integer.parseInt(args[7]),
-				Boolean.parseBoolean(args[8] ) );
+				Boolean.parseBoolean(args[8] ), Boolean.parseBoolean(args[9])  );
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();
