@@ -805,7 +805,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 					}
 				}	
 			}
-//			System.out.println("Full actions: " + _regOrder );
+			System.out.println("Full actions # " + _regOrder.size() );
 		}
 
 		return _regOrder;

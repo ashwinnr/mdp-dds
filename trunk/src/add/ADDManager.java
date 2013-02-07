@@ -1375,8 +1375,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					}
 				}
 			}
+			addToApplyCache(op1, op2, op, ret);	
 		}
-		addToApplyCache(op1, op2, op, ret);					
+						
 		return ret;
 	}
 
@@ -1917,7 +1918,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		this._tempCache.clear();
 		final double mem_percent = getMemoryPercent();
 		if( mem_percent > 0.9d ){
-			cacheSummary();
+//			cacheSummary();
 			invalidateApplyCache();
 			_tempUnaryCache.invalidateAll();
 			madeLeaf.cleanUp();
@@ -1962,18 +1963,22 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	}
 
 	public void cacheSummary() {
-		System.out.println( "Apply hits : " + applyHit );
-		System.out.println("Apply cache size : " + getApplyCacheSize() );
-		System.out.println("Made INodes : " + getNumINodes() );
-		System.out.println("MadeLeaf nodes : " + madeLeaf.size() );
-//		System.out.println("Permenant Inodes : " + perm.size() );
-		System.out.println( "Leaf cache stats : ");
-		System.out.println( madeLeaf.stats().toString() );
+//		System.out.println( "Apply hits : " + applyHit );
+//		System.out.println("Apply cache size : " + getApplyCacheSize() );
+		System.out.println("---------apply cache-------");
+		for( DDOper op : applyCache.keySet() ){
+			Cache<Pair< ADDRNode, ADDRNode >, ADDRNode >  cache = applyCache.get( op );
+			System.out.println( cache.stats().toString() );
+		}
+		System.out.println("------Made INodes stats" );
 		for( Map.Entry< String, Cache<ADDINode, ADDRNode > > entry 
 				: madeINodes.entrySet() ){
 			System.out.println( " MadeInodes for " + entry.getKey() );
 			System.out.println( entry.getValue().stats().toString() );
 		}
+		System.out.println("-------MadeLeaf nodes----");
+//		System.out.println("Permenant Inodes : " + perm.size() );
+		System.out.println( madeLeaf.stats().toString() );
 	}
 
 	private int getApplyCacheSize() {
