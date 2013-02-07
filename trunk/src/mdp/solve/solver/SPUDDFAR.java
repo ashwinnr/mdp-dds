@@ -118,6 +118,7 @@ public class SPUDDFAR implements Runnable{
 			++iter;
 //			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
+			_manager.showGraph( _valueDD );
 		}
 
 		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();

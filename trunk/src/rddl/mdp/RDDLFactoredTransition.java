@@ -29,8 +29,8 @@ import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
 import factored.mdp.define.FactoredTransition;
 
-public class RDDLFactoredTransition implements 
-	FactoredTransition< RDDLFactoredStateSpace, RDDLFactoredActionSpace>{
+public class RDDLFactoredTransition extends RDDLConstrainedMDP implements 
+	FactoredTransition< RDDLFactoredStateSpace, RDDLFactoredActionSpace> {
 
 	private static final boolean DISPLAY_UPDATES = false;
 	private rddl.State _state;
@@ -43,6 +43,7 @@ public class RDDLFactoredTransition implements
 	private Random _rand;
 	private String[] _stateVars;
 	private FactoredState<RDDLFactoredStateSpace> _nextState = null;
+	private RDDLConstrainedMDP _constraint;
 	
 	public RDDLFactoredTransition( rddl.State rddlState, 
 			RDDLFactoredStateSpace rddlStateSpace,
@@ -86,6 +87,7 @@ public class RDDLFactoredTransition implements
 			_groundExpr[i] = cpf_expr;
 			++i;
 		}
+		_constraint = new RDDLConstrainedMDP();
 	}
 	
 	@Override
@@ -103,6 +105,14 @@ public class RDDLFactoredTransition implements
 		
 		try{
 			setStateAction( state, action );
+			_constraint.setState( _state );
+			
+			try {
+				_constraint.checkConstraints( false );
+			} catch (Exception e1) {
+				e1.printStackTrace();
+				System.exit(1);
+			}
 			
 			for( int i = 0 ; i < _nextStateVars.length; ++i ){
 				String thisOne = _nextStateVars[i];
@@ -128,6 +138,7 @@ public class RDDLFactoredTransition implements
 					throw new EvalException("Unhandled distribution type: " + e.getClass());
 				}
 				if( DISPLAY_UPDATES ){
+					System.out.println("RDDL state: " + _state );
 					System.out.println("Updating : " + thisOne );
 					System.out.println("Expression: " + expr );
 					System.out.println("Subs :  " + subs );
@@ -154,6 +165,9 @@ public class RDDLFactoredTransition implements
 	private void setStateAction(
 			FactoredState<RDDLFactoredStateSpace> state,
 			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
+		_state.clearPVariables( _state._actions );
+		_state.clearPVariables( _state._state );
+		
 		NavigableMap<String, Boolean> st = state.getFactoredState();
 		for( Map.Entry<String, Boolean> entry : st.entrySet() ){
 			String varName = entry.getKey();
@@ -162,13 +176,37 @@ public class RDDLFactoredTransition implements
 			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
 		}
 		
-		NavigableMap<String, Boolean> act = action.getFactoredAction();
-		for( Map.Entry<String, Boolean> entry : act.entrySet() ){
-			String varName = entry.getKey();
-			UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
-			= _rddlVars.get( varName );
-			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
+		if( action != null ){
+			NavigableMap<String, Boolean> act = action.getFactoredAction();
+			for( Map.Entry<String, Boolean> entry : act.entrySet() ){
+				String varName = entry.getKey();
+				UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
+				= _rddlVars.get( varName );
+				_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
+			}
 		}
+	}
+
+	@Override
+	public State<RDDLFactoredStateSpace> randomState() {
+		FactoredState<RDDLFactoredStateSpace> fs = null;
+		do{
+			final TreeMap<String, Boolean> assignments = new TreeMap<>();
+			for( final String s : _stateVars ){
+				final boolean value = _rand.nextBoolean();
+				assignments.put( s, value );
+			}
+			fs = new FactoredState<>();
+			fs.setFactoredState( assignments );
+			setStateAction(fs, null );
+			_constraint.setState( _state );
+			try{
+				_constraint.checkConstraints( );
+				break;
+			}catch (Exception e) {
+			}
+		}while( true );
+		return fs;
 	}
 
 	//this class must build

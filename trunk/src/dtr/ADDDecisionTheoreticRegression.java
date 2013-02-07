@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
@@ -57,13 +58,14 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean keepQ, final boolean makePolicy ) {
 //		final ADDRNode withoutNegInf = _manager.apply(input, _manager.DD_ZERO,
 //				DDOper.ARITH_MAX );
-		ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
+		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
+		final ADDRNode constrained_zero = _manager.remapLeaf( primed ,  _manager.DD_NEG_INF, _manager.DD_ZERO );
 		
 		UnorderedPair< ADDValueFunction, ADDPolicy > ret = null;
 		if( withActionVars ){
-			ret = regressAllActions( primed, keepQ, makePolicy );
+			ret = regressAllActions( constrained_zero, keepQ, makePolicy );
 		}else{
-			ret =  regressSPUDD( primed, keepQ, makePolicy );
+			ret =  regressSPUDD( constrained_zero, keepQ, makePolicy );
 		}
 		
 		if( !keepQ ){
@@ -83,7 +85,7 @@ public class ADDDecisionTheoreticRegression implements
 		for( ADDRNode constraint : _constraints ){
 			ADDRNode action_constraint;
 			if( action != null ){
-				action_constraint = _manager.evaluate(constraint, action);
+				action_constraint = _manager.restrict(constraint, action);
 			}else{
 				action_constraint = constraint;
 			}
@@ -391,16 +393,9 @@ public class ADDDecisionTheoreticRegression implements
 			System.out.println("Adding reward " );
 		}
 		List<ADDRNode> rewards = null;
-		if( action == null && _mdp._bRewardActionDependent ){
+		if( action == null ){
 			rewards = _mdp.getRewards();
-		}else if( action != null && !_mdp._bRewardActionDependent ||
-					action  == null && _mdp._bRewardActionDependent ){
-			try{
-				throw new Exception("wrong place to be adding reward");
-			}catch( Exception e ){
-				e.printStackTrace();
-			}
-		}else if( action != null && _mdp._bRewardActionDependent ){
+		}else if( action != null ){
 			final Map<Map<String, Boolean>, ArrayList<ADDRNode>> actionRewards = _mdp.getActionRewards();
 			rewards = actionRewards.get( action );
 		}
@@ -454,7 +449,7 @@ public class ADDDecisionTheoreticRegression implements
 			new_value_func = regressPolicy(value_func, policy, withActionVars);
 			error = getBellmanError(new_value_func, value_func);
 			System.out.println( "Policy evaluation " + steps + " " +
-					error );
+					error + " Size of value : " + _manager.countNodes(new_value_func) );
 			value_func = new_value_func;
 		}
 		return new UnorderedPair<ADDRNode, Integer>( value_func, steps-1 );
@@ -627,11 +622,15 @@ public class ADDDecisionTheoreticRegression implements
 		ret._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
 	}
 
-	public double getBellmanError(ADDRNode valueFn, ADDRNode oldValueFn) {
+	public double getBellmanError(final ADDRNode valueFn, final ADDRNode oldValueFn) {
+		Objects.requireNonNull( valueFn );
+		Objects.requireNonNull( oldValueFn );
+		
 		ADDRNode diff = _manager.apply(valueFn, oldValueFn, DDOper.ARITH_MINUS );
-		double max = diff.getMax();
-		double min = diff.getMin();
-		min = ( min == _manager.getNegativeInfValue() ) ? 0 : min;
+		diff = _manager.remapLeaf( diff, _manager.DD_NEG_INF, _manager.DD_ZERO );
+		
+		final double max = diff.getMax();
+		final double min = ( diff.getMin() == _manager.getNegativeInfValue() ) ? 0 : diff.getMin();
 		return Math.max( Math.abs(max), Math.abs(min) );
 	}
 	

@@ -507,7 +507,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			_manager.flushCaches( );
 
 			if( __debug_level.compareTo(DEBUG_LEVEL.DIAGRAMS) == 0 ) {
-				System.out.println("Displaying reward for action " + acts.get(act) );
+				System.out.println("Displaying reward for action " 
+						+ ( withActionVars ? "all" : acts.get(act) ) );
 				
 				for( ADDRNode rew : _rewards ){
 					_manager.showGraph(rew);

@@ -168,13 +168,27 @@ public class State {
 			setPVariables(_nonfluents, nonfluents);
 	}
 
-	public void checkStateActionConstraints(ArrayList<PVAR_INST_DEF> actions)  
+	public void checkStateActionConstraints(ArrayList<PVAR_INST_DEF> actions,
+			final boolean clear_actions )  
 		throws EvalException {
 		
-		// Clear then set the actions
-		for (PVAR_NAME p : _actions.keySet())
-			_actions.get(p).clear();
-		int non_def = setPVariables(_actions, actions);
+		int non_def = 0;
+		if( clear_actions && actions != null ){
+//			Clear then set the actions
+			for (PVAR_NAME p : _actions.keySet())
+				_actions.get(p).clear();
+			non_def = setPVariables(_actions, actions);
+		}else if( !clear_actions && actions == null ){
+			non_def = countActions();
+		}else{
+			try{
+				throw new Exception("Improper state");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
 
 		// Check max-nondef actions
 		if (non_def > _nMaxNondefActions)
@@ -198,6 +212,23 @@ public class State {
 		}
 	}
 		
+	private int countActions() {
+		int count = 0;
+		for( Map.Entry<PVAR_NAME, HashMap< ArrayList<LCONST> , Object > > 
+				pvar_action : _actions.entrySet() ){
+			final boolean def_value = (boolean) getDefaultValue( pvar_action.getKey() );
+			final HashMap< ArrayList< LCONST >, Object > ground_actions
+				= pvar_action.getValue();
+			for( final Object o : ground_actions.values() ){
+				final boolean this_value = (Boolean)o;
+				if( this_value != def_value ){
+					++count;
+				}
+			}
+		}
+		return count;
+	}
+
 	public void computeNextState(ArrayList<PVAR_INST_DEF> actions, Random r) 
 		throws EvalException {
 		
