@@ -787,7 +787,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	protected Runtime _runtime = Runtime.getRuntime();
 	private Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
-			.recordStats().softValues().build();
+			.recordStats().build();
 
 	//caches can be in terms of RNodes
 	protected ConcurrentHashMap< DDOper, Cache< 
