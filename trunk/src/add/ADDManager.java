@@ -51,8 +51,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
-//	private static final long TEMP_UNARY_CACHE_SIZE = 5_000;
-//	private static final long APPLY_CACHE_SIZE = 5_000;
+	private static final long TEMP_UNARY_CACHE_SIZE = 5_000;
+	private static final long APPLY_CACHE_SIZE = 5_000;
 	private static final boolean USE_SOFT_VALUES = true;
 	protected int STORE_INCREMENT;
 
@@ -786,7 +786,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	protected ArrayList< String > _ordering = null;
 	protected Runtime _runtime = Runtime.getRuntime();
 	private Cache< ADDRNode, ADDRNode > _tempUnaryCache 
-		= CacheBuilder.newBuilder()//.maximumSize( TEMP_UNARY_CACHE_SIZE )
+		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
 			.recordStats().build();
 
 	//caches can be in terms of RNodes
@@ -880,7 +880,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			
 			if( applyCache.get(op) == null ){
 				final Cache< Pair<ADDRNode, ADDRNode>, ADDRNode > inner_cache 
-					= CacheBuilder.newBuilder()//.maximumSize( APPLY_CACHE_SIZE )
+					= CacheBuilder.newBuilder().maximumSize( APPLY_CACHE_SIZE )
 							.recordStats().build();
 				applyCache.put(op, 
 						inner_cache);
@@ -1276,9 +1276,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode apply( final ADDRNode op1, final ADDRNode op2,
 			final DDOper op ){
 		Objects.requireNonNull( op );
-		invalidateApplyCache();
+//		invalidateApplyCache();
 		final ADDRNode ret = applyInt( op1, op2, op );
-		invalidateApplyCache();
+//		invalidateApplyCache();
 		return ret;
 	}
 	
