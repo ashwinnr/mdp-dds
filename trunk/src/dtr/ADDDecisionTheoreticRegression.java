@@ -442,7 +442,7 @@ public class ADDDecisionTheoreticRegression implements
 			ADDRNode initial_value_func, ADDRNode policy, final int nSteps, 
 			final double epsilon, final boolean withActionVars ) {
 		int steps = 0;
-		double error = Double.MAX_VALUE;
+		double error = Double.MAX_VALUE, prev_error = Double.NaN;
 		ADDRNode value_func = initial_value_func, new_value_func = null;
 		
 		while( steps++ < nSteps && error > epsilon ){
@@ -450,6 +450,15 @@ public class ADDDecisionTheoreticRegression implements
 			error = getBellmanError(new_value_func, value_func);
 			System.out.println( "Policy evaluation " + steps + " " +
 					error + " Size of value : " + _manager.countNodes(new_value_func) );
+			if( prev_error != Double.NaN && prev_error < error ){
+				try{
+					throw new Exception("BE increased here");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			prev_error = error;
 			value_func = new_value_func;
 		}
 		return new UnorderedPair<ADDRNode, Integer>( value_func, steps-1 );

@@ -1018,13 +1018,51 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		
+		//2/6/2013 : Leaf child preferred for breaking ties
+		
 		final boolean is_tie_able = tiesIn.contains( testVar );
-		if( is_tie_able && this_max == false_max && this_max == true_max ){
-			final ADDRNode source = default_value ? trueChild : falseChild;
-			final ADDRNode recurse = breakTiesInBDDInt( source, tiesIn, default_value );
-			final ADDRNode ret = getINode( testVar,  default_value ? recurse : DD_ZERO, 
-					default_value ? DD_ZERO : recurse );
-			return ret;
+		if( is_tie_able ){
+		
+				final ADDNode trueNode = trueChild.getNode();
+				final ADDNode falseNode = falseChild.getNode();
+				if( trueNode instanceof ADDLeaf && !( falseNode instanceof ADDLeaf )
+						&& trueChild.equals( DD_ONE ) ){
+					final ADDRNode ret = getINode( testVar,  trueChild, DD_ZERO );
+					return ret;//true was 1 leaf
+				}else if( falseNode instanceof ADDLeaf && !(trueNode instanceof ADDLeaf)
+						&& falseChild.equals( DD_ONE ) ){
+					final ADDRNode ret = getINode( testVar,  DD_ZERO, falseChild );
+					return ret;//false was 1 leaf
+				}else if( this_max == false_max && this_max == true_max ){
+					final ADDRNode true_recurse = breakTiesInBDDInt( trueChild , tiesIn, default_value );
+					final ADDRNode false_recurse = breakTiesInBDDInt( falseChild, tiesIn, default_value);
+					final ADDRNode ret = getINode( testVar,  true_recurse, 
+							false_recurse );
+					_tempUnaryCache.put( input, ret );
+					return ret;//bounds matched - pick default
+				}else{
+					//if here - one of them must be a 0 leaf
+					//recurse on the other one only
+					final boolean true_zero = trueChild.equals( DD_ZERO );
+					final boolean false_zero = falseChild.equals( DD_ZERO );
+					if( true_zero && !false_zero ){
+						final ADDRNode false_ans = breakTiesInBDDInt( falseChild, tiesIn, default_value);
+						final ADDRNode ret = getINode( testVar, DD_ZERO, false_ans );
+						return ret;
+					}else if( false_zero && !true_zero ){
+						final ADDRNode true_ans = breakTiesInBDDInt(trueChild, tiesIn, default_value);
+						final ADDRNode ret = getINode(testVar, true_ans, DD_ZERO );
+						return ret;
+					}else{
+						try{
+							throw new Exception("incorrect state - irreduced BDD");
+						}catch( Exception e ){
+							e.printStackTrace();
+							System.exit(1);
+						}
+					}
+				}
+				
 		}else if( !is_tie_able ){
 			final ADDRNode lookup = _tempUnaryCache.getIfPresent( input );
 			if( lookup == null ){
@@ -1035,9 +1073,6 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				return this_result;
 			}
 			return lookup;
-		}else if( ( true_max == 0.0d && trueChild.getNode() instanceof ADDLeaf ) 
-				|| ( false_max == 0.0d && falseChild.getNode() instanceof ADDLeaf ) ){
-			return input;	
 		}
 		return null;
 	}
@@ -1882,7 +1917,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		this._tempCache.clear();
 		final double mem_percent = getMemoryPercent();
 		if( mem_percent > 0.9d ){
-//			cacheSummary();
+			cacheSummary();
 			invalidateApplyCache();
 			_tempUnaryCache.invalidateAll();
 			madeLeaf.cleanUp();
