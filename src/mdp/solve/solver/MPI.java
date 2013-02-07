@@ -73,13 +73,16 @@ public class MPI implements Runnable {
 		_improvTimer = new Timer();
 		_evalTimer = new Timer();
 		double prev_error = Double.NEGATIVE_INFINITY;
+		boolean lastiter = false;
 
 		while( true ) {
 			_solutionTimer.ResumeTimer();
 //			_manager.addPermenant(_valueDD);
 			_improvTimer.ResumeTimer();
+			final boolean makePolicy = ( _evalSteps > 0 || lastiter ) ? true : false;
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
-				= _dtr.regress(_valueDD, _FAR, false, true ); 
+				= _dtr.regress(_valueDD, _FAR, false, 
+						makePolicy  ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -87,8 +90,8 @@ public class MPI implements Runnable {
 			System.out.println( "MPI iter = " + iter + " BE = " + error + " time = " + 
 					_solutionTimer.GetElapsedTimeInMinutes() + " size of value "
 					+ _manager.countNodes(newValueDD._o1.getValueFn()) 
-					+ " size of policy " + 
-					_manager.countNodes(newValueDD._o2._bddPolicy) );
+					+ ( ( makePolicy ? ( " size of policy " + 
+					_manager.countNodes(newValueDD._o2._bddPolicy) ) : "" ) ) );
 			
 //			if( prev_error != Double.NEGATIVE_INFINITY
 //					&& error > prev_error ){
@@ -102,31 +105,35 @@ public class MPI implements Runnable {
 			
 			prev_error = error;
 
-			if( error < EPSILON ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
-				break;
-			}
-			
 //			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
-			_policyDD = _FAR ? newValueDD._o2._bddPolicy : 
-				newValueDD._o2._addPolicy;
-			_policy = newValueDD._o2;
-			_solutionTimer.ResumeTimer();
-			_evalTimer.ResumeTimer();
-			//break ties in policy
-			if( _evalSteps > 0 ){
+			
+			if( makePolicy ){
+				_policyDD = _FAR ? newValueDD._o2._bddPolicy : 
+					newValueDD._o2._addPolicy;
+				_policy = newValueDD._o2;
+				_solutionTimer.ResumeTimer();
+				_evalTimer.ResumeTimer();
+				//	break ties in policy
 				_policyDD = _manager.breakTiesInBDD(_policyDD, _mdp.getFactoredActionSpace().getActionVariables(),
 						false );
+				//policy eval
+				UnorderedPair<ADDRNode, Integer> evaluation 
+					= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, EPSILON, _FAR);
+				ADDRNode evaluated = evaluation._o1;
+				eval_backups += evaluation._o2;
+				_solutionTimer.PauseTimer();
+				_evalTimer.PauseTimer();
+				_valueDD = evaluated;
 			}
-			//policy eval
-			UnorderedPair<ADDRNode, Integer> evaluation 
-				= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, EPSILON, _FAR);
-			ADDRNode evaluated = evaluation._o1;
-			eval_backups += evaluation._o2;
-			_solutionTimer.PauseTimer();
-			_evalTimer.PauseTimer();
-			_valueDD = evaluated;
+			
 			++iter;
+			if( lastiter ){
+				break;
+			}
+			if( error < EPSILON && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
+				lastiter = true;
+			}
 		}
 		
 		
