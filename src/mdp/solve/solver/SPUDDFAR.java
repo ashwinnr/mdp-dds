@@ -91,7 +91,10 @@ public class SPUDDFAR implements Runnable{
 			_solutionTimer.PauseTimer();
 			System.out.println( "iter = " + iter + " BE = " + error + " time = " + 
 					_solutionTimer.GetElapsedTimeInMinutes() + " size of value"
-					+ _manager.countNodes(newValueDD._o1.getValueFn()) );
+					+ _manager.countNodes(newValueDD._o1.getValueFn()) + 
+					( lastiter ? ( "size of policy " + 
+					_manager.countNodes( _FAR ? newValueDD._o2._bddPolicy :
+						newValueDD._o2._addPolicy) ) : "" ) );
 //			_manager.cacheSummary();
 			
 			if( prev_error != Double.NEGATIVE_INFINITY
