@@ -881,7 +881,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( applyCache.get(op) == null ){
 				final Cache< Pair<ADDRNode, ADDRNode>, ADDRNode > inner_cache 
 					= CacheBuilder.newBuilder().maximumSize( APPLY_CACHE_SIZE )
-							.recordStats().softValues().build();
+							.recordStats().build();
 				applyCache.put(op, 
 						inner_cache);
 			}
@@ -1241,9 +1241,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode apply( final ADDRNode op1, final ADDRNode op2,
 			final DDOper op ){
 		Objects.requireNonNull( op );
-		invalidateApplyCache();
+//		invalidateApplyCache();
 		final ADDRNode ret = applyInt( op1, op2, op );
-		invalidateApplyCache();
+//		invalidateApplyCache();
 		return ret;
 	}
 	
@@ -1880,37 +1880,37 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
 //		this._tempCache.clear();
-//		final double mem_percent = getMemoryPercent();
-//		if( mem_percent > 0.9d ){
+		final double mem_percent = getMemoryPercent();
+		if( mem_percent > 0.9d ){
 //			cacheSummary();
-		invalidateApplyCache();
-		_tempUnaryCache.invalidateAll();
-		madeLeaf.cleanUp();
-		for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
-			inner.cleanUp();
+			invalidateApplyCache();
+			_tempUnaryCache.invalidateAll();
+			madeLeaf.cleanUp();
+			for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
+				inner.cleanUp();
+			}
 		}
-//				inner.getValue().invalidateAll();
-//				inner.getValue().putAll( permanentMadeINodes.get( inner.getKey() ).asMap() );
-//			}
-//			madeLeaf.invalidateAll();
-//			madeLeaf.putAll( permanentMadeLeaf.asMap() );
-//			for( Map.Entry< String,
-//					Cache< ADDINode, ADDRNode > > inner : madeINodes.entrySet() ){
-//				inner.getValue().invalidateAll();
-//				inner.getValue().putAll( permanentMadeINodes.get( inner.getKey() ).asMap() );
-//			}
+			//			inner.getValue().invalidateAll();
+//			inner.getValue().putAll( permanentMadeINodes.get( inner.getKey() ).asMap() );
 //		}
-//		cacheSummary();
-//		System.out.println( mem_percent );
-		
-//			System.out.println("Low on memory, flushing caches and nodes");
-//			reduceCache.clear();
-//			clearDeadNodes(clearDeadMaps);
-////			madeLeaf.clear();
-////			madeINodes.clear();
-//			restorePermenants( );			
+//		madeLeaf.invalidateAll();
+//		madeLeaf.putAll( permanentMadeLeaf.asMap() );
+//		for( Map.Entry< String,
+//				Cache< ADDINode, ADDRNode > > inner : madeINodes.entrySet() ){
+//			inner.getValue().invalidateAll();
+//			inner.getValue().putAll( permanentMadeINodes.get( inner.getKey() ).asMap() );
 //		}
-			
+//	}
+//	cacheSummary();
+//	System.out.println( mem_percent );
+	
+//		System.out.println("Low on memory, flushing caches and nodes");
+//		reduceCache.clear();
+//		clearDeadNodes(clearDeadMaps);
+////		madeLeaf.clear();
+////		madeINodes.clear();
+//		restorePermenants( );			
+//	}
 	}
 
 	//testaddPair
