@@ -34,6 +34,7 @@ public class MPI implements Runnable {
 	private int _bellman_backups;
 	private int _eval_backups;
 	private int eval_backups;
+	private RDDL2ADD _mdp;
 	
 	public MPI(String domain, String instance, double epsilon,
 			ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> bq,
@@ -48,15 +49,15 @@ public class MPI implements Runnable {
 		_bq = bq;
 		EPSILON = epsilon;
 		_cptTimer = new Timer();
-		RDDL2ADD mdp = new RDDL2ADD(domain, instance, true, debug, order, true, seed);
+		_mdp = new RDDL2ADD(domain, instance, true, debug, order, true, seed);
 		_cptTimer.StopTimer();
 		_nStates = numStates;
 		_nRounds = numRounds;
 		_useDiscounting = useDiscounting;
-		_dtr = new ADDDecisionTheoreticRegression(mdp, seed);
-		_manager = mdp.getManager();
-		DISCOUNT = mdp.getDiscount();
-		HORIZON = mdp.getHorizon();
+		_dtr = new ADDDecisionTheoreticRegression(_mdp, seed);
+		_manager = _mdp.getManager();
+		DISCOUNT = _mdp.getDiscount();
+		HORIZON = _mdp.getHorizon();
 	}
 	
 	public void run() {
@@ -112,6 +113,9 @@ public class MPI implements Runnable {
 			_policy = newValueDD._o2;
 			_solutionTimer.ResumeTimer();
 			_evalTimer.ResumeTimer();
+			//break ties in policy
+			_policyDD = _manager.breakTiesInBDD(_policyDD, _mdp.getFactoredActionSpace().getActionVariables(),
+					false );
 			//policy eval
 			UnorderedPair<ADDRNode, Integer> evaluation 
 				= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, EPSILON, _FAR);

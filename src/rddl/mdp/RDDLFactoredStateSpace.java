@@ -5,7 +5,7 @@ import java.util.Set;
 
 import factored.mdp.define.FactoredStateSpace;
 
-public class RDDLFactoredStateSpace implements FactoredStateSpace{
+public class RDDLFactoredStateSpace implements FactoredStateSpace {
 
 	private static Set<String> stateVariables;
 	
@@ -17,5 +17,5 @@ public class RDDLFactoredStateSpace implements FactoredStateSpace{
 	public Set<String> getStateVariables() {
 		return stateVariables;
 	}
-
+	
 }

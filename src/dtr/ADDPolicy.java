@@ -29,7 +29,6 @@ import dd.DDRNode;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredActionSpace;
 import factored.mdp.define.FactoredPolicy;
-import factored.mdp.define.FactoredRandomStateGenerator;
 import factored.mdp.define.FactoredReward;
 import factored.mdp.define.FactoredState;
 import factored.mdp.define.FactoredStateSpace;
@@ -129,11 +128,11 @@ public class ADDPolicy extends
 			final boolean useDiscounting, final int horizon,
 			final double discount ){
 		PolicyStatistics stats = new PolicyStatistics(numStates, numRounds);
-		FactoredRandomStateGenerator<RDDLFactoredStateSpace> randomGen
-			= new FactoredRandomStateGenerator<RDDLFactoredStateSpace>(_stateSpace, _rand.nextLong() );
 		
 		for( int i = 0 ; i < numStates; ++i ){
-			State<RDDLFactoredStateSpace> init_state = randomGen.randomState();
+			State<RDDLFactoredStateSpace> init_state = _transition.randomState();
+			System.out.println("Random initial state #" + i );
+			System.out.println( init_state );
 			if( DISPLAY ){
 				System.out.println("Random initial state : ");
 				System.out.println( init_state );
