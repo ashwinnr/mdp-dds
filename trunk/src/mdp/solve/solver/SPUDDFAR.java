@@ -25,6 +25,7 @@ import util.UnorderedPair;
 
 public class SPUDDFAR implements Runnable{
 
+	private boolean CONSTRAIN_NAIVELY = false;
 	private static double	EPSILON	= 0;
 	private ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> _bq = null;
 	private ADDDecisionTheoreticRegression _dtr;
@@ -49,7 +50,8 @@ public class SPUDDFAR implements Runnable{
 			final boolean useDiscounting, 
 			final int numStates,
 			final int numRounds,
-			final boolean FAR ) {
+			final boolean FAR ,
+			final boolean constrain_naively ) {
 		_FAR = FAR;
 		_bq = bq;
 		EPSILON = epsilon;
@@ -63,6 +65,7 @@ public class SPUDDFAR implements Runnable{
 		_manager = mdp.getManager();
 		DISCOUNT = mdp.getDiscount();
 		HORIZON = mdp.getHorizon();
+		CONSTRAIN_NAIVELY = constrain_naively;
 	}
 
 	/* (non-Javadoc)
@@ -85,7 +88,7 @@ public class SPUDDFAR implements Runnable{
 			_solutionTimer.ResumeTimer();
 //			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
-				= _dtr.regress(_valueDD, _FAR, false, lastiter ); 
+				= _dtr.regress(_valueDD, _FAR, false, lastiter, CONSTRAIN_NAIVELY ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -139,7 +142,8 @@ public class SPUDDFAR implements Runnable{
 		Runnable worker = new SPUDDFAR(args[0], args[1], Double.parseDouble(args[2]), null, 
 				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean( args[4] ), Integer.parseInt(args[5]), 
-				Integer.parseInt(args[6]) , Boolean.parseBoolean(args[7]) );
+				Integer.parseInt(args[6]) , Boolean.parseBoolean(args[7]),
+				Boolean.parseBoolean( args[8] ) );
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();
