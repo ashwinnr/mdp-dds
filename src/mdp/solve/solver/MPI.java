@@ -114,8 +114,10 @@ public class MPI implements Runnable {
 			_solutionTimer.ResumeTimer();
 			_evalTimer.ResumeTimer();
 			//break ties in policy
-			_policyDD = _manager.breakTiesInBDD(_policyDD, _mdp.getFactoredActionSpace().getActionVariables(),
-					false );
+			if( _evalSteps > 0 ){
+				_policyDD = _manager.breakTiesInBDD(_policyDD, _mdp.getFactoredActionSpace().getActionVariables(),
+						false );
+			}
 			//policy eval
 			UnorderedPair<ADDRNode, Integer> evaluation 
 				= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, EPSILON, _FAR);
