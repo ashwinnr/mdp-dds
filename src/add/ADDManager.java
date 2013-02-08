@@ -51,8 +51,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
-	private static final long TEMP_UNARY_CACHE_SIZE = 50_000;
-	private static final long APPLY_CACHE_SIZE = 50_000;
+	private static final long TEMP_UNARY_CACHE_SIZE = 100_000;
+	private static final long APPLY_CACHE_SIZE = 100_000;
 	private static final boolean USE_SOFT_VALUES = true;
 	protected int STORE_INCREMENT;
 
@@ -1932,7 +1932,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		applyHit = 0;
 //		this._tempCache.clear();
 		final double mem_percent = getMemoryPercent();
-		invalidateApplyCache();
+		throwAwayApplyCache();
 		if( mem_percent > 0.9d ){
 //			cacheSummary();
 //			_tempUnaryCache.invalidateAll();
@@ -1962,6 +1962,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 ////		madeINodes.clear();
 //		restorePermenants( );			
 //	}
+	}
+
+	private void throwAwayApplyCache() {
+		applyCache.clear();
 	}
 
 	//testaddPair
