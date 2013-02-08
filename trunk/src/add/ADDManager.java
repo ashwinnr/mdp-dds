@@ -52,7 +52,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
 	private static final long TEMP_UNARY_CACHE_SIZE = 50_000;
-	private static final long APPLY_CACHE_SIZE = 10_000;
+	private static final long APPLY_CACHE_SIZE = 50_000;
 	private static final boolean USE_SOFT_VALUES = true;
 	protected int STORE_INCREMENT;
 
