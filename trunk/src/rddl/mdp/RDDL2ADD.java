@@ -1286,4 +1286,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	public double getDiscount() {
 		return _i._dDiscount;
 	}
+
+	public List<String> getAffectingActionVariables( String next_state_var ) {
+		return _hmvars2act.get( next_state_var );
+	}
 }

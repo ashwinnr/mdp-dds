@@ -117,19 +117,29 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 				return ((ADDLeaf)this.theNode).equals( (ADDLeaf)o.theNode );
 			}else if( this.theNode instanceof ADDINode && o.theNode instanceof ADDINode ){
 				final boolean negated_equals = this.negated == o.negated; 
-//				System.out.println("negated equals " + negated_equals );
-				final boolean node_equals = this.theNode.equals( o.theNode );
-//				System.out.println("node equals " + node_equals );
-				final boolean id_equals = getID() == o.getID();
-				if( negated_equals && node_equals && !id_equals ){
-					try{
-						throw new Exception( "duplicate RNodes!");
-					}catch( Exception e  ){
-						e.printStackTrace();
-						System.exit(1);	
+				if( negated_equals ){
+					final boolean node_equals = this.theNode.equals( o.theNode );
+//					System.out.println("node equals " + node_equals );
+					final boolean id_equals = getID() == o.getID();
+					if( node_equals && !id_equals ){
+						try{
+							throw new Exception( "duplicate RNodes!");
+						}catch( Exception e  ){
+							e.printStackTrace();
+							System.exit(1);	
+						}
 					}
+					return node_equals;
+				}else{
+					final boolean negated_node_equals 
+						= (( ADDINode )this.theNode).negatedEquals( (ADDINode) o.theNode );
+//					System.out.println("node equals " + node_equals );
+//					final boolean id_equals = getID() == o.getID();
+					return negated_node_equals;
 				}
-				return negated_equals && node_equals;
+//				System.out.println("negated equals " + negated_equals );
+				
+//				return negated_equals && node_equals;
 //				//probably here because this and o have same hashcode
 //				//quick way to resolve this is to check if true and false child 
 //				//have same ahshcode

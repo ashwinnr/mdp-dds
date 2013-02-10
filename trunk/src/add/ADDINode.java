@@ -182,11 +182,11 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		return this.children._o2;
 	}
 
-//	public boolean negatedEquals(ADDINode other) {
-//		return this.testVariable == other.testVariable && 
-//				this.children._o1.equals( other.children._o2 )
-//				&& this.children._o2.equals( other.children._o1 );
-//	}
+	public boolean negatedEquals(ADDINode other) {
+		return this.testVariable == other.testVariable && 
+				this.children._o1.equals( other.children._o2 )
+				&& this.children._o2.equals( other.children._o1 );
+	}
 
 	public ADDINode getNegatedNode( final ADDINode null_inode ) {
 		Objects.requireNonNull( null_inode );
@@ -199,6 +199,4 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		}
 		return null;
 	}
-	
-
 }
