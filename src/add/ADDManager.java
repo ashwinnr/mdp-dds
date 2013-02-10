@@ -97,13 +97,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		//		testAddPair();
 		//		testgetINode();
 		//		testIndicators();
 		//		testApplyLeafOp();
-//				testGetRNode();
-		testBreakTies();
+				testGetRNode();
+//		testBreakTies();
 		//		testGraph();
 		//		testClearDeadNodes((int)1e5);
 //		testApply();
@@ -569,7 +569,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	public static void testGetRNode(){
+	public static void testGetRNode() throws Exception{
 
 		ArrayList<String> ord = new ArrayList<String>();
 		ord.add("X");
@@ -627,6 +627,20 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		man.showGraph(leaf, leaf_copy );
 		man.showGraph(inod1_copy, inod1, inod3, inod4);
+		
+		/////////
+		ADDINode in1 = new ADDINode().getNullDD().get();
+		in1.plugIn("X", man.DD_ZERO, man.DD_ONE);
+		
+		ADDINode in2 = new ADDINode().getNullDD().get();
+		in2.plugIn("X", man.DD_ONE, man.DD_ZERO);
+		
+		ADDRNode n1 = new ADDRNode(in1);
+		ADDRNode n2 = new ADDRNode(in2);
+		n2.setNegated(true);
+		
+		System.out.println( n1.equals(n2) );
+		man.showGraph(n1, n2);
 	}
 
 	public static void testGraph(){
@@ -1342,6 +1356,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			return op1_neg_inf ? op2 : op1;
 		}else if( is_neg_inf ){
 			return DD_NEG_INF;
+		}
+		
+		if( op1.equals( op2 ) && 
+				( op.equals(DDOper.ARITH_MAX) || op.equals( DDOper.ARITH_MIN) ) ){
+			return op1;
 		}
 
 		final ADDNode node1 = op1.getNode();
@@ -3249,6 +3268,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final ADDRNode replaced = getINode( input.getTestVariable(), true_replaced, false_replaced );
 		_tempUnaryCache.put( input, replaced );
 		return replaced;
+	}
+
+	public int getSize(final ADDRNode input, final boolean leaves) {
+		return getNodes(input, leaves).size();
 	}
 
 	//	public void clearDeadNodes(){
