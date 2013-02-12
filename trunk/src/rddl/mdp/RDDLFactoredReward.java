@@ -42,7 +42,7 @@ public class RDDLFactoredReward implements FactoredReward< RDDLFactoredStateSpac
 		setStateAction( (FactoredState<RDDLFactoredStateSpace>)state, 
 				(FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action );
 		try {
-			return (double) _state._reward.sample(empty_sub , _state, _rand);
+			return (Double) _state._reward.sample(empty_sub , _state, _rand);
 		} catch (EvalException e) {
 			e.printStackTrace();
 			System.exit(1);

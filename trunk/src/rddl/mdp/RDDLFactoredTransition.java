@@ -191,12 +191,12 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	public State<RDDLFactoredStateSpace> randomState() {
 		FactoredState<RDDLFactoredStateSpace> fs = null;
 		do{
-			final TreeMap<String, Boolean> assignments = new TreeMap<>();
+			final TreeMap<String, Boolean> assignments = new TreeMap<String, Boolean>();
 			for( final String s : _stateVars ){
 				final boolean value = _rand.nextBoolean();
 				assignments.put( s, value );
 			}
-			fs = new FactoredState<>();
+			fs = new FactoredState<RDDLFactoredStateSpace>();
 			fs.setFactoredState( assignments );
 			setStateAction(fs, null );
 			_constraint.setState( _state );
