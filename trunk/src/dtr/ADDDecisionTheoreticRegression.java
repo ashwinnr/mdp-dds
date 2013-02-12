@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.Objects;
+//import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
@@ -982,8 +982,8 @@ public class ADDDecisionTheoreticRegression implements
 	}
 
 	public double getBellmanError(final ADDRNode valueFn, final ADDRNode oldValueFn) {
-		Objects.requireNonNull( valueFn );
-		Objects.requireNonNull( oldValueFn );
+//		Objects.requireNonNull( valueFn );
+//		Objects.requireNonNull( oldValueFn );
 		
 		ADDRNode diff = _manager.apply(valueFn, oldValueFn, DDOper.ARITH_MINUS );
 		diff = _manager.remapLeaf( diff, _manager.DD_NEG_INF, _manager.DD_ZERO );
