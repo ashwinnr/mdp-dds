@@ -566,12 +566,6 @@ public class ADDDecisionTheoreticRegression implements
 			final NavigableMap<String, Boolean> action,
 			final boolean constrain_naively ){
 		
-		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
-			System.out.println( "Expectation " + str );
-			System.out.println( "Action " + action );
-			System.out.println( "Size of input " + _manager.countNodes( input ) );
-		}
-		
 		ADDRNode this_cpt = null;
 		if( action == null ){
 			this_cpt = _mdp.getCpts().get( str );	
@@ -586,7 +580,6 @@ public class ADDDecisionTheoreticRegression implements
 //				e.printStackTrace();
 //				System.exit(1);
 			}
-			
 		}
 		
 		ADDRNode ret = input;
@@ -622,7 +615,16 @@ public class ADDDecisionTheoreticRegression implements
 				System.exit(1);
 			}
 		}
-		
+
+//		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
+			System.out.println( "Expectation " + str );
+			System.out.println( "Action " + action );
+			System.out.println( "Size of input " + _manager.countNodes( input ) );
+			System.out.println( "Size of mult " + _manager.countNodes(mult) );
+			System.out.println( "Size of mult constrained " + _manager.countNodes(mult_constrained) );
+			System.out.println( "Size of summed " + _manager.countNodes(summed) );
+			System.out.println( "Size of summed constrained " + _manager.countNodes(summed_constrained) );
+//		}
 		return ret;
 	}
 
@@ -679,10 +681,7 @@ public class ADDDecisionTheoreticRegression implements
 	private ADDRNode addReward(final ADDRNode input, 
 			final NavigableMap<String, Boolean> action,
 			final boolean constrain_naively ) {
-		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-			System.out.println("Adding reward " );
-			System.out.println("Size of input " + _manager.countNodes( input ) );
-		}
+		
 		List<ADDRNode> rewards = null;
 		if( action == null ){
 			rewards = _mdp.getRewards();
@@ -707,9 +706,19 @@ public class ADDDecisionTheoreticRegression implements
 				System.out.println("Showing diagrams after one addition" );
 				_manager.showGraph( ret, this_reward, added_rew, added_rew_constrained );
 			}
+			
+			System.out.println("Adding reward " );
+			System.out.println("Size of input " + _manager.countNodes( input ) );
+			System.out.println("Size of added rew " + _manager.countNodes( added_rew ) );
+			System.out.println("Size of added rew constrained " + _manager.countNodes( added_rew_constrained ) );
+			
 			ret = added_rew_constrained;
 			_manager.flushCaches( );
-		}		
+		}
+		
+//		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+//		}
+		
 		return ret;
 	}
 
