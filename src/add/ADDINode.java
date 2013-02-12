@@ -5,7 +5,6 @@ import graph.Graph;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -189,7 +188,7 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	}
 
 	public ADDINode getNegatedNode( final ADDINode null_inode ) {
-		Objects.requireNonNull( null_inode );
+//		Objects.requireNonNull( null_inode );
 		try {
 			null_inode.plugIn(testVariable, children._o2, children._o1 );
 			return null_inode;
