@@ -64,10 +64,10 @@ public class ADDDecisionTheoreticRegression implements
 		try{
 			__order_action_vars_appear = new ArrayList<String>();
 			final ArrayList<String> expectation_order = _mdp.getSumOrder();
-			__nextVar_to_actionVar_range = new ArrayList<>();		
+			__nextVar_to_actionVar_range = new ArrayList<Integer>();		
 			for( int i = 0 ; i < expectation_order.size(); ++i ){
 				final String xp = expectation_order.get( i );
-				final List<String> this_affected_by = new ArrayList<>( _mdp.getAffectingActionVariables( xp ) );
+				final List<String> this_affected_by = new ArrayList<String>( _mdp.getAffectingActionVariables( xp ) );
 				this_affected_by.removeAll( __order_action_vars_appear );
 				__order_action_vars_appear.addAll( this_affected_by );
 				__nextVar_to_actionVar_range.add( __order_action_vars_appear.size() );
@@ -134,14 +134,16 @@ public class ADDDecisionTheoreticRegression implements
 			final NavigableMap<String, Boolean> action,
 			final ADDRNode violate,
 			final boolean constrain_naively ) {
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println("applying constraint");
+			System.out.println("Size of input " + _manager.countNodes(input) );
+		}
 		//WARNING: stupidity
 		if( constrain_naively ){
 			return applyMDPConstraintsNaively(input, action, violate);
 		}
 		
-		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-			System.out.println("applying constraint");
-		}
+		
 		ADDRNode ret = input;
 		for( ADDRNode constraint : _constraints ){
 			ADDRNode action_constraint;
@@ -247,6 +249,10 @@ public class ADDDecisionTheoreticRegression implements
 		//discount
 		ret = _manager.scalarMultiply(ret, _mdp.getDiscount());
 		
+		//fix for constraint incorrectness 
+		//multiplying by neg-inf constraints
+		ret = applyMDPConstraintsNaively( ret, null, _manager.DD_NEG_INF );
+		
 		ADDRNode q_func = ret;
 		if( _mdp._bRewardActionDependent ){
 			ADDRNode reward_added = addReward( ret, null, constrain_naively );
@@ -338,6 +344,7 @@ public class ADDDecisionTheoreticRegression implements
 		for( final String str : action_vars ){
 			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.println("Maxing " + str );
+				System.out.println("Size of input " + _manager.countNodes( ret ) );
 			}
 			final ADDRNode maxd = _manager.marginalize(ret, str, DDMarginalize.MARGINALIZE_MAX);
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
@@ -370,10 +377,10 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode policy = _manager.DD_ZERO;
 		final Deque< UnorderedPair< NavigableMap< String, Boolean >, 
 				UnorderedPair<Integer, ADDRNode > > > 
-					evaluations = new ArrayDeque<>();
+					evaluations = new ArrayDeque<UnorderedPair<NavigableMap<String, Boolean>, UnorderedPair<Integer, ADDRNode>>>();
 		evaluations.addFirst( new UnorderedPair< NavigableMap< String, Boolean >, 
 				UnorderedPair<Integer, ADDRNode > >( new TreeMap<String, Boolean>(), 
-				new UnorderedPair<>( 0, constrained_zero ) ) );
+				new UnorderedPair<Integer, ADDRNode>( 0, constrained_zero ) ) );
 		final ArrayList<String> action_variables = _mdp.getElimOrder();
 		final int num_action_vars = action_variables.size();
 		boolean recurse = false;
@@ -428,10 +435,10 @@ public class ADDDecisionTheoreticRegression implements
 						final ADDRNode false_restrict
 							= _manager.restrict( after_exp, conditioned_on, false );
 						
-						evaluations.addFirst( new UnorderedPair<>( false_assign, 
-								new UnorderedPair<>( i , false_restrict ) ) );
-						evaluations.addFirst( new UnorderedPair<>( true_assign, 
-								new UnorderedPair<>( i , true_restrict ) ) );
+						evaluations.addFirst( new UnorderedPair<NavigableMap<String, Boolean>, UnorderedPair<Integer, ADDRNode>>( false_assign, 
+								new UnorderedPair<Integer, ADDRNode>( i , false_restrict ) ) );
+						evaluations.addFirst( new UnorderedPair<NavigableMap<String, Boolean>, UnorderedPair<Integer, ADDRNode>>( true_assign, 
+								new UnorderedPair<Integer, ADDRNode>( i , true_restrict ) ) );
 						recurse = true;
 					}
 				}
@@ -454,8 +461,11 @@ public class ADDDecisionTheoreticRegression implements
 			ret = _manager.scalarMultiply(ret, _mdp.getDiscount());
 			ret = addReward( ret, assign, constrain_naively);
 			
+			//fix for incorrectness
+			ret = applyMDPConstraintsNaively( ret, assign, _manager.DD_NEG_INF );
+			
 			//max action vars
-			final ArrayList<String> all_action_vars = new ArrayList<>( maxOrder );
+			final ArrayList<String> all_action_vars = new ArrayList<String>( maxOrder );
 			all_action_vars.removeAll( assign.keySet() );
 			final ADDRNode this_z = maxActionVariables( ret, all_action_vars );
 			
@@ -559,6 +569,7 @@ public class ADDDecisionTheoreticRegression implements
 		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
 			System.out.println( "Expectation " + str );
 			System.out.println( "Action " + action );
+			System.out.println( "Size of input " + _manager.countNodes( input ) );
 		}
 		
 		ADDRNode this_cpt = null;
@@ -651,6 +662,7 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		ret = reward_added;
+		ret = applyMDPConstraintsNaively( ret, action, _manager.DD_NEG_INF );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasVars(ret, _mdp.getFactoredActionSpace().getActionVariables() ) ){
@@ -669,6 +681,7 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean constrain_naively ) {
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			System.out.println("Adding reward " );
+			System.out.println("Size of input " + _manager.countNodes( input ) );
 		}
 		List<ADDRNode> rewards = null;
 		if( action == null ){
@@ -677,7 +690,7 @@ public class ADDDecisionTheoreticRegression implements
 			final Map<Map<String, Boolean>, ArrayList<ADDRNode>> actionRewards = _mdp.getActionRewards();
 			rewards = actionRewards.get( action );
 			if( rewards == null ){
-				rewards = new ArrayList<>();
+				rewards = new ArrayList<ADDRNode>();
 				final List<ADDRNode> all_rewards = _mdp.getRewards();
 				for( final ADDRNode r : all_rewards ){
 					rewards.add( _manager.restrict( r, action ) );					

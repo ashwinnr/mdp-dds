@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry excluding="add/ADDReduceOper.java|add/PrintADDOper.java|mdp/simulate/|mdp/define/RandomStateGenerator.java|factored/mdp/define/FactoredRandomStateGenerator.java" kind="src" path="src"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/grappa1_4.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/java_cup.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/jlex.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/xercesImpl.jar"/>
-	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/commons-lang3-3.1.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/apache-commons-colections"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/guava-14.0-rc1.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.7.0_03"/>
+	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/commons-lang3-3.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

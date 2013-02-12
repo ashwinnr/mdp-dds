@@ -216,7 +216,7 @@ public class State {
 		int count = 0;
 		for( Map.Entry<PVAR_NAME, HashMap< ArrayList<LCONST> , Object > > 
 				pvar_action : _actions.entrySet() ){
-			final boolean def_value = (boolean) getDefaultValue( pvar_action.getKey() );
+			final boolean def_value = (Boolean) getDefaultValue( pvar_action.getKey() );
 			final HashMap< ArrayList< LCONST >, Object > ground_actions
 				= pvar_action.getValue();
 			for( final Object o : ground_actions.values() ){
