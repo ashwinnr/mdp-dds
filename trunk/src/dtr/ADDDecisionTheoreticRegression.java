@@ -250,6 +250,9 @@ public class ADDDecisionTheoreticRegression implements
 			}
 			_manager.flushCaches( );
 		}
+		
+		size_change.clear();
+		size_change.add( sum_q );
 //		sum_q *= actions.size();
 				
 		return new UnorderedPair<ADDValueFunction, ADDPolicy>( 
