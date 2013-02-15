@@ -1348,6 +1348,20 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		
+		final boolean op1_one = op1.equals(DD_ONE);
+		final boolean op2_one = op2.equals(DD_ONE);
+		
+		if( op1_one || op2_one ){
+			switch( op ){
+				case ARITH_PROD :
+					return op1_one ? op2 : op1;
+				case ARITH_DIV :
+					if( op2_one ){
+						return op1;
+					}
+			}
+		}
+		
 		final boolean op1_neg_inf = op1.equals(DD_NEG_INF);
 		final boolean op2_neg_inf =  op2.equals(DD_NEG_INF);
 		final boolean is_neg_inf = ( op1_neg_inf || op2_neg_inf );
@@ -1783,16 +1797,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
-	public List<Integer> countNodes( final ADDRNode... rnodes ){
+	public List<Long> countNodes( final ADDRNode... rnodes ){
 //		Objects.requireNonNull( rnodes );
-		ArrayList<Integer> ret = new ArrayList<Integer>();
+		ArrayList<Long> ret = new ArrayList<Long>();
 		for( ADDRNode rnode : rnodes ){
 			ret.add( countNodesInt( rnode , new HashSet<ADDRNode>() ) );
 		}
 		return Collections.unmodifiableList( ret ); 
 	}
 
-	private int countNodesInt( final ADDRNode rnode, final HashSet<ADDRNode> seen ){
+	private long countNodesInt( final ADDRNode rnode, final HashSet<ADDRNode> seen ){
 //		Objects.requireNonNull( rnode );
 //		Objects.requireNonNull( seen );
 		if( seen.contains(rnode) ){
@@ -1803,9 +1817,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			return 0;
 		}
 		seen.add( rnode );
-		final int trueCount = countNodesInt( rnode.getTrueChild(), seen );
-		final int falseCount = countNodesInt( rnode.getFalseChild(), seen );
-		return 1 + trueCount + falseCount;
+		final long trueCount = countNodesInt( rnode.getTrueChild(), seen );
+		final long falseCount = countNodesInt( rnode.getFalseChild(), seen );
+		return 1L + trueCount + falseCount;
 	}
 
 	public int countPaths( final ADDRNode rnode ){
@@ -3272,6 +3286,33 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	public int getSize(final ADDRNode input, final boolean leaves) {
 		return getNodes(input, leaves).size();
+	}
+
+	public ADDRNode productDD( final Set<ADDRNode> DDs) {
+		if( DDs == null ){
+			return null;
+		}
+		ADDRNode ret = DD_ONE;
+		for( final ADDRNode rn : DDs ){
+			if( rn != null ){
+				ret = apply( ret, rn, DDOper.ARITH_PROD );				
+			}
+		}
+		return ret;
+	}
+	
+	public ADDRNode productDD( final ADDRNode... DDs ){
+		ADDRNode ret = DD_ONE;
+		for( final ADDRNode rn : DDs ){
+			if( rn != null ){
+				ret = apply( ret, rn, DDOper.ARITH_PROD );				
+			}
+		}
+		return ret;
+	}
+	
+	public ADDRNode productDD( final Set<ADDRNode> DDs, final ADDRNode... DDs_2 ){
+		return productDD( productDD(DDs), productDD(DDs_2) );
 	}
 
 	//	public void clearDeadNodes(){

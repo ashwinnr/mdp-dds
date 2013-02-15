@@ -1,5 +1,6 @@
 package mdp.solve.solver;
 
+import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import rddl.mdp.RDDL2ADD;
@@ -77,6 +78,7 @@ public class MPI implements Runnable {
 		_evalTimer = new Timer();
 		double prev_error = Double.NEGATIVE_INFINITY;
 		boolean lastiter = false;
+		final ArrayList< Long > size_change = new ArrayList<Long>(); 
 
 		while( true ) {
 			_solutionTimer.ResumeTimer();
@@ -85,7 +87,7 @@ public class MPI implements Runnable {
 			final boolean makePolicy = ( _evalSteps > 0 || lastiter ) ? true : false;
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, 
-						makePolicy  , CONSTRAIN_NAIVELY ); 
+						makePolicy  , CONSTRAIN_NAIVELY, size_change ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -95,7 +97,8 @@ public class MPI implements Runnable {
 					+ _manager.countNodes(newValueDD._o1.getValueFn()) 
 					+ ( ( makePolicy ? ( " size of policy " + 
 					_manager.countNodes(newValueDD._o2._bddPolicy) ) : "" ) ) );
-			
+			System.out.println( "Size change " + size_change );
+			size_change.clear();
 //			if( prev_error != Double.NEGATIVE_INFINITY
 //					&& error > prev_error ){
 //				try{
@@ -123,7 +126,7 @@ public class MPI implements Runnable {
 				//policy eval
 				UnorderedPair<ADDRNode, Integer> evaluation 
 					= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, 
-							EPSILON, _FAR, CONSTRAIN_NAIVELY);
+							EPSILON, _FAR, CONSTRAIN_NAIVELY, size_change );
 				ADDRNode evaluated = evaluation._o1;
 				eval_backups += evaluation._o2;
 				_solutionTimer.PauseTimer();
