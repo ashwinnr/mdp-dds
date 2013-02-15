@@ -1,4 +1,4 @@
-non-fluents nf_sysadmin_uniring_6_2 {
+non-fluents nf_sysadmin_uniring_6_7 {
 	domain = sysadmin_mdp;
 	objects {
 		computer : {c101,c102,c103,c104,c105,c106};
@@ -14,9 +14,9 @@ non-fluents nf_sysadmin_uniring_6_2 {
 	};
 }
 
-instance sysadmin_uniring_6_2 {
+instance sysadmin_uniring_6_7 {
 	domain = sysadmin_mdp;
-	non-fluents = nf_sysadmin_uniring_6_2;
+	non-fluents = nf_sysadmin_uniring_6_7;
 	init-state {
 		running(c101);
 		running(c102);
@@ -26,7 +26,7 @@ instance sysadmin_uniring_6_2 {
 		running(c106);
 	};
 
-	max-nondef-actions = 2;
+	max-nondef-actions = 7;
 	horizon  = 40;
 	discount = 0.9;
 }

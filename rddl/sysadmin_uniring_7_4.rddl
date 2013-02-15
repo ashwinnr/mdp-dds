@@ -1,7 +1,7 @@
-non-fluents nf_sysadmin_uniring_6_2 {
+non-fluents nf_sysadmin_uniring_7_4 {
 	domain = sysadmin_mdp;
 	objects {
-		computer : {c101,c102,c103,c104,c105,c106};
+		computer : {c101,c102,c103,c104,c105,c106,c107};
 	};
 	non-fluents {
 		REBOOT-PROB = 0.05;
@@ -10,13 +10,14 @@ non-fluents nf_sysadmin_uniring_6_2 {
 		CONNECTED(c103,c104);
 		CONNECTED(c104,c105);
 		CONNECTED(c105,c106);
-		CONNECTED(c106,c101);
+		CONNECTED(c106,c107);
+		CONNECTED(c107,c101);
 	};
 }
 
-instance sysadmin_uniring_6_2 {
+instance sysadmin_uniring_7_4 {
 	domain = sysadmin_mdp;
-	non-fluents = nf_sysadmin_uniring_6_2;
+	non-fluents = nf_sysadmin_uniring_7_4;
 	init-state {
 		running(c101);
 		running(c102);
@@ -24,9 +25,10 @@ instance sysadmin_uniring_6_2 {
 		running(c104);
 		running(c105);
 		running(c106);
+		running(c107);
 	};
 
-	max-nondef-actions = 2;
+	max-nondef-actions = 4;
 	horizon  = 40;
 	discount = 0.9;
 }
