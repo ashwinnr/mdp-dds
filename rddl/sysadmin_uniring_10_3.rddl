@@ -1,0 +1,40 @@
+non-fluents nf_sysadmin_uniring_10_3 {
+	domain = sysadmin_mdp;
+	objects {
+		computer : {c101,c102,c103,c104,c105,c106,c107,c108,c109,c110};
+	};
+	non-fluents {
+		REBOOT-PROB = 0.05;
+		CONNECTED(c101,c102);
+		CONNECTED(c102,c103);
+		CONNECTED(c103,c104);
+		CONNECTED(c104,c105);
+		CONNECTED(c105,c106);
+		CONNECTED(c106,c107);
+		CONNECTED(c107,c108);
+		CONNECTED(c108,c109);
+		CONNECTED(c109,c110);
+		CONNECTED(c110,c101);
+	};
+}
+
+instance sysadmin_uniring_10_3 {
+	domain = sysadmin_mdp;
+	non-fluents = nf_sysadmin_uniring_10_3;
+	init-state {
+		running(c101);
+		running(c102);
+		running(c103);
+		running(c104);
+		running(c105);
+		running(c106);
+		running(c107);
+		running(c108);
+		running(c109);
+		running(c110);
+	};
+
+	max-nondef-actions = 3;
+	horizon  = 40;
+	discount = 0.9;
+}
