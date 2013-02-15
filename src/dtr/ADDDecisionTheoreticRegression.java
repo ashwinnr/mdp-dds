@@ -109,8 +109,9 @@ public class ADDDecisionTheoreticRegression implements
 		if( action != null ){
 			all_constraints = _manager.restrict(all_constraints, action);
 		}
-		
-		ADDRNode ret = _manager.apply(input, all_constraints, DDOper.ARITH_PROD );
+		all_constraints = _manager.remapLeaf( all_constraints, _manager.DD_ZERO, _manager.DD_NEG_INF );
+		all_constraints = _manager.remapLeaf( all_constraints, _manager.DD_ONE, _manager.DD_ZERO );
+		ADDRNode ret = _manager.apply(input, all_constraints, DDOper.ARITH_PLUS );
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( ret ) ) ;
 		}
@@ -284,19 +285,19 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
-		ADDRNode q_func = ret;
-		if( _mdp._bRewardActionDependent ){
-			ADDRNode reward_added = discountAndAddReward( ret, null, constrain_naively, size_change );
-			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-				System.out.println( "reward added " );
-			}
-			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
-				System.out.println( "showing diagrams");
-				_manager.showGraph( ret, reward_added);
-			}
-			ret = reward_added;
-			q_func = reward_added;
+//		ADDRNode q_func = ret;
+//		if( _mdp._bRewardActionDependent ){
+		ADDRNode reward_added = discountAndAddReward( ret, null, constrain_naively, size_change );
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println( "reward added " );
 		}
+		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
+			System.out.println( "showing diagrams");
+			_manager.showGraph( ret, reward_added);
+		}
+		ret = reward_added;
+		ADDRNode q_func = reward_added;
+//		}
 		
 		//ret now has Q function
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
@@ -323,27 +324,28 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 
-		if( !_mdp._bRewardActionDependent ){
-			ADDRNode reward_added = discountAndAddReward( ret, null, constrain_naively, size_change );
-			if( makePolicy ){
-				q_func = discountAndAddReward( q_func, null, constrain_naively, 
-						size_change ); 
-			}
-
-			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-				System.out.println( "reward added " );
-			}
-			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
-				System.out.println( "showing diagrams");
-				_manager.showGraph( ret, q_func, reward_added);
-			}
-			ret = reward_added;
-		}
+//		if( !_mdp._bRewardActionDependent ){
+//			ADDRNode reward_added = discountAndAddReward( ret, null, constrain_naively, size_change );
+//			if( makePolicy ){
+//				q_func = discountAndAddReward( q_func, null, constrain_naively, 
+//						size_change ); 
+//			}
+//
+//			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+//				System.out.println( "reward added " );
+//			}
+//			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
+//				System.out.println( "showing diagrams");
+//				_manager.showGraph( ret, q_func, reward_added);
+//			}
+//			ret = reward_added;
+//		}
+//		ret = maxActionVariables(ret, _mdp.getElimOrder(), null );
 		
 		if(_dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasVars( ret, _mdp.getFactoredActionSpace().getActionVariables() ) ){
 			try{
-				throw new Exception("Has primed vars after max");
+				throw new Exception("Has action vars after max");
 			}catch( Exception e ){
 				e.printStackTrace();
 				System.exit(1);
@@ -413,8 +415,8 @@ public class ADDDecisionTheoreticRegression implements
 		int total_leaves = 0;
 		//primed
 		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
-		final ADDRNode constrained_zero = _manager.remapLeaf( primed , 
-				_manager.DD_NEG_INF, _manager.DD_ZERO );
+//		final ADDRNode constrained_zero = _manager.remapLeaf( primed , 
+//				_manager.DD_NEG_INF, _manager.DD_ZERO );
 		
 		final ArrayList<String> sum_order = _mdp.getSumOrder();
 		ADDRNode value_func = _manager.DD_NEG_INF;
@@ -424,7 +426,7 @@ public class ADDDecisionTheoreticRegression implements
 					evaluations = new ArrayDeque<UnorderedPair<NavigableMap<String, Boolean>, UnorderedPair<Integer, ADDRNode>>>();
 		evaluations.addFirst( new UnorderedPair< NavigableMap< String, Boolean >, 
 				UnorderedPair<Integer, ADDRNode > >( new TreeMap<String, Boolean>(), 
-				new UnorderedPair<Integer, ADDRNode>( 0, constrained_zero ) ) );
+				new UnorderedPair<Integer, ADDRNode>( 0, primed ) ) );
 		final ArrayList<String> action_variables = _mdp.getElimOrder();
 		final int num_action_vars = action_variables.size();
 		boolean recurse = false;
@@ -1098,14 +1100,14 @@ public class ADDDecisionTheoreticRegression implements
 			boolean makePolicy, boolean constraint_naively,
 			List<Long> size_change) {
 		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
-		final ADDRNode constrained_zero = _manager.remapLeaf( primed ,  _manager.DD_NEG_INF, _manager.DD_ZERO );
+//		final ADDRNode constrained_zero = _manager.remapLeaf( primed ,  _manager.DD_NEG_INF, _manager.DD_ZERO );
 		
 		UnorderedPair< ADDValueFunction, ADDPolicy > ret = null;
 		if( withActionVars ){
-			ret = regressAllActions( constrained_zero, keepQ, makePolicy, 
+			ret = regressAllActions( primed, keepQ, makePolicy, 
 					constraint_naively , size_change );
 		}else{
-			ret =  regressSPUDD( constrained_zero, keepQ, makePolicy, 
+			ret =  regressSPUDD( primed, keepQ, makePolicy, 
 					constraint_naively, size_change );
 		}
 		
