@@ -1303,6 +1303,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		Objects.requireNonNull( op );
 //		invalidateApplyCache();
 		final ADDRNode ret = applyInt( op1, op2, op );
+		if( ret.getMax() == Double.NaN ){
+			try{
+				throw new Exception("Nan produced");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 //		invalidateApplyCache();
 		return ret;
 	}
@@ -1368,7 +1376,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 		if( is_neg_inf && op.equals(DDOper.ARITH_MAX) ){
 			return op1_neg_inf ? op2 : op1;
-		}else if( is_neg_inf ){
+		}
+//		BUG : what if the DD underneath has some zeros -
+		//which would violate our `abuse' of notation
+		//ok if not multiply, i guess
+		//otjerwise this need to be moved to leaf level
+		else if( is_neg_inf && !op.equals(DDOper.ARITH_PROD) ){
 			return DD_NEG_INF;
 		}
 		
@@ -1383,6 +1396,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		if( node1 instanceof ADDLeaf && node2 instanceof ADDLeaf ){
 			//we're done here
 			ret = applyLeafOp( op1, op2, op);
+			if( ret.getMax() == Double.NaN  ){
+				try{
+					throw new Exception("Nan produced");
+				}catch( Exception e  ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
 //			System.out.println("Leaf op : " + node1 + " " + op + " " + node2 + " = " + ret);
 		}else{
 			final ADDRNode lookup = lookupPair(op1, op2, op);
@@ -1434,25 +1455,30 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final ADDLeaf node2 = (ADDLeaf) rnode2.getNode();
 		final Pair<Double, Double> leaf1 = node1.getLeafValues();
 		final Pair<Double, Double> leaf2 = node2.getLeafValues();
+		double result_1 = Double.NaN, result_2 = Double.NaN;
 		ADDRNode ret = null;
 
 		switch( op ){
 
 		case ARITH_PLUS : 
-			ret = getLeaf(leaf1._o1 + leaf2._o1,  leaf1._o2 + leaf2._o2);
+			result_1 = (leaf1._o1 + leaf2._o1);
+			result_2 = (leaf1._o2 + leaf2._o2);
 			break;
 
 		case ARITH_MINUS : 
-			ret = getLeaf(leaf1._o1 - leaf2._o1, leaf1._o2 - leaf2._o2);
+			result_1 = (leaf1._o1 - leaf2._o1);
+			result_2 = (leaf1._o2 - leaf2._o2);
 			break;
 
 		case ARITH_PROD : 
-			ret = getLeaf( leaf1._o1 * leaf2._o1, leaf1._o2 * leaf2._o2);	
+			result_1 = leaf1._o1 * leaf2._o1;
+			result_2 = (leaf1._o2 * leaf2._o2);	
 			break;
 
 		case ARITH_DIV:
 			try{
-				ret = getLeaf(leaf1._o1 / leaf2._o1, leaf1._o2 / leaf2._o2);
+				result_1 = leaf1._o1 / leaf2._o1;
+				result_2 = leaf1._o2 / leaf2._o2;
 			}catch( ArithmeticException e ){
 				e.printStackTrace();
 				System.exit(1);
@@ -1460,11 +1486,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			break;
 
 		case ARITH_MAX :
-			ret = getLeaf( Math.max(leaf1._o1, leaf2._o1), Math.max(leaf1._o2, leaf2._o2) );
+			result_1 = Math.max(leaf1._o1, leaf2._o1);
+			result_2 = Math.max(leaf1._o2, leaf2._o2);
 			break;
 
 		case ARITH_MIN :
-			ret = getLeaf( Math.min(leaf1._o1, leaf2._o1), Math.min(leaf1._o2, leaf2._o2) );
+			result_1 = Math.min(leaf1._o1, leaf2._o1);
+			result_2 = Math.min(leaf1._o2, leaf2._o2);
 			break;
 
 		default : 	
@@ -1472,6 +1500,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			System.exit(1);
 		}
 
+		if( result_1 == Double.NaN || result_2 == Double.NaN ){
+			try{
+				throw new Exception("NaN's prduced");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		ret = getLeaf( result_1, result_2 );
 //		System.out.println( rnode1 + " " + rnode2 + " " + op + " " + ret); 
 		return ret;
 
@@ -3027,6 +3064,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final ADDRNode remap_true = remapVarsInt( truth , remap, _tempUnaryCache );
 			final ADDRNode remap_false = remapVarsInt( falseth , remap, _tempUnaryCache );	
 			final ADDRNode ret = getINode(newVar, remap_true, remap_false);
+			if( ret == DD_NEG_INF ){
+				System.out.println("Oops");
+			}
 			return ret;
 		}
 		return lookup;

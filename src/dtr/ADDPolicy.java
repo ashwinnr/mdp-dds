@@ -147,8 +147,15 @@ public class ADDPolicy extends
 					}
 					Action<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act 
 						= this.getAction(current_state);
-					State<RDDLFactoredStateSpace> new_state 
-						= _transition.sample(current_state, act);
+					State<RDDLFactoredStateSpace> new_state = null;
+					try{
+						new_state
+							= _transition.sample(current_state, act);
+					}catch( Exception e ){
+						e.printStackTrace();
+						System.exit(1);
+					}
+						
 					if( DISPLAY ){
 						System.out.println("***State : " + current_state );
 					}
@@ -167,6 +174,7 @@ public class ADDPolicy extends
 						System.out.println("**State : " + current_state );
 					}
 				}
+				System.out.println( " Round reward : " + round_reward );
 				stats.addRoundStats(round_reward);
 			}
 		}

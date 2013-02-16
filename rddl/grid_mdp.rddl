@@ -38,17 +38,17 @@ domain grid_mdp {
  					if ( GOAL(?x,?y) ^ robot-at(?x,?y)  )
  					then
  						KronDelta(true)
- 					else if (( exists_{?x2 : xpos, ?y2 : ypos} [ GOAL(?x2,?y2) ^ robot-at(?x2,?y2)  ] )
- 							 | ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y,?y2) ^ robot-at(?x,?y) ] )
- 							 | ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y,?y2) ^ robot-at(?x,?y) ] )
- 							 | ( move-east ^ exists_{?x2 : xpos} [ EAST(?x,?x2) ^ robot-at(?x,?y) ] )
- 							 | ( move-west ^ exists_{?x2 : xpos} [ WEST(?x,?x2) ^ robot-at(?x,?y) ] ))
+ 					else if ( ( robot-at(?x,?y) ^ ~exists_{?x2 : xpos, ?y2 : ypos}[ robot-at(?x2,?y2) ^ ~(?x2 == ?x ^ ?y2 == ?y)  ] ) 
+							 ^ ( ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y,?y2) ] )
+ 							 | ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y,?y2) ] ) 
+ 							 | ( move-east ^ exists_{?x2 : xpos} [ EAST(?x,?x2) ] )
+ 							 | ( move-west ^ exists_{?x2 : xpos} [ WEST(?x,?x2) ] ) ) )
  					then
  						KronDelta(false)
- 					else if (( move-north ^ exists_{?y2 : ypos} [ NORTH(?y2,?y) ^ robot-at(?x,?y2) ] )
- 							 | ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y2,?y) ^ robot-at(?x,?y2) ] )
- 							 | ( move-east ^ exists_{?x2 : xpos} [ EAST(?x2,?x) ^ robot-at(?x2,?y) ] )
- 							 | ( move-west ^ exists_{?x2 : xpos} [ WEST(?x2,?x) ^ robot-at(?x2,?y) ] ))
+ 					else if ( ~robot-at(?x,?y) ^ ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y2,?y) ^ robot-at(?x,?y2) ^ ~(?y == ?y2) ] )
+ 							 | ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y2,?y) ^ robot-at(?x,?y2) ^ ~(?y == ?y2) ] )
+ 							 | ( move-east ^ exists_{?x2 : xpos} [ EAST(?x2,?x) ^ robot-at(?x2,?y) ^ ~(?x == ?x2) ] )
+ 							 | ( move-west ^ exists_{?x2 : xpos} [ WEST(?x2,?x) ^ robot-at(?x2,?y) ^ ~(?x == ?x2)] ))
  					then
  						KronDelta( true )
  					else
@@ -59,10 +59,10 @@ domain grid_mdp {
  			// 0 reward for reaching goal, -1 in all other cases
  			reward = [sum_{?x : xpos, ?y : ypos} [ 0.0 -(GOAL(?x,?y) ^ ~robot-at(?x,?y))] ];
  		
- 			//state-action-constraints {
+ 			state-action-constraints {
  		
  				// Robot at exactly one position
- 				//[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] == 1;
- 			//};
+ 				[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] == 1;
+ 			};
  		
  		}

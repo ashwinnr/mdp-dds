@@ -1,0 +1,17 @@
+Assumptions :
+Model is ``correct''
+
+Algo:
+
+
+Invariants:
+value of legal state is correct
+value of legal action is correct
+value of illegal state can be a dont care, if model is correct
+	otherwise value of illegal state should be 0
+value of illegal action is neg inf
+
+Interfpretation:]
+
+Only considering state-action pairs in one preImage( V )
+
