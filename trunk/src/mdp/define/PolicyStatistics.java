@@ -19,8 +19,24 @@ public class PolicyStatistics {
 		++countRounds;
 		if( countRounds == _numRounds ){
 			mean_rewards[currentState] /= _numRounds;
+			if( _numRounds == 1 ){
+				try{
+					throw new Exception("creating NaN here");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
 			std_errors[currentState] = Math.sqrt( ( std_errors[currentState] - 
 					_numRounds * mean_rewards[currentState]*mean_rewards[currentState] )/( _numRounds-1 ) );
+			if( std_errors[currentState] == Double.NaN ){
+				try{
+					throw new Exception("NaN stdev");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit( 1 );
+				}
+			}
 			++currentState;
 			countRounds = 0;
 		}
