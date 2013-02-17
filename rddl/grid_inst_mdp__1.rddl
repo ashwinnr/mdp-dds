@@ -26,12 +26,9 @@ non-fluents nf_grid_inst_mdp__1 {
  			};
  		}
  		
- 		instance grid_inst_mdp__1 {
+		instance grid_inst_mdp__1 {
  			domain = grid_mdp;
  			non-fluents = nf_grid_inst_mdp__1;
- 			init-state {
- 				robot-at(x1,y1);
- 			};
  			max-nondef-actions = 1;
  			horizon = 40;
  			discount = 1.0;
