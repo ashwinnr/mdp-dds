@@ -4,7 +4,16 @@ non-fluents nf_toy_isnt_mdp_5_1 {
 		X : {x1,x2,x3,x4,x5};
 	};
 	non-fluents {
-		COST = 0.25;
+HIGH-PROB(X1) = 0.001565;
+FLIP-PROB(X1) = 0.000004;
+HIGH-PROB(X2) = 0.00896;
+FLIP-PROB(X2) = 0.000052;
+HIGH-PROB(X3) = 0.031769;
+FLIP-PROB(X3) = 0.000422;
+HIGH-PROB(X4) = 0.077978;
+FLIP-PROB(X4) = 0.002353;
+HIGH-PROB(X5) = 0.14036;
+FLIP-PROB(X5) = 0.009612;
 	};
 }
 

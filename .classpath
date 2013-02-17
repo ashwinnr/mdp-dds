@@ -8,5 +8,6 @@
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/guava-14.0-rc1.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/jdk1.7.0_03"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/commons-lang3-3.1.jar"/>
+	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/commons-math3-3.1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

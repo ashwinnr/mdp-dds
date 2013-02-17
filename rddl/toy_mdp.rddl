@@ -20,7 +20,7 @@
 domain toy_mdp {
   
 	requirements = { 
-		constrained-state,
+//		constrained-state,
 		reward-deterministic // this domain does not use a stochastic reward
 	};
 	
@@ -29,19 +29,23 @@ domain toy_mdp {
 	};
       
 	pvariables { 	  		    		  		
-		FLIP-PROB : { non-fluent, real, default = 0.5 };
-		COST : { non-fluent, real, default = 0.25 };
+		HIGH-PROB(X) : { non-fluent, real, default = 0.75 };
+		FLIP-PROB(X) : { non-fluent, real, default = 0.3 };
+		TIP : { non-fluent, real, default = 1.25};
 		on(X) : { state-fluent, bool, default = false };
 		hold(X) : { action-fluent, bool, default = false }; 
+		roll(X) : { action-fluent, bool, default = false };
 	};
 	
 	cpfs {
-		on'(?x) = Bernoulli( FLIP-PROB );
+		on'(?x) = if( hold(?x) )
+				  then Bernoulli( HIGH-PROB(?x) )
+				  else Bernoulli( FLIP-PROB(?x) );
 	};
   
-	reward = sum_{?x : X}[ (1 - COST)*hold(?x) ];
+	reward = sum_{?x : X}[ TIP*roll(?x) + on(?x) ];
 
 	state-action-constraints {
-		forall_{?x : X}[ on(?x) => ~hold(?x) ];
+		forall_{?x : X}[ ~on(?x) => ~roll(?x) ];
 	};
 }
