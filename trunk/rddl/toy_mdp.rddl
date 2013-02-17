@@ -1,0 +1,47 @@
+//this domain intended to show difference between
+//agnostic constraints and naive constraints.
+//no actions are introduced in regression
+//more actions are introduced in regression
+//the more the max-non-def
+//
+//state is a bit vector
+//each bit can become flip 
+//with prob. 0.5
+//
+//action is a bit vector
+//does not affect dynamics
+//affects cost function
+//reward = sum_y ( +(action[i] == 1) )
+//action cost for action[i]==1
+//precondition : actions[i] == 1 only if state[i] == 0
+//preconditions will come into policy,
+//but not into value or regression
+
+domain toy_mdp {
+  
+	requirements = { 
+		constrained-state,
+		reward-deterministic // this domain does not use a stochastic reward
+	};
+	
+	types {
+  		X : object;
+	};
+      
+	pvariables { 	  		    		  		
+		FLIP-PROB : { non-fluent, real, default = 0.5 };
+		COST : { non-fluent, real, default = 0.25 };
+		on(X) : { state-fluent, bool, default = false };
+		hold(X) : { action-fluent, bool, default = false }; 
+	};
+	
+	cpfs {
+		on'(?x) = Bernoulli( FLIP-PROB );
+	};
+  
+	reward = sum_{?x : X}[ (1 - COST)*hold(?x) ];
+
+	state-action-constraints {
+		forall_{?x : X}[ on(?x) => ~hold(?x) ];
+	};
+}

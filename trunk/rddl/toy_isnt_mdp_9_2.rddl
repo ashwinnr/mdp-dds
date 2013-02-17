@@ -1,0 +1,17 @@
+non-fluents nf_toy_isnt_mdp_9_2 {
+	domain = toy_mdp;
+	objects {
+		X : {x1,x2,x3,x4,x5,x6,x7,x8,x9};
+	};
+	non-fluents {
+		COST = 0.25;
+	};
+}
+
+instance toy_isnt_mdp_9_2 {
+	domain = toy_mdp;
+	non-fluents = nf_toy_isnt_mdp_9_2;
+	max-nondef-actions = 2;
+	horizon  = 40;
+	discount = 0.9;
+}

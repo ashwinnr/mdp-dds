@@ -1,0 +1,17 @@
+non-fluents nf_toy_mdp_1 {
+ 			domain = toy_mdp;
+ 			objects {
+ 				X : {x1};
+ 			};
+			non-fluents {
+				COST = 0.25;
+			};
+}
+ 		
+instance inst_toy_mdp_1{
+ 	domain = toy_mdp;
+ 	non-fluents = nf_toy_mdp_1;
+	max-nondef-actions = 1;
+ 	horizon = 40;
+ 	discount = 0.9;
+ }
