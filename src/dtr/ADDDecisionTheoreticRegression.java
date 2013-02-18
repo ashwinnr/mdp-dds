@@ -3,6 +3,7 @@ package dtr;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,7 +75,11 @@ public class ADDDecisionTheoreticRegression implements
 			__nextVar_to_actionVar_range = new ArrayList<Integer>();		
 			for( int i = 0 ; i < expectation_order.size(); ++i ){
 				final String xp = expectation_order.get( i );
-				final List<String> this_affected_by = new ArrayList<String>( _mdp.getAffectingActionVariables( xp ) );
+				
+				List<String> src =  _mdp.getAffectingActionVariables( xp );
+				src = src == null ? Collections.EMPTY_LIST : src;
+				
+				final List<String> this_affected_by = new ArrayList<String>( src );
 				this_affected_by.removeAll( __order_action_vars_appear );
 				__order_action_vars_appear.addAll( this_affected_by );
 				__nextVar_to_actionVar_range.add( __order_action_vars_appear.size() );
