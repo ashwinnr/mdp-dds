@@ -21,30 +21,30 @@ public class Timer {
 	
 	// Reset and start the timer
 	public void ResetTimer() {
-		_lTime = System.currentTimeMillis();
+		_lTime = System.nanoTime();
 		_lElapsedTime = 0;
 	}
 	
 	public void ResumeTimer() {
-		_lTime = System.currentTimeMillis();
+		_lTime = System.nanoTime();
 	}
 	
 	public long PauseTimer() {
-		_lElapsedTime += System.currentTimeMillis() - _lTime;
+		_lElapsedTime += System.nanoTime() - _lTime;
 		return _lElapsedTime;
 	}
 
 	public long StopTimer() {
-		_lElapsedTime = System.currentTimeMillis() - _lTime;
+		_lElapsedTime = System.nanoTime() - _lTime;
 		return _lElapsedTime;
 	}
 
 	public long GetTimeSoFar() {
-		return System.currentTimeMillis() - _lTime;
+		return System.nanoTime() - _lTime;
 	}
 
 	public long GetTimeSoFarAndReset() {
-		long elapsed = System.currentTimeMillis() - _lTime;
+		long elapsed = System.nanoTime() - _lTime;
 		ResetTimer();
 		return elapsed;
 	}

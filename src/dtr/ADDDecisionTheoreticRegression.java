@@ -31,6 +31,7 @@ import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
 import util.Pair;
+import util.Timer;
 import util.UnorderedPair;
 import add.ADDINode;
 import add.ADDLeaf;
@@ -803,13 +804,17 @@ public class ADDDecisionTheoreticRegression implements
 		int steps = 0;
 		double error = Double.MAX_VALUE, prev_error = Double.NaN;
 		ADDRNode value_func = initial_value_func, new_value_func = null;
+		Timer evalT = new Timer();
 		
 		while( steps++ < nSteps && error > epsilon ){
+			evalT.ResetTimer();
 			new_value_func = regressPolicy(value_func, policy,
 					withActionVars, constraint_naively, size_change);
 			error = getBellmanError(new_value_func, value_func);
+			evalT.StopTimer();
 			System.out.println( "Policy evaluation " + steps + " " +
-					error + " Size of value : " + _manager.countNodes(new_value_func) );
+					error + " Size of value : " + _manager.countNodes(new_value_func) 
+					+ " time = " + evalT.GetElapsedTimeInMinutesAndReset() );
 			System.out.println( "Size change " + size_change );
 			size_change.clear();
 			if( prev_error != Double.NaN && prev_error < error ){
