@@ -259,7 +259,7 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		
 		size_change.clear();
-		size_change.add( sum_q*actions.size() );
+		size_change.add( sum_q / actions.size() );
 //		sum_q *= actions.size();
 				
 		return new UnorderedPair<ADDValueFunction, ADDPolicy>( 
