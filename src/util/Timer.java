@@ -8,6 +8,8 @@
 
 package util;
 
+import java.io.IOException;
+
 public class Timer {
 
 	// Internal timing stats
@@ -77,9 +79,20 @@ public class Timer {
 	private double nanoToMinutes(long l) {
 		//1 ns = 10^-9 s
 		//l ns = l*10^-9/60 mins
-		return l*(10e-9d)/60;
+		return l*(1e-9d)/60;
 	}
 
+	public static void main( String[] args ){
+		Timer t = new Timer();
+		try {
+			System.in.read();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		t.PauseTimer();
+		System.out.println( t.GetElapsedTimeInMinutes() );
+	}
 	/**
 	 * @return
 	 */
