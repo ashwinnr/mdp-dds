@@ -807,14 +807,14 @@ public class ADDDecisionTheoreticRegression implements
 		Timer evalT = new Timer();
 		
 		while( steps++ < nSteps && error > epsilon ){
-			evalT.ResetTimer();
+			evalT.ResumeTimer();
 			new_value_func = regressPolicy(value_func, policy,
 					withActionVars, constraint_naively, size_change);
 			error = getBellmanError(new_value_func, value_func);
-			evalT.StopTimer();
+			evalT.PauseTimer();
 			System.out.println( "Policy evaluation " + steps + " " +
 					error + " Size of value : " + _manager.countNodes(new_value_func) 
-					+ " time = " + evalT.GetElapsedTimeInMinutesAndReset() );
+					+ " time = " + evalT.GetElapsedTimeInMinutes() );
 			System.out.println( "Size change " + size_change );
 			size_change.clear();
 			if( prev_error != Double.NaN && prev_error < error ){
@@ -1060,11 +1060,11 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode value_func = initial_value_func, new_value_func = null;
 		Timer evalT = new Timer();
 		while( steps++ < nSteps && error > epsilon ){
-			evalT.ResetTimer();
+			evalT.ResumeTimer();
 			new_value_func = regressPolicyMBFAR(value_func, policy, constraint_naively,
 					make_policy, bigdd);
 			error = getBellmanError(new_value_func, value_func);
-			evalT.StopTimer();
+			evalT.PauseTimer();
 			final long size = _manager.countNodes(new_value_func).get(0);
 			System.out.println( "MBFAR Policy evaluation " + steps + " " +
 					error + " Size of value : " + size + " time : " + evalT.GetElapsedTimeInMinutes() );
