@@ -63,7 +63,7 @@ public class Timer {
 	 * @return
 	 */
 	public double GetElapsedTimeInMinutes() {
-		return GetElapsedTime()/(1000d*60);
+		return nanoToMinutes( GetElapsedTime() );
 	}
 
 	/**
@@ -71,7 +71,13 @@ public class Timer {
 	 */
 	public double GetTimeSoFarAndResetInMinutes() {
 		long l = GetTimeSoFarAndReset();
-		return l/(1000d*60);
+		return nanoToMinutes( l );
+	}
+
+	private double nanoToMinutes(long l) {
+		//1 ns = 10^-9 s
+		//l ns = l*10^-9/60 mins
+		return l*(10e-9d)/60;
 	}
 
 	/**
