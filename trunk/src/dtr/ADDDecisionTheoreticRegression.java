@@ -259,7 +259,7 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		
 		size_change.clear();
-		size_change.add( sum_q );
+		size_change.add( sum_q*actions.size() );
 //		sum_q *= actions.size();
 				
 		return new UnorderedPair<ADDValueFunction, ADDPolicy>( 
@@ -305,6 +305,8 @@ public class ADDDecisionTheoreticRegression implements
 //		ret = reward_added;
 		final ADDRNode improper_q_func = reward_added;
 		ADDRNode q_func = applyMDPConstraintsNaively( improper_q_func, null, _manager.DD_NEG_INF, size_change );
+		
+		System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
 		
 		ret = maxActionVariables(q_func, _mdp.getElimOrder(), size_change );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
