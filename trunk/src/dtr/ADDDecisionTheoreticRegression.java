@@ -1058,14 +1058,16 @@ public class ADDDecisionTheoreticRegression implements
 		int steps = 0;
 		double error = Double.MAX_VALUE, prev_error = Double.NaN;
 		ADDRNode value_func = initial_value_func, new_value_func = null;
-		
+		Timer evalT = new Timer();
 		while( steps++ < nSteps && error > epsilon ){
+			evalT.ResetTimer();
 			new_value_func = regressPolicyMBFAR(value_func, policy, constraint_naively,
 					make_policy, bigdd);
 			error = getBellmanError(new_value_func, value_func);
+			evalT.StopTimer();
 			final long size = _manager.countNodes(new_value_func).get(0);
 			System.out.println( "MBFAR Policy evaluation " + steps + " " +
-					error + " Size of value : " + size );
+					error + " Size of value : " + size + " time : " + evalT.GetElapsedTimeInMinutes() );
 			if( prev_error != Double.NaN && prev_error < error ){
 				try{
 					throw new Exception("BE increased here");
