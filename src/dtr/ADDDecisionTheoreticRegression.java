@@ -318,10 +318,10 @@ public class ADDDecisionTheoreticRegression implements
 		final ADDRNode improper_q_func = reward_added;
 		ADDRNode q_func = improper_q_func;
 		if( !constrain_naively ){
-			q_func = multiplyActionPreconditions( q_func );
+			q_func = multiplyActionPreconditions( q_func, null );
 			q_func = multiplyStateConstraints( q_func );
 			if( makePolicy ){
-				q_func = multiplyActionConstraints( q_func );
+				q_func = multiplyActionConstraints( q_func, null );
 			}
 		}
 		
@@ -389,8 +389,12 @@ public class ADDDecisionTheoreticRegression implements
 		
 	}
 
-	private ADDRNode multiplyActionPreconditions(final ADDRNode input) {
-		final ADDRNode constraint = convertToNegInfDD( __action_precondition );
+	private ADDRNode multiplyActionPreconditions( final ADDRNode input, 
+			final NavigableMap<String, Boolean> action ) {
+		ADDRNode constraint = convertToNegInfDD( __action_precondition );
+		if( action != null ){
+			constraint =_manager.restrict( constraint, action ); 
+		}
 		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
 		return ret;
 	}
@@ -532,11 +536,11 @@ public class ADDDecisionTheoreticRegression implements
 			ret = discountAndAddReward( ret, assign, constrain_naively, size_change);
 			//fix for incorrectness of partial Q
 			if( !constrain_naively ){
-				ret = multiplyActionPreconditions( ret );
-				ret = multiplyStateConstraints( ret );
+				ret = multiplyActionPreconditions( ret, assign );
 				if( makePolicy ){
-					ret = multiplyActionConstraints( ret );
+					ret = multiplyActionConstraints( ret, assign );
 				}
+				ret = multiplyStateConstraints( ret );
 			}
 			
 			//max action vars
@@ -635,13 +639,17 @@ public class ADDDecisionTheoreticRegression implements
 				add_policy );
 	}
 	
-	private ADDRNode multiplyActionConstraints(final ADDRNode input) {
-		final ADDRNode constraint = convertToNegInfDD( __action_constraints );
+	private ADDRNode multiplyActionConstraints(final ADDRNode input,
+			NavigableMap<String, Boolean> action ) {
+		ADDRNode constraint = convertToNegInfDD( __action_constraints );
+		if( action != null ){
+			constraint = _manager.restrict( constraint, action );
+		}
 		final ADDRNode ret = _manager.apply(input, constraint, DDOper.ARITH_PLUS);
 		return ret;
 	}
 
-	private ADDRNode multiplyStateConstraints(final ADDRNode input) {
+	private ADDRNode multiplyStateConstraints( final ADDRNode input ) {
 		final ADDRNode constraint = convertToNegInfDD( __state_constraints );
 		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
 		return ret;

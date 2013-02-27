@@ -3059,6 +3059,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		if( lookup == null ){
 			final String var = input.getTestVariable();
 			final String newVar = remap.get( var );
+			if( newVar == null ){
+				try{
+					throw new Exception("No remap for " + var );
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
 			final ADDRNode truth = input.getTrueChild();
 			final ADDRNode falseth = input.getFalseChild();//negation taken care of
 			final ADDRNode remap_true = remapVarsInt( truth , remap, _tempUnaryCache );
