@@ -50,7 +50,7 @@ domain elevators_mdp {
   					elevator-at-floor(?e, ?f) ^ TOP-FLOOR(?f) ] )
   			then KronDelta( false )
   			else if( exists_{?f : floor}[ elevator-at-floor(?e, ?f) ^ person-waiting-up(?f) ^ elevator-dir-up(?e) 
-				^ [ ~exists_{?e2 : elevator}[ ~(?e == ?e2) ] |
+				^ [ ~exists_{?e2 : elevator}[ ~(?e == ?e2) ^ elevator-at-floor(?e2,?f) ] |
 				forall_{?e2 : elevator}[ ~(?e == ?e2) ^ elevator-at-floor(?e2,?f) ^ BEFORE(?e,?e2) ] ] ] )
 			then KronDelta( true )
 			else KronDelta( person-in-elevator-going-up(?e) );
@@ -70,7 +70,7 @@ domain elevators_mdp {
   					elevator-at-floor(?e, ?f) ^ BOTTOM-FLOOR(?f) ] )
   			then KronDelta( false )
   			else if( exists_{?f : floor}[ elevator-at-floor(?e, ?f) ^ person-waiting-down(?f) ^ ~elevator-dir-up(?e) 
-				^ [ ~exists_{?e2 : elevator}[ ~(?e == ?e2) ] | 
+				^ [ ~exists_{?e2 : elevator}[ ~(?e == ?e2) ^ elevator-at-floor(?e2,?f) ] | 
 				[ forall_{?e2 : elevator}[ ~(?e == ?e2) ^ elevator-at-floor(?e2,?f) ^ BEFORE(?e,?e2) ]  ] ] ] )
 			then KronDelta( true )
 			else KronDelta( person-in-elevator-going-down(?e) );
