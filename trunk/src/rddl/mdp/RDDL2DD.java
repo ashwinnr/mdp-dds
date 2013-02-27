@@ -54,7 +54,9 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	Map< Map<String, Boolean> , ArrayList<DR> > _actionRewards 
 	= new HashMap<Map<String,Boolean>, ArrayList<DR> >();
 
-	protected Set<DR> _constraints;//BDDs
+	protected Set<DR> _state_constraints;//BDDs
+	protected Set<DR> _action_constraints;//BDDs
+	protected Set<DR> _action_preconditions;
 
 	public enum DEBUG_LEVEL{
 		PROBLEM_INFO, SOLUTION_INFO, DIAGRAMS 
@@ -140,10 +142,6 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	
 	public Map<String, DR> getCpts() {
 		return _cpts;
-	}
-	
-	public Set<DR> getConstraints( ){
-		return _constraints;
 	}
 	
 	public List<DR> getRewards() {

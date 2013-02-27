@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="add/ADDReduceOper.java|add/PrintADDOper.java|mdp/simulate/|mdp/define/RandomStateGenerator.java|factored/mdp/define/FactoredRandomStateGenerator.java" kind="src" path="src"/>
+	<classpathentry excluding="add/ADDReduceOper.java|add/PrintADDOper.java|mdp/simulate/|mdp/define/RandomStateGenerator.java|factored/mdp/define/FactoredRandomStateGenerator.java|rddl/competition/generators/ElevatorPOMDPGen.java" kind="src" path="src"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/grappa1_4.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/java_cup.jar"/>
 	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/jlex.jar"/>

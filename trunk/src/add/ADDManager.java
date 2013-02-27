@@ -3354,6 +3354,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode productDD( final Set<ADDRNode> DDs, final ADDRNode... DDs_2 ){
 		return productDD( productDD(DDs), productDD(DDs_2) );
 	}
+	
+	public ADDRNode productDD( final Set<ADDRNode>... DDs ){
+		ADDRNode ret = DD_ONE;
+		for( final Set<ADDRNode> d : DDs ){
+			ADDRNode this_prod = productDD(d);
+			ret = productDD( ret, this_prod );
+		}
+		return ret;
+	}
 
 	//	public void clearDeadNodes(){
 	//

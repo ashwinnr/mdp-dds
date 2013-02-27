@@ -57,14 +57,19 @@ public class ADDDecisionTheoreticRegression implements
 	private Random _rand;
 	private List<String> __order_action_vars_appear;
 	private ArrayList< Integer > __nextVar_to_actionVar_range;
-	private ADDRNode __master_constraint = null;
-	private Set<ADDRNode> added_constraints = new HashSet<ADDRNode>();
+	private ADDRNode __action_precondition = null;
+	private Set<ADDRNode> __policy_constraints = new HashSet<ADDRNode>();
+	private final ADDRNode __action_constraints;
+	private final ADDRNode __state_constraints;
 
 	public ADDDecisionTheoreticRegression(RDDL2ADD mdp, final long seed){
 		_manager = mdp.getManager();
 		_mdp = mdp;
 		_dbg = mdp.__debug_level;
-		__master_constraint = _manager.productDD( mdp.getConstraints() ) ;
+		final ADDRNode action_precon = _manager.productDD(_mdp.getActionPreconditions() );
+		__action_constraints = _manager.productDD( _mdp.getActionConstraints() );
+		__state_constraints = _manager.productDD( mdp.getStateConstraints() );
+		__action_precondition = _manager.productDD( action_precon ) ;
 		_rand = new Random( seed );
 		setupMBFAR();
 	}
@@ -111,12 +116,15 @@ public class ADDDecisionTheoreticRegression implements
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( input ) ) ;
 		}
-		ADDRNode all_constraints = _manager.productDD( added_constraints, __master_constraint );
+		ADDRNode all_constraints = _manager.productDD( 
+				__action_precondition, __state_constraints,
+				_manager.productDD( __policy_constraints, 
+				__action_constraints ) );
+		
 		if( action != null ){
 			all_constraints = _manager.restrict(all_constraints, action);
 		}
-		all_constraints = _manager.remapLeaf( all_constraints, _manager.DD_ZERO, _manager.DD_NEG_INF );
-		all_constraints = _manager.remapLeaf( all_constraints, _manager.DD_ONE, _manager.DD_ZERO );
+		all_constraints = convertToNegInfDD( all_constraints );
 		ADDRNode ret = _manager.apply(input, all_constraints, DDOper.ARITH_PLUS );
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( ret ) ) ;
@@ -165,7 +173,11 @@ public class ADDDecisionTheoreticRegression implements
 			size_change.addAll( _manager.countNodes( input ) ) ;
 		}
 		
-		ADDRNode all_constraints = _manager.productDD( added_constraints, __master_constraint );
+		ADDRNode all_constraints = _manager.productDD( 
+				__action_precondition, __state_constraints,
+				_manager.productDD( __policy_constraints, 
+				__action_constraints ) );
+		
 		if( action != null ){
 			all_constraints = _manager.restrict(all_constraints, action);
 		}
@@ -304,7 +316,14 @@ public class ADDDecisionTheoreticRegression implements
 		}
 //		ret = reward_added;
 		final ADDRNode improper_q_func = reward_added;
-		ADDRNode q_func = applyMDPConstraintsNaively( improper_q_func, null, _manager.DD_NEG_INF, size_change );
+		ADDRNode q_func = improper_q_func;
+		if( !constrain_naively ){
+			q_func = multiplyActionPreconditions( q_func );
+			q_func = multiplyStateConstraints( q_func );
+			if( makePolicy ){
+				q_func = multiplyActionConstraints( q_func );
+			}
+		}
 		
 		System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
 		
@@ -368,6 +387,18 @@ public class ADDDecisionTheoreticRegression implements
 				new ADDValueFunction(v_func, null, q_func, _manager),
 				policy);
 		
+	}
+
+	private ADDRNode multiplyActionPreconditions(final ADDRNode input) {
+		final ADDRNode constraint = convertToNegInfDD( __action_precondition );
+		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
+		return ret;
+	}
+
+	private ADDRNode convertToNegInfDD(final ADDRNode input) {
+		ADDRNode ret = _manager.remapLeaf(input, _manager.DD_ZERO, _manager.DD_NEG_INF );
+		ret = _manager.remapLeaf(ret, _manager.DD_ONE, _manager.DD_ZERO);
+		return ret;
 	}
 
 	private ADDRNode maxActionVariables( final ADDRNode input, 
@@ -500,7 +531,13 @@ public class ADDDecisionTheoreticRegression implements
 			
 			ret = discountAndAddReward( ret, assign, constrain_naively, size_change);
 			//fix for incorrectness of partial Q
-			ret = applyMDPConstraintsNaively( ret, assign, _manager.DD_NEG_INF, size_change );
+			if( !constrain_naively ){
+				ret = multiplyActionPreconditions( ret );
+				ret = multiplyStateConstraints( ret );
+				if( makePolicy ){
+					ret = multiplyActionConstraints( ret );
+				}
+			}
 			
 			//max action vars
 			final ArrayList<String> all_action_vars = new ArrayList<String>( maxOrder );
@@ -598,6 +635,18 @@ public class ADDDecisionTheoreticRegression implements
 				add_policy );
 	}
 	
+	private ADDRNode multiplyActionConstraints(final ADDRNode input) {
+		final ADDRNode constraint = convertToNegInfDD( __action_constraints );
+		final ADDRNode ret = _manager.apply(input, constraint, DDOper.ARITH_PLUS);
+		return ret;
+	}
+
+	private ADDRNode multiplyStateConstraints(final ADDRNode input) {
+		final ADDRNode constraint = convertToNegInfDD( __state_constraints );
+		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
+		return ret;
+	}
+
 	private ADDRNode computeExpectation(
 			final ADDRNode input, 
 			final String str, 
@@ -779,23 +828,23 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean constrain_naively,
 			final List<Long> size_change ) {
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
-		addConstraint( policy );
+		addPolicyConstraint( policy );
 		ret = regress(initial_value_func, withActionVars, false, false,
 				constrain_naively, size_change );
-		if( !removeConstraint( policy ) ){
+		if( !removePolicyConstraint( policy ) ){
 			System.err.println("policy constraint not found");
 			System.exit(1);
 		}
 		return ret._o1._valueFn;
 	}
 
-	private boolean removeConstraint( final ADDRNode input ) {
-		return added_constraints.remove( input );
+	private boolean removePolicyConstraint( final ADDRNode input ) {
+		return __policy_constraints.remove( input );
 	}
 
-	private int addConstraint(ADDRNode policy) {
-		added_constraints.add(policy);
-		return added_constraints.size()-1;
+	private int addPolicyConstraint(ADDRNode policy) {
+		__policy_constraints.add(policy);
+		return __policy_constraints.size()-1;
 	}
 
 	@Override
@@ -1092,9 +1141,9 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean constraint_naively, final boolean make_policy,
 			final long BIGDD ) {
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
-		addConstraint( policy );
+		addPolicyConstraint( policy );
 		ret = regressMBFAR(input, make_policy, constraint_naively, BIGDD, null );
-		if( !removeConstraint( policy ) ){
+		if( !removePolicyConstraint( policy ) ){
 			System.err.println("policy constraint not found");
 			System.exit(1);
 		}

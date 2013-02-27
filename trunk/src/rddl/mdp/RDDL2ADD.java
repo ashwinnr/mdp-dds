@@ -197,7 +197,15 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			System.in.read();
 		}
 	
-		_constraints.add( zerodd );
+		final boolean action_constraint = _manager.hasVars( zerodd,  _actionVars );
+		final boolean state_constraint = _manager.hasVars( zerodd, _stateVars );
+		if( state_constraint && action_constraint ){
+			_action_preconditions.add( zerodd );
+		}else if( action_constraint ){
+			_action_constraints.add( zerodd );
+		}else if( state_constraint ){
+			_state_constraints.add( zerodd );
+		}
 		
 		return zerodd;
 
@@ -329,7 +337,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		//threshold
 		ADDRNode zeroOneDD = _manager.threshold(sum, _i._nNonDefActions, false);
 		
-		_constraints.add( zeroOneDD );
+		_action_constraints.add( zeroOneDD );
 		
 		_concurrencyConstraint = zeroOneDD;
 		
@@ -1179,7 +1187,9 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		_stateVars = new TreeSet<String>();
 		_actionVars = new TreeSet<String>();
 		
-		_constraints = new TreeSet<ADDRNode>();
+		_state_constraints = new TreeSet<ADDRNode>();
+		_action_constraints = new TreeSet<ADDRNode>();
+		_action_preconditions = new TreeSet<ADDRNode>();
 		
 		_cpts = new TreeMap< String, ADDRNode >();
 
@@ -1289,5 +1299,17 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	public List<String> getAffectingActionVariables( String next_state_var ) {
 		return _hmvars2act.get( next_state_var );
+	}
+
+	public Set<ADDRNode> getActionPreconditions() {
+		return _action_preconditions;
+	}
+
+	public Set<ADDRNode> getActionConstraints() {
+		return _action_constraints;
+	}
+
+	public Set<ADDRNode> getStateConstraints() {
+		return _state_constraints;
 	}
 }
