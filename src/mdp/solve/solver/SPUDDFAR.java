@@ -130,7 +130,11 @@ public class SPUDDFAR implements Runnable{
 //			_manager.showGraph( _valueDD );
 		}
 
-		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
+		try{
+			_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
+		}catch( Exception e ){
+			e.printStackTrace();
+		}
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetTimeSoFarAndResetInMinutes() );
