@@ -1,0 +1,30 @@
+non-fluents nf_elevators_inst_5_2{
+	domain = elevators_mdp;
+	objects {
+		elevator : {e0,e1};
+		floor : {f0,f1,f2,f3,f4};
+	};
+
+	non-fluents {
+		ARRIVE-PARAM(f0) = 0.17906980364434272;
+		ARRIVE-PARAM(f1) = 0.14847458673114428;
+		ARRIVE-PARAM(f2) = 0.11846349039501335;
+		ARRIVE-PARAM(f3) = 0.2692661473178652;
+		ARRIVE-PARAM(f4) = 0.14957224916706013;
+		TOP-FLOOR(f4) = true;
+		BOTTOM-FLOOR(f0) = true;
+		ABOVE(f1, f0) = true;
+		ABOVE(f2, f1) = true;
+		ABOVE(f3, f2) = true;
+		ABOVE(f4, f3) = true;
+		BEFORE(e0, e1) = true;
+	};
+}
+
+instance elevators_inst_5_2{
+	domain = elevators_mdp;
+	non-fluents = nf_elevators_inst_5_2;
+	max-nondef-actions = 2;
+	horizon = 40;
+	discount = 0.9;
+}
