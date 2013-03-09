@@ -9,6 +9,7 @@
 package util;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 
 public class Timer {
 
@@ -23,30 +24,30 @@ public class Timer {
 	
 	// Reset and start the timer
 	public void ResetTimer() {
-		_lTime = System.nanoTime();
+		_lTime = ManagementFactory.getThreadMXBean().getCurrentThreadUserTime();
 		_lElapsedTime = 0;
 	}
 	
 	public void ResumeTimer() {
-		_lTime = System.nanoTime();
+		_lTime = ManagementFactory.getThreadMXBean().getCurrentThreadUserTime();
 	}
 	
 	public long PauseTimer() {
-		_lElapsedTime += System.nanoTime() - _lTime;
+		_lElapsedTime += ManagementFactory.getThreadMXBean().getCurrentThreadUserTime() - _lTime;
 		return _lElapsedTime;
 	}
 
 	public long StopTimer() {
-		_lElapsedTime = System.nanoTime() - _lTime;
+		_lElapsedTime = ManagementFactory.getThreadMXBean().getCurrentThreadUserTime() - _lTime;
 		return _lElapsedTime;
 	}
 
 	public long GetTimeSoFar() {
-		return System.nanoTime() - _lTime;
+		return ManagementFactory.getThreadMXBean().getCurrentThreadUserTime() - _lTime;
 	}
 
 	public long GetTimeSoFarAndReset() {
-		long elapsed = System.nanoTime() - _lTime;
+		long elapsed = ManagementFactory.getThreadMXBean().getCurrentThreadUserTime() - _lTime;
 		ResetTimer();
 		return elapsed;
 	}
