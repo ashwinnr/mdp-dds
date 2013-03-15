@@ -50,7 +50,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//don't do this since ADDRNode might have a bad hash performance
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
-//	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());
+//	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());addadd
 	private static final long TEMP_UNARY_CACHE_SIZE = 100000;
 	private static final long APPLY_CACHE_SIZE = 100000;
 	private static final boolean USE_SOFT_VALUES = true;
@@ -629,10 +629,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		man.showGraph(inod1_copy, inod1, inod3, inod4);
 		
 		/////////
-		ADDINode in1 = new ADDINode().getNullDD().get();
+		ADDINode in1 = new ADDINode().getNullDD();
 		in1.plugIn("X", man.DD_ZERO, man.DD_ONE);
 		
-		ADDINode in2 = new ADDINode().getNullDD().get();
+		ADDINode in2 = new ADDINode().getNullDD();
 		in2.plugIn("X", man.DD_ONE, man.DD_ZERO);
 		
 		ADDRNode n1 = new ADDRNode(in1);
@@ -860,11 +860,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //				Map< ADDINode, ADDRNode> >();
 	
 	//store of null nodes
-	protected ConcurrentLinkedQueue< MySoftReference<ADDINode> > storeINodes 
-	= new ConcurrentLinkedQueue< MySoftReference<ADDINode> >();
+	protected ConcurrentLinkedQueue< ADDINode > storeINodes 
+	= new ConcurrentLinkedQueue< ADDINode >();
 
-	protected ConcurrentLinkedQueue< MySoftReference<ADDLeaf> > storeLeaf 
-	= new ConcurrentLinkedQueue< MySoftReference<ADDLeaf> >();
+	protected ConcurrentLinkedQueue< ADDLeaf > storeLeaf 
+	= new ConcurrentLinkedQueue< ADDLeaf >();
 	
 	protected Multiset< ADDRNode > permanentNodes 
 		= HashMultiset.create();
@@ -1873,8 +1873,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	@Override
 	public void createStore( final int NumDDs ) {
 		this.STORE_INCREMENT = NumDDs;
-		storeINodes = new ConcurrentLinkedQueue< MySoftReference<ADDINode> >();
-		storeLeaf = new ConcurrentLinkedQueue< MySoftReference<ADDLeaf> >();
+		storeINodes = new ConcurrentLinkedQueue< ADDINode >();
+		storeLeaf = new ConcurrentLinkedQueue< ADDLeaf >();
 		addToStore(NumDDs, true, true);
 	}
 
@@ -2133,13 +2133,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private synchronized <T extends Comparable<T> > T getFirstRealOne(
-			final ConcurrentLinkedQueue<MySoftReference<T>> store) {
+			final ConcurrentLinkedQueue<T> store) {
 
-		MySoftReference<T> loc = null;
+		T loc = null;
 		while( (loc = store.poll()) != null ){
-			final T got = loc.get();
-			if( got != null ){
-				return got;
+			if( loc != null ){
+				return loc;
 			}
 		}
 		return null;

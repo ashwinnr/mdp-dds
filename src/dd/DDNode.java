@@ -21,7 +21,7 @@ public interface DDNode{
 		//must bne comparable to check for identical nodes
 		public String toGraph(Graph g);
 		
-		public MySoftReference<? extends DDNode> getNullDD();
+		public <T extends DDNode> T getNullDD();
 		
 //		public DDNode reduce();
 		
