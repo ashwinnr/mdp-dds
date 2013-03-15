@@ -7,9 +7,9 @@ import dd.DDLeaf;
 public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, Comparable<ADDLeaf> {
 
 	@Override
-	public MySoftReference<ADDLeaf> getNullDD() {
+	public ADDLeaf getNullDD() {
 		this.leafValues = new Pair<Double, Double>(Double.NaN, Double.NaN);
-		return new MySoftReference<ADDLeaf>(this);
+		return this;
 	}
 
 	@Override

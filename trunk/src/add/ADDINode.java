@@ -32,10 +32,10 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 
 	@Override
 	//returns soft reference to itself
-	public MySoftReference<ADDINode> getNullDD() {
+	public ADDINode getNullDD() {
 		this.children = new UniPair<ADDRNode>( new ADDRNode(null), new ADDRNode(null) );
 		this.testVariable = null;//"";//.intern();
-		return new MySoftReference<ADDINode>(this);
+		return this;
 	}
 
 	@Override
