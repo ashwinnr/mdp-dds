@@ -6,8 +6,8 @@ non-fluents nf_elevators_inst_2_1{
 	};
 
 	non-fluents {
-		ARRIVE-PARAM(f0) = 0.11703414123586224;
-		ARRIVE-PARAM(f1) = 0.1878448842595029;
+		ARRIVE-PARAM(f0) = 0.11830595282393289;
+		ARRIVE-PARAM(f1) = 0.193923158098198;
 		TOP-FLOOR(f1) = true;
 		BOTTOM-FLOOR(f0) = true;
 		ABOVE(f1, f0) = true;

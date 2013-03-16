@@ -1,0 +1,38 @@
+non-fluents nf_elevators_inst_9_2{
+	domain = elevators_mdp;
+	objects {
+		elevator : {e0,e1};
+		floor : {f0,f1,f2,f3,f4,f5,f6,f7,f8};
+	};
+
+	non-fluents {
+		ARRIVE-PARAM(f0) = 0.22732662238400136;
+		ARRIVE-PARAM(f1) = 0.2391109237902811;
+		ARRIVE-PARAM(f2) = 0.24033822409690933;
+		ARRIVE-PARAM(f3) = 0.11040880885294056;
+		ARRIVE-PARAM(f4) = 0.1638198645757219;
+		ARRIVE-PARAM(f5) = 0.25780520812438423;
+		ARRIVE-PARAM(f6) = 0.2228491501187952;
+		ARRIVE-PARAM(f7) = 0.2343041313332829;
+		ARRIVE-PARAM(f8) = 0.2815078594019955;
+		TOP-FLOOR(f8) = true;
+		BOTTOM-FLOOR(f0) = true;
+		ABOVE(f1, f0) = true;
+		ABOVE(f2, f1) = true;
+		ABOVE(f3, f2) = true;
+		ABOVE(f4, f3) = true;
+		ABOVE(f5, f4) = true;
+		ABOVE(f6, f5) = true;
+		ABOVE(f7, f6) = true;
+		ABOVE(f8, f7) = true;
+		BEFORE(e0, e1) = true;
+	};
+}
+
+instance elevators_inst_9_2{
+	domain = elevators_mdp;
+	non-fluents = nf_elevators_inst_9_2;
+	max-nondef-actions = 2;
+	horizon = 40;
+	discount = 0.9;
+}
