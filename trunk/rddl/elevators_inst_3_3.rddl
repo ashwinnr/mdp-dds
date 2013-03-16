@@ -6,9 +6,9 @@ non-fluents nf_elevators_inst_3_3{
 	};
 
 	non-fluents {
-		ARRIVE-PARAM(f0) = 0.26198913076872954;
-		ARRIVE-PARAM(f1) = 0.11704136747007331;
-		ARRIVE-PARAM(f2) = 0.17942267981979146;
+		ARRIVE-PARAM(f0) = 0.24482528757150437;
+		ARRIVE-PARAM(f1) = 0.2960042413825543;
+		ARRIVE-PARAM(f2) = 0.19624089681543494;
 		TOP-FLOOR(f2) = true;
 		BOTTOM-FLOOR(f0) = true;
 		ABOVE(f1, f0) = true;
@@ -24,5 +24,5 @@ instance elevators_inst_3_3{
 	non-fluents = nf_elevators_inst_3_3;
 	max-nondef-actions = 3;
 	horizon = 40;
-	discount = 0.9;
+	discount = 0.8;
 }
