@@ -155,7 +155,7 @@ public class MPI implements Runnable {
 				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
 		System.out.println("Eval backups = " + eval_backups );
 		System.out.println("Bellman backups = " + iter );
-//		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
+		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
