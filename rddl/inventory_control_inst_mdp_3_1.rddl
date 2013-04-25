@@ -4,11 +4,11 @@ non-fluents nf_inventory_control_inst_mdp_3_1 {
 		shop : {s1,s2,s3};
 	};
 	non-fluents {
-		ARRIVE_PARAM(s1) = 0.1660431636641804;
+		ARRIVE_PARAM(s1) = 0.1;
 		STORE_PENALTY(s1) = 0.1;
-		ARRIVE_PARAM(s2) = 0.17672298164752467;
+		ARRIVE_PARAM(s2) = 0.1;
 		STORE_PENALTY(s2) = 0.1;
-		ARRIVE_PARAM(s3) = 0.17364764313608771;
+		ARRIVE_PARAM(s3) = 0.1;
 		STORE_PENALTY(s3) = 0.1;
 	};
 }
