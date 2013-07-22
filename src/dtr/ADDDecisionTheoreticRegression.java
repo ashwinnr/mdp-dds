@@ -1263,8 +1263,7 @@ public class ADDDecisionTheoreticRegression implements
 			final int iteration, 
 			final double epsilon,
 			final int horizon) {
-		return ( horizon != -1 && iteration >= horizon ) || 
-				( horizon == -1 && BE <= epsilon );
+		return ( iteration >= horizon || BE <= epsilon );
 	}
 
 //	TODO
