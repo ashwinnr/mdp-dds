@@ -1,5 +1,7 @@
 package add;
 
+import graph.Graph;
+
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 
@@ -39,29 +41,31 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 
 	@Override
 	public int compareTo(ADDRNode o) {
-		
+
 		if( o.negated == this.negated ){
+			return ((Long)GLOBAL_ID).compareTo(o.getID());
+//			if( o.theNode instanceof ADDLeaf && this.theNode instanceof ADDLeaf ){
+//				
+//				return ((ADDLeaf)o.theNode).compareTo( (ADDLeaf) this.theNode );
+//				
+//			}else if( this.theNode instanceof ADDINode && o.theNode instanceof ADDINode ){
+//				
+//				return ((ADDINode)this.theNode).compareTo( (ADDINode) o.theNode );
+//			}else{
+//				
+//				return -1;
+//				
+//			}
 			
-			if( o.theNode instanceof ADDLeaf && this.theNode instanceof ADDLeaf ){
-				
-				return ((ADDLeaf)o.theNode).compareTo( (ADDLeaf) this.theNode );
-				
-			}else if( this.theNode instanceof ADDINode && o.theNode instanceof ADDINode ){
-				
-				return ((ADDINode)this.theNode).compareTo( (ADDINode) o.theNode );
-			}else{
-				
-				return -1;
-				
-			}
-			
-		}
-		
-		if( this.negated == true ){
+		}else{
 			return 1;
 		}
 		
-		return -1;
+//		if( this.negated == true ){
+//			return 1;
+//		}
+//		
+//		return -1;
 		
 	}
 	

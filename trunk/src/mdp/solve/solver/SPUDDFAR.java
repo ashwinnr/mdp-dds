@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import dd.DDManager.APPROX_TYPE;
 import dtr.ADDDecisionTheoreticRegression;
 import dtr.ADDPolicy;
 import dtr.ADDValueFunction;
@@ -38,6 +39,10 @@ public class SPUDDFAR implements Runnable{
 	private int _nRounds;
 	private boolean _useDiscounting;
 	private boolean _FAR;
+	private APPROX_TYPE apricodd_type;
+	private double apricodd_epsilon;
+	private boolean do_apricodd;
+	
 	/**
 	 * @param debug 
 	 * @param order 
@@ -51,7 +56,10 @@ public class SPUDDFAR implements Runnable{
 			final int numStates,
 			final int numRounds,
 			final boolean FAR ,
-			final boolean constrain_naively ) {
+			final boolean constrain_naively ,
+			final boolean do_apricodd,
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		_FAR = FAR;
 		_bq = bq;
 		EPSILON = epsilon;
@@ -66,6 +74,9 @@ public class SPUDDFAR implements Runnable{
 		DISCOUNT = mdp.getDiscount();
 		HORIZON = mdp.getHorizon();
 		CONSTRAIN_NAIVELY = constrain_naively;
+		this.do_apricodd = do_apricodd;
+		this.apricodd_epsilon = apricodd_epsilon;
+		this.apricodd_type = apricodd_type;
 	}
 
 	/* (non-Javadoc)
@@ -89,7 +100,8 @@ public class SPUDDFAR implements Runnable{
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
-				= _dtr.regress(_valueDD, _FAR, false, lastiter, CONSTRAIN_NAIVELY, size_change ); 
+				= _dtr.regress(_valueDD, _FAR, false, lastiter, CONSTRAIN_NAIVELY, size_change,
+						do_apricodd, apricodd_epsilon, apricodd_type );
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -103,7 +115,7 @@ public class SPUDDFAR implements Runnable{
 			size_change.clear();
 //			_manager.cacheSummary();
 			
-			if( prev_error != Double.NEGATIVE_INFINITY
+			if( !do_apricodd && prev_error != Double.NEGATIVE_INFINITY
 					&& error > prev_error ){
 				try{
 					throw new Exception("BE increased here");
@@ -120,14 +132,14 @@ public class SPUDDFAR implements Runnable{
 				done = true;
 			}
 
-			if( error < EPSILON ){//|| iter == HORIZON-1 ){
+			if( _dtr.terminate( error, iter, EPSILON, HORIZON ) ){//|| iter == HORIZON-1 ){
 				lastiter = true;
 			}
 			
 			++iter;
 //			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
-//			_manager.showGraph( _valueDD );
+//			_manager.showGraph( _valueDD, _policy );
 		}
 
 		try{
@@ -150,7 +162,8 @@ public class SPUDDFAR implements Runnable{
 				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean( args[4] ), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]) , Boolean.parseBoolean(args[7]),
-				Boolean.parseBoolean( args[8] ) );
+				Boolean.parseBoolean( args[8] ), Boolean.parseBoolean( args[9] ),
+				Double.parseDouble( args[10] ),  APPROX_TYPE.valueOf( args[11] ) );
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();

@@ -1,5 +1,8 @@
 package add;
 
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+
 import util.MySoftReference;
 import util.Pair;
 import dd.DDLeaf;
@@ -14,6 +17,16 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 
 	@Override
 	public ADDLeaf plugIn( final Pair<Double, Double> leafVals ) {
+//		if( leafVals._o1 > leafVals._o2 ){
+//			try{
+//				throw new Exception("lower bound higher than upper bound");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+////				System.exit(1);
+//			}
+//		}
+//		final double max = Math.max( leafVals._o1, leafVals._o2 );
+//		final double min = Math.min( leafVals._o1, leafVals._o2 );
 		this.leafValues.copy( leafVals._o1, leafVals._o2 );
 		return this;
 	}

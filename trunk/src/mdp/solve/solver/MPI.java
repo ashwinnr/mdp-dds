@@ -11,6 +11,7 @@ import util.Timer;
 import util.UnorderedPair;
 import add.ADDManager;
 import add.ADDRNode;
+import dd.DDManager.APPROX_TYPE;
 import dtr.ADDDecisionTheoreticRegression;
 import dtr.ADDPolicy;
 import dtr.ADDValueFunction;
@@ -37,6 +38,9 @@ public class MPI implements Runnable {
 	private int eval_backups;
 	private RDDL2ADD _mdp;
 	private boolean CONSTRAIN_NAIVELY;
+	private boolean DO_APRICODD;
+	private double APRICODD_EPSILON;
+	private APPROX_TYPE APRICODD_APRROX;
 	
 	public MPI(String domain, String instance, double epsilon,
 			ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> bq,
@@ -46,7 +50,10 @@ public class MPI implements Runnable {
 			final int numRounds,
 			final int evalSteps,
 			final boolean FAR ,
-			final boolean constrain_naively ) {
+			final boolean constrain_naively,
+			final boolean do_apricodd,
+			final double apricodd_epsilon,
+			final APPROX_TYPE approx_type ) {
 		_FAR = FAR;
 		CONSTRAIN_NAIVELY = constrain_naively;
 		_evalSteps = evalSteps;
@@ -62,6 +69,9 @@ public class MPI implements Runnable {
 		_manager = _mdp.getManager();
 		DISCOUNT = _mdp.getDiscount();
 		HORIZON = _mdp.getHorizon();
+		DO_APRICODD = do_apricodd;
+		APRICODD_EPSILON = apricodd_epsilon;
+		APRICODD_APRROX = approx_type;
 	}
 	
 	public void run() {
@@ -87,7 +97,8 @@ public class MPI implements Runnable {
 			final boolean makePolicy = ( _evalSteps > 0 || lastiter ) ? true : false;
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, 
-						makePolicy  , CONSTRAIN_NAIVELY, size_change ); 
+						makePolicy  , CONSTRAIN_NAIVELY, size_change,
+						DO_APRICODD, APRICODD_EPSILON, APRICODD_APRROX ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -126,7 +137,8 @@ public class MPI implements Runnable {
 				//policy eval
 				UnorderedPair<ADDRNode, Integer> evaluation 
 					= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, 
-							EPSILON, _FAR, CONSTRAIN_NAIVELY, size_change );
+							EPSILON, _FAR, CONSTRAIN_NAIVELY, size_change ,
+							DO_APRICODD, APRICODD_EPSILON, APRICODD_APRROX );
 				ADDRNode evaluated = evaluation._o1;
 				eval_backups += evaluation._o2;
 				_solutionTimer.PauseTimer();
@@ -138,7 +150,7 @@ public class MPI implements Runnable {
 			if( lastiter ){
 				break;
 			}
-			if( error < EPSILON && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
+			if( _dtr.terminate(error, iter, EPSILON, HORIZON) && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
 				lastiter = true;
 			}
 		}
@@ -163,7 +175,9 @@ public class MPI implements Runnable {
 				null, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]), Integer.parseInt(args[7]),
-				Boolean.parseBoolean(args[8] ), Boolean.parseBoolean(args[9])  );
+				Boolean.parseBoolean(args[8] ), Boolean.parseBoolean(args[9]) ,
+				Boolean.parseBoolean(args[10]), Double.parseDouble(args[11]),
+				APPROX_TYPE.valueOf(args[12]) );
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();
