@@ -64,10 +64,10 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	};
 	
 	public enum APPROX_TYPE{
-		LOWER, UPPER, AVERAGE, RANGE
+		LOWER, UPPER, AVERAGE, RANGE, NONE
 	};
 
-	public DR approximate(DR input, double epsilon, APPROX_TYPE type);
+//	public DR approximate(DR input, double epsilon, APPROX_TYPE type);
 	
 	public DR remapVars(DR input, Map<String, String> remap); //remaps key.toString() to value.toString()
 	

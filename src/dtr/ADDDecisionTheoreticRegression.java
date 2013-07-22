@@ -38,6 +38,7 @@ import add.ADDLeaf;
 import add.ADDManager;
 import add.ADDNode;
 import add.ADDRNode;
+import dd.DDManager.APPROX_TYPE;
 import dd.DDManager.DDMarginalize;
 import dd.DDManager.DDOper;
 import factored.mdp.define.FactoredAction;
@@ -213,7 +214,10 @@ public class ADDDecisionTheoreticRegression implements
 	private UnorderedPair<ADDValueFunction, ADDPolicy> regressSPUDD(final ADDRNode primed, 
 			final boolean keepQ, final boolean makePolicy,
 			final boolean constrain_naively,
-			final List<Long> size_change){
+			final List<Long> size_change, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ){
 		
 		NavigableMap< FactoredAction<RDDLFactoredStateSpace , 
 			RDDLFactoredActionSpace>, ADDRNode > q_map = null;
@@ -227,7 +231,8 @@ public class ADDDecisionTheoreticRegression implements
 		
 		List<NavigableMap<String, Boolean>> actions = _mdp.getFullRegressionOrder();
 		for( NavigableMap<String, Boolean> action : actions ){
-			ADDRNode this_q = regressAction( primed, action, constrain_naively, size_change );
+			ADDRNode this_q = regressAction( primed, action, constrain_naively, 
+					size_change , do_apricodd, apricodd_epsilon, apricodd_type );
 			sum_q += _manager.countNodes( this_q ).get( 0 );
 			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.println("Regressing action : " + action );
@@ -281,7 +286,10 @@ public class ADDDecisionTheoreticRegression implements
 	
 	private UnorderedPair<ADDValueFunction, ADDPolicy> regressAllActions(final ADDRNode primed, 
 			final boolean keepQ, final boolean makePolicy, 
-			final boolean constrain_naively, final List<Long> size_change ) {
+			final boolean constrain_naively, final List<Long> size_change ,
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 
 		final ArrayList<String> sum_order = _mdp.getSumOrder();
 		System.out.print("Regressing all actions " );
@@ -290,7 +298,9 @@ public class ADDDecisionTheoreticRegression implements
 //			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.print( "*" );// + str );
 //			}
-			ret = computeExpectation( ret, str, null, constrain_naively, size_change );
+			ret = computeExpectation( ret, str, null, constrain_naively, size_change,
+					do_apricodd, 
+					apricodd_epsilon, apricodd_type );
 		}
 		System.out.println();
 		
@@ -306,7 +316,9 @@ public class ADDDecisionTheoreticRegression implements
 		
 //		ADDRNode q_func = ret;
 //		if( _mdp._bRewardActionDependent ){
-		ADDRNode reward_added = discountAndAddReward( ret, null, constrain_naively, size_change );
+		ADDRNode reward_added = discountAndAddReward( ret, null, constrain_naively, size_change,
+				do_apricodd, 
+				apricodd_epsilon, apricodd_type );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			System.out.println( "reward added " );
 		}
@@ -327,7 +339,8 @@ public class ADDDecisionTheoreticRegression implements
 		
 		System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
 		
-		ret = maxActionVariables(q_func, _mdp.getElimOrder(), size_change );
+		ret = maxActionVariables(q_func, _mdp.getElimOrder(), size_change,
+				do_apricodd, apricodd_epsilon, apricodd_type );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasVars( ret, _mdp.getFactoredActionSpace().getActionVariables() ) ){
 			try{
@@ -367,6 +380,13 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		
 		ADDRNode v_func = ret;
+//		//APRICODD
+//		if( apricodd_epsilon > 0.0d ){
+//			q_func = _manager.approximate(q_func, apricodd_epsilon, apricodd_type);
+//			v_func = maxActionVariables(q_func, _mdp.getElimOrder(), size_change);
+//			v_func = _manager.approximate(v_func, apricodd_epsilon, apricodd_type);
+//		}
+		
 		ADDPolicy policy = null;
 		if( makePolicy ){
 			if( policy == null ){
@@ -407,7 +427,10 @@ public class ADDDecisionTheoreticRegression implements
 
 	private ADDRNode maxActionVariables( final ADDRNode input, 
 			final ArrayList<String> action_vars,
-			final List<Long> size_change ) {
+			final List<Long> size_change,
+			final boolean do_apricodd,
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		ADDRNode ret = input;
 		if( size_change != null ){
 			size_change.addAll( _manager.countNodes(input) );
@@ -419,19 +442,21 @@ public class ADDDecisionTheoreticRegression implements
 				System.out.println("Size of input " + _manager.countNodes( ret ) );
 			}
 			final ADDRNode maxd = _manager.marginalize(ret, str, DDMarginalize.MARGINALIZE_MAX);
+			final ADDRNode maxd_approx = _manager.doApricodd(maxd, do_apricodd,
+					apricodd_epsilon, apricodd_type);
 			if( size_change != null ){
-				size_change.addAll( _manager.countNodes( maxd ) );
+				size_change.addAll( _manager.countNodes( maxd, maxd_approx ) );
 			}
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("showing diagrams");
-				_manager.showGraph(ret, maxd );
+				_manager.showGraph(ret, maxd, maxd_approx );
 				try {
 					System.in.read();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
-			ret = maxd;
+			ret = maxd_approx;
 			_manager.flushCaches( );
 		}
 		return ret;
@@ -441,7 +466,10 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean makePolicy,
 			final boolean constrain_naively,
 			final long BIGDD,
-			final List<Long> size_change ){
+			final List<Long> size_change,
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ){
 		int total_leaves = 0;
 		//primed
 		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
@@ -476,7 +504,9 @@ public class ADDDecisionTheoreticRegression implements
 			ADDRNode ret = source_dd;
 			for( int i = start_from; i < sum_order.size() && !recurse ; ++i ){
 				final ADDRNode after_exp = computeExpectation(ret, 
-						sum_order.get(i), assign, constrain_naively, size_change );
+						sum_order.get(i), assign, constrain_naively, size_change,
+						do_apricodd, 
+						apricodd_epsilon, apricodd_type );
 				ret = after_exp;
 				final int size = _manager.getSize( after_exp , false );
 				if( size > BIGDD && assign.size() != num_action_vars ){
@@ -533,7 +563,9 @@ public class ADDDecisionTheoreticRegression implements
 				}
 			}
 			
-			ret = discountAndAddReward( ret, assign, constrain_naively, size_change);
+			ret = discountAndAddReward( ret, assign, constrain_naively, size_change,
+					do_apricodd,
+					apricodd_epsilon, apricodd_type );
 			//fix for incorrectness of partial Q
 			if( !constrain_naively ){
 				ret = multiplyActionPreconditions( ret, assign );
@@ -546,7 +578,8 @@ public class ADDDecisionTheoreticRegression implements
 			//max action vars
 			final ArrayList<String> all_action_vars = new ArrayList<String>( maxOrder );
 			all_action_vars.removeAll( assign.keySet() );
-			final ADDRNode this_z = maxActionVariables( ret, all_action_vars,size_change );
+			final ADDRNode this_z = maxActionVariables( ret, all_action_vars,
+					size_change, do_apricodd, apricodd_epsilon, apricodd_type );
 			
 			//max with value func
 			value_func = _manager.apply( value_func, this_z, DDOper.ARITH_MAX );
@@ -660,7 +693,10 @@ public class ADDDecisionTheoreticRegression implements
 			final String str, 
 			final NavigableMap<String, Boolean> action,
 			final boolean constrain_naively,
-			final List<Long> size_change ){
+			final List<Long> size_change,
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ){
 		
 		ADDRNode this_cpt = null;
 		if( action == null ){
@@ -679,15 +715,17 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		
 		ADDRNode ret = input;
-		ADDRNode mult = _manager.apply(ret, this_cpt, DDOper.ARITH_PROD);
+		final ADDRNode mult = _manager.apply(ret, this_cpt, DDOper.ARITH_PROD);
+//		final ADDRNode mult_approx = _manager.doApricodd( mult, do_apricodd, apricodd_epsilon, apricodd_type );
 		_manager.flushCaches(   );
 //		ADDRNode mult_constrained = applyMDPConstraints(mult, action, _manager.DD_ZERO,
 //				constrain_naively, size_change );
-		_manager.flushCaches(   );
+//		_manager.flushCaches(   );
 		
-		ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
+		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
+		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
 		_manager.flushCaches(  );
-		ADDRNode summed_constrained = applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
+		ADDRNode summed_constrained = applyMDPConstraints(summed_approx, action, _manager.DD_NEG_INF,
 				constrain_naively, size_change);
 		_manager.flushCaches(   );
 		
@@ -724,12 +762,16 @@ public class ADDDecisionTheoreticRegression implements
 	public ADDRNode regressAction(final ADDRNode primed,
 			final NavigableMap<String, Boolean> action,
 			final boolean constrain_naively,
-			final List<Long> size_change ) {
+			final List<Long> size_change , 
+			final boolean do_apricodd, final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		ArrayList<String> order = _mdp.getSumOrder();
 		ADDRNode ret = primed;
 		
 		for( String xp : order ){
-			ret = computeExpectation(ret, xp, action, constrain_naively, size_change);
+			ret = computeExpectation(ret, xp, action, constrain_naively, size_change,
+					do_apricodd,
+					apricodd_epsilon, apricodd_type );
 		}
 		
 		//check if no primed vars
@@ -745,7 +787,9 @@ public class ADDDecisionTheoreticRegression implements
 		if( size_change != null ){
 			size_change.addAll( _manager.countNodes( ret ) ) ;
 		}
-		ADDRNode reward_added = discountAndAddReward( ret , action, constrain_naively, size_change );
+		ADDRNode reward_added = discountAndAddReward( ret , action, 
+				constrain_naively, size_change , do_apricodd,
+				apricodd_epsilon, apricodd_type );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("showing diagrams after reward addition");
@@ -783,7 +827,10 @@ public class ADDDecisionTheoreticRegression implements
 	private ADDRNode discountAndAddReward(final ADDRNode input, 
 			final NavigableMap<String, Boolean> action,
 			final boolean constrain_naively ,
-			final List<Long> size_change ) {
+			final List<Long> size_change,
+			final boolean do_apricodd, 
+			final double apricodd_epsilon, 
+			final APPROX_TYPE apricodd_type ) {
 		
 		
 		List<ADDRNode> rewards = null;
@@ -801,22 +848,30 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 
-		ADDRNode ret = _manager.scalarMultiply(input, _mdp.getDiscount());
+		final ADDRNode discounted = _manager.scalarMultiply(input, _mdp.getDiscount());
+		final ADDRNode discounted_approx = _manager.doApricodd( discounted, 
+				do_apricodd, apricodd_epsilon, apricodd_type );
+		ADDRNode ret = discounted_approx; 
+		
 		if( size_change != null ){
 			size_change.addAll( _manager.countNodes( input, ret ) );
 		}
 
 		
 		for( ADDRNode this_reward : rewards ){
-			ADDRNode added_rew = _manager.apply( ret, this_reward, DDOper.ARITH_PLUS );
-			ADDRNode added_rew_constrained = applyMDPConstraints(added_rew, action, _manager.DD_NEG_INF,
+			final ADDRNode added_rew = _manager.apply( ret, this_reward, DDOper.ARITH_PLUS );
+			final ADDRNode added_rew_approx = _manager.doApricodd( added_rew, 
+					do_apricodd,
+					apricodd_epsilon, apricodd_type );
+			final ADDRNode added_rew_constrained 
+				= applyMDPConstraints(added_rew_approx, action, _manager.DD_NEG_INF,
 					constrain_naively, size_change );
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("Showing diagrams after one addition" );
 				_manager.showGraph( ret, this_reward, added_rew, added_rew_constrained );
 			}
 			
-//			System.out.println("Adding reward " );
+//			System.out.println("Adding reward " 
 			if( size_change != null ){
 				size_change.addAll( _manager.countNodes( added_rew , added_rew_constrained ) );
 			}
@@ -834,11 +889,13 @@ public class ADDDecisionTheoreticRegression implements
 	public ADDRNode regressPolicy(
 			ADDRNode initial_value_func, ADDRNode policy, final boolean withActionVars,
 			final boolean constrain_naively,
-			final List<Long> size_change ) {
+			final List<Long> size_change, 
+			final boolean do_apricodd, final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
 		addPolicyConstraint( policy );
 		ret = regress(initial_value_func, withActionVars, false, false,
-				constrain_naively, size_change );
+				constrain_naively, size_change, do_apricodd, apricodd_epsilon, apricodd_type );
 		if( !removePolicyConstraint( policy ) ){
 			System.err.println("policy constraint not found");
 			System.exit(1);
@@ -859,7 +916,10 @@ public class ADDDecisionTheoreticRegression implements
 	public UnorderedPair<ADDRNode, Integer> evaluatePolicy(
 			ADDRNode initial_value_func, ADDRNode policy, final int nSteps, 
 			final double epsilon, final boolean withActionVars,
-			final boolean constraint_naively , final List<Long> size_change ) {
+			final boolean constraint_naively , final List<Long> size_change, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		int steps = 0;
 		double error = Double.MAX_VALUE, prev_error = Double.NaN;
 		ADDRNode value_func = initial_value_func, new_value_func = null;
@@ -868,7 +928,8 @@ public class ADDDecisionTheoreticRegression implements
 		while( steps++ < nSteps && error > epsilon ){
 			evalT.ResumeTimer();
 			new_value_func = regressPolicy(value_func, policy,
-					withActionVars, constraint_naively, size_change);
+					withActionVars, constraint_naively, size_change, do_apricodd, 
+					apricodd_epsilon, apricodd_type );
 			error = getBellmanError(new_value_func, value_func);
 			evalT.PauseTimer();
 			System.out.println( "Policy evaluation " + steps + " " +
@@ -876,7 +937,7 @@ public class ADDDecisionTheoreticRegression implements
 					+ " time = " + evalT.GetElapsedTimeInMinutes() );
 			System.out.println( "Size change " + size_change );
 			size_change.clear();
-			if( prev_error != Double.NaN && prev_error < error ){
+			if( !do_apricodd && prev_error != Double.NaN && prev_error < error ){
 				try{
 					throw new Exception("BE increased here");
 				}catch( Exception e ){
@@ -902,7 +963,8 @@ public class ADDDecisionTheoreticRegression implements
 		int i = 0;
 		UnorderedPair< ADDValueFunction, ADDPolicy> naively = null;
 		while( i++ < 20 ){
-			naively = ADD_dtr.regressAllActions(thing, true, true, true, null );
+			naively = ADD_dtr.regressAllActions(thing, true, true, true, null, 
+					false, 0.0d, APPROX_TYPE.NONE );
 			System.out.println( i +  " " + ADD_dtr.getBellmanError( naively._o1._valueFn , thing ) );
 			thing = naively._o1._valueFn;
 		}
@@ -914,7 +976,8 @@ public class ADDDecisionTheoreticRegression implements
 		thing = manager.DD_ZERO;
 		UnorderedPair< ADDValueFunction, ADDPolicy> smartly = null;
 		while( i++ < 20 ){
-			smartly = ADD_dtr.regressAllActions(thing, true, true, false, null );
+			smartly = ADD_dtr.regressAllActions(thing, true, true, false, null, 
+					false, 0.0d, APPROX_TYPE.NONE );
 			System.out.println( i +  " " + ADD_dtr.getBellmanError( smartly._o1._valueFn , thing ) );
 			thing = smartly._o1._valueFn;
 		}
@@ -959,7 +1022,7 @@ public class ADDDecisionTheoreticRegression implements
 				mdp.getFactoredActionSpace().getActionVariables() );
 		
 		manager.showGraph( ADD_dtr.evaluatePolicy(manager.DD_ZERO, handCodedPolicy, 
-				20, 0.01d, true, false, null )._o1 );
+				20, 0.01d, true, false, null , false , 0.0d, APPROX_TYPE.NONE )._o1 );
 	}
 
 	private static void testRegressPolicy(final boolean withActionVars) throws EvalException {
@@ -983,7 +1046,7 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode newValueFn = null;
 		while( i++ < 20 ){
 			newValueFn = ADD_dtr.regressPolicy(oldValueFn, handCodedPolicy, 
-					withActionVars, false, null );
+					withActionVars, false, null , false,  0.0d, APPROX_TYPE.NONE );
 			System.out.println( i +  " " 
 					+ ADD_dtr.getBellmanError(newValueFn , oldValueFn ) );
 			oldValueFn = newValueFn;
@@ -1047,7 +1110,7 @@ public class ADDDecisionTheoreticRegression implements
 		UnorderedPair<
 		ADDValueFunction, ADDPolicy> ret = null;
 		while( i++ < 20 ){
-			ret = ADD_dtr.regressSPUDD(thing, true, true, false, null );
+			ret = ADD_dtr.regressSPUDD(thing, true, true, false, null, false,  0.0d, APPROX_TYPE.NONE );
 			System.out.println( i +  " " + ADD_dtr.getBellmanError( ret._o1._valueFn , thing ) );
 			thing = ret._o1._valueFn;
 		}
@@ -1071,7 +1134,7 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode thing = manager.getINode("running__c1", manager.getLeaf(4d, 4d), 
 									manager.getLeaf(7.5, 7.5) );
 		thing = manager.remapVars( thing, mdp.getPrimeRemap() );
-		thing = ADD_dtr.regressAction( thing, action, false, null );
+		thing = ADD_dtr.regressAction( thing, action, false, null , false,  0.0d, APPROX_TYPE.NONE );
 		manager.showGraph( thing );
 	}
 	
@@ -1088,7 +1151,7 @@ public class ADDDecisionTheoreticRegression implements
 		UnorderedPair<
 		ADDValueFunction, ADDPolicy> ret = null;
 		while( i++ < 20 ){
-			ret = ADD_dtr.regressAllActions(thing, true, true, false, null );
+			ret = ADD_dtr.regressAllActions(thing, true, true, false, null, false,  0.0d, APPROX_TYPE.NONE );
 			System.out.println( i +  " " + ADD_dtr.getBellmanError( ret._o1._valueFn , thing ) );
 			thing = ret._o1._valueFn;
 		}
@@ -1113,7 +1176,10 @@ public class ADDDecisionTheoreticRegression implements
 			final ADDRNode initial_value_func, final ADDRNode policy, int nSteps,
 			final double epsilon, final boolean constraint_naively, 
 			final boolean make_policy, final long bigdd,
-			final  boolean LIMIT_EVAL) {
+			final  boolean LIMIT_EVAL, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		int steps = 0;
 		double error = Double.MAX_VALUE, prev_error = Double.NaN;
 		ADDRNode value_func = initial_value_func, new_value_func = null;
@@ -1121,7 +1187,9 @@ public class ADDDecisionTheoreticRegression implements
 		while( steps++ < nSteps && error > epsilon ){
 			evalT.ResumeTimer();
 			new_value_func = regressPolicyMBFAR(value_func, policy, constraint_naively,
-					make_policy, bigdd);
+					make_policy, bigdd, 
+					do_apricodd, 
+					apricodd_epsilon, apricodd_type );
 			error = getBellmanError(new_value_func, value_func);
 			evalT.PauseTimer();
 			final long size = _manager.countNodes(new_value_func).get(0);
@@ -1147,10 +1215,14 @@ public class ADDDecisionTheoreticRegression implements
 
 	private ADDRNode regressPolicyMBFAR(final ADDRNode input, final ADDRNode policy,
 			final boolean constraint_naively, final boolean make_policy,
-			final long BIGDD ) {
+			final long BIGDD, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon, final APPROX_TYPE apricodd_type ) {
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
 		addPolicyConstraint( policy );
-		ret = regressMBFAR(input, make_policy, constraint_naively, BIGDD, null );
+		ret = regressMBFAR(input, make_policy, constraint_naively, BIGDD, null ,
+				do_apricodd, 
+				apricodd_epsilon, apricodd_type );
 		if( !removePolicyConstraint( policy ) ){
 			System.err.println("policy constraint not found");
 			System.exit(1);
@@ -1165,17 +1237,20 @@ public class ADDDecisionTheoreticRegression implements
 		RDDLFactoredStateSpace, RDDLFactoredActionSpace>> UnorderedPair<T, U> regress(
 			ADDRNode input, boolean withActionVars, boolean keepQ,
 			boolean makePolicy, boolean constraint_naively,
-			List<Long> size_change) {
+			List<Long> size_change,
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
 		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
 //		final ADDRNode constrained_zero = _manager.remapLeaf( primed ,  _manager.DD_NEG_INF, _manager.DD_ZERO );
 		
 		UnorderedPair< ADDValueFunction, ADDPolicy > ret = null;
 		if( withActionVars ){
 			ret = regressAllActions( primed, keepQ, makePolicy, 
-					constraint_naively , size_change );
+					constraint_naively , size_change , do_apricodd, apricodd_epsilon, apricodd_type );
 		}else{
 			ret =  regressSPUDD( primed, keepQ, makePolicy, 
-					constraint_naively, size_change );
+					constraint_naively, size_change, do_apricodd, apricodd_epsilon, apricodd_type );
 		}
 		
 		if( !keepQ ){
@@ -1183,7 +1258,15 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		return (UnorderedPair<T, U>) ret;
 	}
-	
+
+	public boolean terminate(final double BE,  
+			final int iteration, 
+			final double epsilon,
+			final int horizon) {
+		return ( horizon != -1 && iteration >= horizon ) || 
+				( horizon == -1 && BE <= epsilon );
+	}
+
 //	TODO
 //	public void checkModel( final NavigableMap<String, Boolean> action ){
 //		

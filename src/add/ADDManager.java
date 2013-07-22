@@ -4,6 +4,7 @@ import graph.Graph;
 
 import java.lang.ref.ReferenceQueue;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -51,8 +52,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());addadd
-	private static final long TEMP_UNARY_CACHE_SIZE = 100000;
-	private static final long APPLY_CACHE_SIZE = 100000;
+	private static final long TEMP_UNARY_CACHE_SIZE = 50000;
+	private static final long APPLY_CACHE_SIZE = 50000;
 	private static final boolean USE_SOFT_VALUES = true;
 	protected int STORE_INCREMENT;
 
@@ -86,6 +87,208 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 
 	}
+	
+	public ADDRNode doApricodd( final ADDRNode input, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon, final APPROX_TYPE apricodd_type ){
+		
+		if( !do_apricodd ){
+			return input;
+		}
+		//traverse top-down and compress any internal node within epsilon
+		//using the bounds stored in the internal node
+		
+		//fix intervals to be consistent
+		//may not give more compression necessarily
+		//fix : interval contained in another interval - take bigger one
+		//two intervals whose combined span is <= epsilon
+				
+		//collect the leaves
+		//sort by starting point
+		//for each leaf
+			//see if can be merged with next leaf
+			//maintain map of remap
+		//finally, remap leaves in DD
+//		final double actual_epsilon = apricodd_epsilon/2.0d;
+		
+		final Map<ADDRNode, ADDRNode> mergedNodes = new HashMap<ADDRNode,ADDRNode>();
+		traverseAndMerge( input, apricodd_epsilon, apricodd_type, mergedNodes );
+		final Map<ADDLeaf,ADDLeaf> finalDest = fixIntervals( mergedNodes, apricodd_epsilon, apricodd_type );
+		return remapNodes( input, mergedNodes, finalDest );
+	}
+
+	private ADDRNode remapNodes(final ADDRNode input,
+			final Map<ADDRNode, ADDRNode> mergedNodes, final Map<ADDLeaf, ADDLeaf> finalDest) {
+		//always remaps to a leaf
+		//or recurse
+//		for( final Entry<ADDRNode, ADDRNode> entry : mergedNodes.entrySet() ){
+//			showGraph( entry.getKey(), entry.getValue() );
+//		}
+		
+		final ADDRNode mergedTo = mergedNodes.get( input );
+		if( mergedTo == null ){
+			//recurse
+			final ADDNode theNode = input.getNode();
+			if( theNode instanceof ADDLeaf ){
+				return input;
+			}else{
+				final ADDRNode input_true = input.getTrueChild();
+				final ADDRNode merged_true = remapNodes(input_true, mergedNodes, finalDest);
+				final ADDRNode input_false = input.getFalseChild();
+				final ADDRNode merged_false = remapNodes(input_false, mergedNodes, finalDest);
+				return getINode(input.getTestVariable(), merged_true, merged_false);
+			}
+		}else{
+			final ADDLeaf leafNode = (ADDLeaf)mergedTo.getNode();
+			final ADDLeaf finalLeaf = finalDest.get(leafNode);
+			return getRNode(finalLeaf, false);
+		}
+	}
+
+	private Map<ADDLeaf, ADDLeaf> fixIntervals(
+			final Map<ADDRNode, ADDRNode> mergedNodes,
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
+		final TreeSet<ADDLeaf> leaves = new TreeSet<ADDLeaf>();
+		final Collection<ADDRNode> leafNodes = mergedNodes.values();
+		for( ADDRNode leafNode : leafNodes ){
+			final ADDLeaf theLeaf = (ADDLeaf)leafNode.getNode();
+			leaves.add(theLeaf);
+		}
+		final Map<ADDLeaf,ADDLeaf> fixedIntervals = new HashMap<ADDLeaf, ADDLeaf>();
+		ADDLeaf cur = null;
+		for( final ADDLeaf sortedLeaf : leaves ){
+			if( cur == null ){
+				cur = sortedLeaf;
+				fixedIntervals.put( cur ,cur );
+				continue;
+			}
+			if( combinedSpan(cur,sortedLeaf) <= apricodd_epsilon ){
+				final ADDLeaf newLeaf = mergeLeaves( cur, sortedLeaf, apricodd_type );
+				fixedIntervals.put( cur, newLeaf );
+				fixedIntervals.put( sortedLeaf, newLeaf );
+				cur = newLeaf;
+			}else{
+				fixedIntervals.put( sortedLeaf, sortedLeaf );
+				cur = sortedLeaf;
+			}
+		}
+		return fixedIntervals;
+	}
+	
+	private ADDLeaf mergeLeaves(final ADDLeaf leaf1, final ADDLeaf leaf2,
+			final APPROX_TYPE apricodd_type) {
+		final double min = Math.min( leaf1.getMin(), leaf2.getMin() );
+		final double max = Math.max( leaf1.getMax(), leaf2.getMax() );
+		switch( apricodd_type ){
+			case RANGE : return (ADDLeaf) getLeaf(min, max ).getNode();
+			case AVERAGE : return (ADDLeaf) getLeaf( 0.5d*(min+max), 0.5d*(min+max) ).getNode();
+			case LOWER : return (ADDLeaf) getLeaf( min, min ).getNode();
+			case UPPER : return (ADDLeaf) getLeaf(max, max).getNode();
+			default : try{
+				throw new Exception("Bad apricodd type ");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		return null;
+	}
+
+	private double combinedSpan( final ADDLeaf node1, final ADDLeaf node2 ){
+		final double min = Math.min( node1.getMin(), node2.getMin() );
+		final double max = Math.max( node1.getMax(), node2.getMax() );
+		return Math.abs( max-min );
+	}
+
+	private void traverseAndMerge(final ADDRNode input, final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type, 
+			final Map<ADDRNode, ADDRNode> mergedNodes) {
+		
+		Map<ADDRNode,Boolean> seen = new HashMap<ADDRNode, Boolean>();
+		
+		traverseAndMergeInt( input, apricodd_epsilon, apricodd_type, mergedNodes,
+				seen );
+		seen.clear();
+		seen = null;
+
+		return;
+	}
+
+	private void traverseAndMergeInt(final ADDRNode input, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type,
+			final Map<ADDRNode, ADDRNode> mergedNodes,
+			final Map<ADDRNode, Boolean> seen) {
+		
+		Boolean visited = seen.get(input);
+		if( visited != null){
+			return;
+		}
+		
+		final ADDNode theNode = input.getNode();
+		//if here, node not been merged before
+		//else would be in cache too.
+		
+		if( theNode instanceof ADDLeaf ){
+			mergedNodes.put( input, input );
+			return;
+		}else if( theNode instanceof ADDINode ){
+			ADDINode inode = (ADDINode)theNode;
+			final double max = inode.getMax();
+			final double min = inode.getMin();
+			if( Math.abs(max-min) <= apricodd_epsilon ){
+				ADDRNode merged = null;
+				switch( apricodd_type ){
+				case RANGE : merged = getLeaf(min, max); break;
+				case AVERAGE : merged = getLeaf(0.5d*(min+max), 0.5d*(min+max) );
+				break;
+				case LOWER : merged = getLeaf(min, min); break;
+				case UPPER : merged = getLeaf(max, max); break;
+				default : try{
+								throw new Exception("bad apricodd type");
+						  }catch(Exception e ){
+					            e.printStackTrace();
+					            System.exit(1);
+						  }
+				}
+				mergedNodes.put( input, merged );
+			}else{
+				traverseAndMergeInt(input.getTrueChild(), 
+						apricodd_epsilon, apricodd_type, 
+						mergedNodes, seen );
+				traverseAndMergeInt( input.getFalseChild(), apricodd_epsilon, 
+						apricodd_type, mergedNodes, seen);
+			}
+			seen.put( input, true );
+		}
+	}
+	
+	public static void testApricodd(){
+		final ArrayList<String> ord = new ArrayList<String>();
+		ord.add("A");
+		ord.add("B");
+		ord.add("C");
+		ord.add("D");
+
+		final ADDManager man = new ADDManager(100, 100, ord);
+		final ADDRNode inodeA = man.getINode("A",  man.getLeaf(1d, 1d), man.getLeaf(1.2d, 1.2d) );
+		final ADDRNode inodeB = man.getINode("B",  man.getLeaf(3d, 3d), man.getLeaf(3.4d, 3.4d) );
+		
+		final ADDRNode inodeC = man.getINode("C", inodeA, inodeB);
+	
+//		man.showGraph(inodeA, man.doApricodd(inodeA, 0.2d, APPROX_TYPE.RANGE ) );
+//		
+//		man.showGraph(inodeC, man.doApricodd(inodeC, 0.2d, APPROX_TYPE.RANGE ) );
+//		
+//		man.showGraph(inodeC, man.doApricodd(inodeC, 0.4d, APPROX_TYPE.RANGE ) );
+		
+		man.showGraph(inodeC);
+		
+		man.showGraph( man.doApricodd(inodeC, true, 5d, APPROX_TYPE.RANGE ) );
+		
+		
+	}
 
 	public static boolean isCommutative(final DDOper op){
 //		Objects.requireNonNull(op, "DDOper null" );
@@ -98,11 +301,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public static void main(String[] args) throws Exception {
+		testApricodd();
 		//		testAddPair();
 		//		testgetINode();
 		//		testIndicators();
 		//		testApplyLeafOp();
-				testGetRNode();
+//				testGetRNode();
 //		testBreakTies();
 		//		testGraph();
 		//		testClearDeadNodes((int)1e5);
@@ -997,6 +1201,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			.recordStats().build();
 		final ADDRNode ret = breakTiesInBDDInt( input, tiesIn, default_value, 
 				_tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
 	}
@@ -1254,6 +1460,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
 			.recordStats().build();
 		ADDRNode ret = thresholdInt( input, threshold, strict, _tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
 	}
@@ -1268,6 +1476,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 	}
 	
+	//thresholding is done wrt upper bound of leaf nodes
 	private ADDRNode thresholdInt( final ADDRNode input, final double threshold, 
 			final boolean strict, Cache<ADDRNode, ADDRNode> _tempUnaryCache ){
 //		Objects.requireNonNull( input );
@@ -1471,14 +1680,33 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			break;
 
 		case ARITH_PROD : 
-			result_1 = leaf1._o1 * leaf2._o1;
-			result_2 = (leaf1._o2 * leaf2._o2);	
+			final double prod1 = leaf1._o1*leaf2._o1;
+			final double prod2 = leaf1._o1*leaf2._o2;
+			final double prod3 = leaf1._o2*leaf2._o1;
+			final double prod4 = leaf1._o2*leaf2._o2;
+			
+			result_1 = Math.min( 
+					Math.min( prod1, prod2), 
+					Math.min( prod3, prod4) );
+			
+			result_2 = Math.max( 
+					Math.max( prod1, prod2 ),
+					Math.max(prod3, prod4 ) );
 			break;
 
 		case ARITH_DIV:
 			try{
-				result_1 = leaf1._o1 / leaf2._o1;
-				result_2 = leaf1._o2 / leaf2._o2;
+				if( leaf2._o1 < 0 && leaf2._o2 > 0 ){
+					throw new ArithmeticException("interval contains zero in division.");
+				}
+				
+				final double div1 = leaf1._o1/leaf2._o1;
+				final double div2 = leaf1._o1/leaf2._o2;
+				final double div3 = leaf1._o2/leaf2._o1;
+				final double div4 = leaf1._o2/leaf2._o2;
+				
+				result_1 = Math.min( Math.min(div1,  div2), Math.min(div3, div4) );
+				result_2 = Math.max( Math.max(div1, div2), Math.max(div3, div4) );
 			}catch( ArithmeticException e ){
 				e.printStackTrace();
 				System.exit(1);
@@ -1486,13 +1714,17 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			break;
 
 		case ARITH_MAX :
-			result_1 = Math.max(leaf1._o1, leaf2._o1);
 			result_2 = Math.max(leaf1._o2, leaf2._o2);
+			result_1 = 
+					Math.max(leaf1._o1, leaf2._o1);
+//					( result_2 == leaf1._o2) ? leaf1._o1 : leaf2._o1;
 			break;
 
 		case ARITH_MIN :
-			result_1 = Math.min(leaf1._o1, leaf2._o1);
 			result_2 = Math.min(leaf1._o2, leaf2._o2);
+			result_1 = 
+					Math.min(leaf1._o1, leaf2._o1);
+//					( result_2 == leaf1._o2) ? leaf1._o1 : leaf2._o1;
 			break;
 
 		default : 	
@@ -1514,15 +1746,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	@Override
-	public ADDRNode approximate(ADDRNode input, double epsilon, APPROX_TYPE approx_type) {
-		try{
-			throw new UnsupportedOperationException("APRICODD not yet implemented");
-		}catch( UnsupportedOperationException e ){
-			e.printStackTrace();
-		}
-		return null;
-	} 
+//	@Override
+//	public ADDRNode approximate(ADDRNode input, double epsilon, APPROX_TYPE approx_type) {
+//		try{
+//			throw new UnsupportedOperationException("APRICODD not yet implemented");
+//		}catch( UnsupportedOperationException e ){
+//			e.printStackTrace();
+//		}
+//		return null;
+//	} 
 
 //	public synchronized void clearApplyCache(){
 //
@@ -1720,6 +1952,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
 			.recordStats().build();
 		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
 	}
@@ -2826,6 +3060,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 		final ADDRNode ret = marginalizeInt( input, index, oper, _tempUnaryCache );	
 //		showGraph( input, ret );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
 	}
@@ -3040,6 +3276,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
 			.recordStats().build();
 		final ADDRNode ret = remapVarsInt(input, remap, _tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
 	}
@@ -3131,6 +3369,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
 			.recordStats().build();
 		final ADDRNode ret = restrictInt( input, var, assign, index, _tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
 	}
@@ -3301,6 +3541,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
 			.recordStats().build();
 		final ADDRNode replaced = remapLeafInt( input, source, dest, _tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return replaced;
 	}
