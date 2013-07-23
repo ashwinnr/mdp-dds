@@ -19,6 +19,6 @@ instance elevators_inst_1_3{
 	domain = elevators_mdp;
 	non-fluents = nf_elevators_inst_1_3;
 	max-nondef-actions = 3;
-	horizon = 40;
+	horizon = 20;
 	discount = 0.9;
 }
