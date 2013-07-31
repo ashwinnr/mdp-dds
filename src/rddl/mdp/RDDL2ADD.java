@@ -1191,6 +1191,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		_action_constraints = new TreeSet<ADDRNode>();
 		_action_preconditions = new TreeSet<ADDRNode>();
 		
+		
 		_cpts = new TreeMap< String, ADDRNode >();
 
 		for (Map.Entry<PVAR_NAME,ArrayList<ArrayList<LCONST>>> e : _state_vars.entrySet()) {

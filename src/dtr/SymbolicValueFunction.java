@@ -20,12 +20,24 @@ public abstract class SymbolicValueFunction<D extends DDNode, DR extends DDRNode
 		S extends FactoredStateSpace, A extends FactoredActionSpace<S> > 
 		implements FactoredValueFunction<S,A>{
 	
-	protected DR _valueFn;
+	private DR _valueFn;
 	protected NavigableMap< ? extends FactoredAction<S,A>, DR> _qFn = null;
 	protected  DDManager<D, DR, DI, DL> _manager;
-	protected DR _jointQFn = null;
+	private DR _jointQFn = null;
 	
 	public abstract void showValueFunctions();
 	public abstract void throwAwayQFunctions();
+	public DR get_valueFn() {
+		return _valueFn;
+	}
+	public void set_valueFn(DR _valueFn) {
+		this._valueFn = _valueFn;
+	}
+	public DR get_jointQFn() {
+		return _jointQFn;
+	}
+	public void set_jointQFn(DR _jointQFn) {
+		this._jointQFn = _jointQFn;
+	}
 
 }

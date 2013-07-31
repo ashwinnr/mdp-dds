@@ -1,6 +1,7 @@
 package mdp.define;
 
 public interface Transition<S extends StateSpace, A extends ActionSpace<S>> {
-	public State<S> sample(final State<S> state, final Action<S,A> action);
-	public State<S> randomState();
+	public <T extends State<S>, U extends Action<S,A>> 
+		T sample(final T state, final U action);
+	public <T extends State<S>> T randomState();
 }

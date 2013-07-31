@@ -24,6 +24,7 @@ import rddl.RDDL.LTERM;
 import rddl.RDDL.LVAR;
 import rddl.RDDL.PVAR_NAME;
 import rddl.RDDL.REAL_CONST_EXPR;
+import rddl.viz.StateViz;
 import util.UnorderedPair;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
@@ -91,10 +92,12 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	}
 	
 	@Override
-	public State<RDDLFactoredStateSpace> sample(
-			final State<RDDLFactoredStateSpace> state,
-			final Action<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
-		return sampleFactored( (FactoredState<RDDLFactoredStateSpace>)state, 
+	public <T extends State<RDDLFactoredStateSpace>,
+			U extends Action<RDDLFactoredStateSpace, RDDLFactoredActionSpace> >
+				T sample(
+			final T state,
+			final U action) {
+		return (T) sampleFactored( (FactoredState<RDDLFactoredStateSpace>)state, 
 			(FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action );
 	}
 
@@ -188,7 +191,7 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	}
 
 	@Override
-	public State<RDDLFactoredStateSpace> randomState() {
+	public <T extends State<RDDLFactoredStateSpace>> T randomState() {
 		FactoredState<RDDLFactoredStateSpace> fs = null;
 		do{
 			final TreeMap<String, Boolean> assignments = new TreeMap<String, Boolean>();
@@ -206,9 +209,16 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			}catch (Exception e) {
 			}
 		}while( true );
-		return fs;
+		return (T) fs;
 	}
 
+	public void displayState(
+			final StateViz visualizer,
+			FactoredState<RDDLFactoredStateSpace> current_state,
+			final int time ){
+		setStateAction(current_state, null);
+		visualizer.display(_state, time);
+	}
 	//this class must build
 	//atom sfor each state var then 
 	//simulates factored transitions
