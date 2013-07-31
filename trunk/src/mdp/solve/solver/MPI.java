@@ -12,9 +12,9 @@ import util.UnorderedPair;
 import add.ADDManager;
 import add.ADDRNode;
 import dd.DDManager.APPROX_TYPE;
-import dtr.ADDDecisionTheoreticRegression;
-import dtr.ADDPolicy;
-import dtr.ADDValueFunction;
+import dtr.add.ADDDecisionTheoreticRegression;
+import dtr.add.ADDPolicy;
+import dtr.add.ADDValueFunction;
 
 public class MPI implements Runnable {
 	

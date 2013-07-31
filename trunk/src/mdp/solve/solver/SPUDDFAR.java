@@ -11,9 +11,9 @@ import java.util.NavigableMap;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import dd.DDManager.APPROX_TYPE;
-import dtr.ADDDecisionTheoreticRegression;
-import dtr.ADDPolicy;
-import dtr.ADDValueFunction;
+import dtr.add.ADDDecisionTheoreticRegression;
+import dtr.add.ADDPolicy;
+import dtr.add.ADDValueFunction;
 
 import add.ADDManager;
 import add.ADDRNode;
@@ -21,6 +21,7 @@ import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
+import rddl.viz.ElevatorDisplay;
 import util.Timer;
 import util.UnorderedPair;
 
@@ -143,7 +144,8 @@ public class SPUDDFAR implements Runnable{
 		}
 
 		try{
-			_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
+			_policy.executePolicy(_nRounds, _nStates, _useDiscounting, 
+					HORIZON, DISCOUNT, new ElevatorDisplay() ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
