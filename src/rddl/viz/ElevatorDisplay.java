@@ -44,7 +44,8 @@ public class ElevatorDisplay extends StateViz {
 	public int _nTimeDelay = 0;
 	
 	public void display(State s, int time) {
-		System.out.println("TIME = " + time + ": " + getStateDescription(s));
+//		System.out.println("TIME = " + time + ": " + 
+		getStateDescription(s);
 	}
 
 	//////////////////////////////////////////////////////////////////////

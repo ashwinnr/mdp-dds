@@ -148,12 +148,15 @@ public class ADDPolicy extends
 					if( DISPLAY ){
 						System.out.println("*State : " + current_state );
 					}
+					
+					FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act 
+						= this.getAction(current_state);
+
 					if( visualizer != null ){
-						_transition.displayState( visualizer,  current_state, k );
+						_transition.displayState( visualizer,
+								current_state, act, k );
 					}
 					
-					Action<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act 
-						= this.getAction(current_state);
 					FactoredState<RDDLFactoredStateSpace> new_state = null;
 					try{
 						new_state

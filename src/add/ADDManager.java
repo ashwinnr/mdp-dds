@@ -3,9 +3,11 @@ package add;
 import graph.Graph;
 
 import java.lang.ref.ReferenceQueue;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -111,10 +113,102 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//finally, remap leaves in DD
 //		final double actual_epsilon = apricodd_epsilon/2.0d;
 		
-		final Map<ADDRNode, ADDRNode> mergedNodes = new HashMap<ADDRNode,ADDRNode>();
-		traverseAndMerge( input, apricodd_epsilon, apricodd_type, mergedNodes );
-		final Map<ADDLeaf,ADDLeaf> finalDest = fixIntervals( mergedNodes, apricodd_epsilon, apricodd_type );
-		return remapNodes( input, mergedNodes, finalDest );
+		Set<ADDLeaf> leaves = getLeaves(input);
+		//already sorted
+		Map<ADDLeaf,ADDLeaf> remaps = mergeLeaves( leaves, apricodd_epsilon, 
+				apricodd_type );
+		return remapLeaves( input, remaps );
+		
+//		final Map<ADDRNode, ADDRNode> mergedNodes = new HashMap<ADDRNode,ADDRNode>();
+//		traverseAndMerge( input, apricodd_epsilon, apricodd_type, mergedNodes );
+//		final Map<ADDLeaf,ADDLeaf> finalDest = fixIntervals( mergedNodes, apricodd_epsilon, apricodd_type );
+
+//		return remapNodes( input, mergedNodes, finalDest );
+	}
+	
+	
+	
+	private Map<ADDLeaf, ADDLeaf> mergeLeaves( final Set<ADDLeaf> leaves,
+			final double apricodd_epsilon,
+			final APPROX_TYPE appricodd_type ){
+		
+		final Map<ADDLeaf, ADDLeaf> ret = new HashMap<ADDLeaf, ADDLeaf>();
+		final Set<ADDLeaf> mapped_set = new TreeSet<ADDLeaf>();
+		
+		ADDLeaf cur = null;
+		for( final ADDLeaf next : leaves ){
+			if( cur == null ){
+				cur = next;
+				mapped_set.add( cur );
+				continue;
+			}
+			
+			if( combinedSpan(cur, next) <= apricodd_epsilon ){
+				final ADDLeaf map_to = mergeLeafPair(cur, next, appricodd_type );
+//				mapped_set.add( cur );
+				mapped_set.add( next );
+				cur = map_to;
+			}else{
+				for( final ADDLeaf src : mapped_set ){
+					ret.put( src, cur );
+				}
+				mapped_set.clear();
+				cur = next;
+				mapped_set.add( cur );
+			}
+		}
+		if( !mapped_set.isEmpty() ){
+			for( final ADDLeaf src : mapped_set ){
+				ret.put( src, cur );
+			}
+			mapped_set.clear();
+		}
+		return ret;
+	}
+
+	private ADDRNode remapLeaves( final ADDRNode input, 
+			final Map<ADDLeaf, ADDLeaf> remaps ){
+		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
+		= CacheBuilder.newBuilder().maximumSize( TEMP_UNARY_CACHE_SIZE )
+			.recordStats().build();
+		final ADDRNode replaced = remapLeavesInt( input, remaps, _tempUnaryCache );
+		_tempUnaryCache.invalidateAll();
+		_tempUnaryCache.cleanUp();
+		_tempUnaryCache = null;
+		return replaced;
+	}
+	
+	private ADDRNode remapLeavesInt( final ADDRNode input,
+			final Map<ADDLeaf, ADDLeaf> remaps,
+			final Cache<ADDRNode, ADDRNode> _tempUnaryCache) {
+		
+		final ADDNode theNode = input.getNode();
+		if( theNode instanceof ADDLeaf ){
+			final ADDLeaf new_leaf = remaps.get((ADDLeaf)theNode);
+			if( new_leaf == null ){
+				try{
+					throw new Exception("Remap did not have a mapping ");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			return getRNode(new_leaf, true );
+		}else{
+			
+			final ADDRNode lookup = _tempUnaryCache.getIfPresent( input );
+			if( lookup != null ){
+				return lookup;
+			}
+			
+			final ADDRNode input_true = input.getTrueChild();
+			final ADDRNode merged_true = remapLeavesInt(input_true, remaps, _tempUnaryCache);
+			final ADDRNode input_false = input.getFalseChild();
+			final ADDRNode merged_false = remapLeavesInt(input_false, remaps, _tempUnaryCache);
+			final ADDRNode ret = getINode(input.getTestVariable(), merged_true, merged_false);
+			_tempUnaryCache.put( input, ret );
+			return ret;
+		}
 	}
 
 	private ADDRNode remapNodes(final ADDRNode input,
@@ -140,7 +234,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}else{
 			final ADDLeaf leafNode = (ADDLeaf)mergedTo.getNode();
-			final ADDLeaf finalLeaf = finalDest.get(leafNode);
+			final ADDLeaf finalLeaf = (finalDest == null ) ? leafNode : finalDest.get(leafNode);
 			return getRNode(finalLeaf, false);
 		}
 	}
@@ -164,7 +258,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				continue;
 			}
 			if( combinedSpan(cur,sortedLeaf) <= apricodd_epsilon ){
-				final ADDLeaf newLeaf = mergeLeaves( cur, sortedLeaf, apricodd_type );
+				final ADDLeaf newLeaf = mergeLeafPair( cur, sortedLeaf, apricodd_type );
 				fixedIntervals.put( cur, newLeaf );
 				fixedIntervals.put( sortedLeaf, newLeaf );
 				cur = newLeaf;
@@ -176,7 +270,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return fixedIntervals;
 	}
 	
-	private ADDLeaf mergeLeaves(final ADDLeaf leaf1, final ADDLeaf leaf2,
+	private ADDLeaf mergeLeafPair(final ADDLeaf leaf1, final ADDLeaf leaf2,
 			final APPROX_TYPE apricodd_type) {
 		final double min = Math.min( leaf1.getMin(), leaf2.getMin() );
 		final double max = Math.max( leaf1.getMax(), leaf2.getMax() );
@@ -285,7 +379,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 		man.showGraph(inodeC);
 		
-		man.showGraph( man.doApricodd(inodeC, true, 5d, APPROX_TYPE.RANGE ) );
+		man.showGraph( man.doApricodd(inodeC, true, 0.2d, APPROX_TYPE.RANGE ) );
 		
 		
 	}

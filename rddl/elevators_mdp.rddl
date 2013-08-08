@@ -107,6 +107,8 @@ domain elevators_mdp {
 				(person-in-elevator-going-down(?e)*elevator-dir-up(?e)) 
 			-ELEVATOR-PENALTY *
 				(person-in-elevator-going-up(?e)*~elevator-dir-up(?e))
+			-(person-in-elevator-going-up(?e)*elevator-dir-up(?e))
+			-(person-in-elevator-going-down(?e)*~elevator-dir-up(?e)) 
 		]] +
 		[sum_{?f: floor} [
 			- person-waiting-up(?f)
