@@ -215,8 +215,12 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	public void displayState(
 			final StateViz visualizer,
 			FactoredState<RDDLFactoredStateSpace> current_state,
+			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act,
 			final int time ){
-		setStateAction(current_state, null);
+		System.out.println( "STATE : " + current_state );
+		System.out.println( "ACTION : " + act );
+		
+		setStateAction(current_state, act);
 		visualizer.display(_state, time);
 	}
 	//this class must build
