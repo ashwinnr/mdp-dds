@@ -145,7 +145,7 @@ public class SPUDDFAR implements Runnable{
 
 		try{
 			_policy.executePolicy(_nRounds, _nStates, _useDiscounting, 
-					HORIZON, DISCOUNT, null ).printStats();
+					HORIZON, DISCOUNT, null  ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
