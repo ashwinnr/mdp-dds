@@ -33,12 +33,12 @@ domain sysadmin_mdp {
   
 	reward = sum_{?c : computer} [running(?c) - (REBOOT-PENALTY * reboot(?c))];
 
-//	state-action-constraints {
+	state-action-constraints {
 //		[ sum_{?c : computer} reboot(?c) ] > 0;
 //		[ sum_{?c : computer} reboot(?c) ] <= 2;
 //		forall_{?c : computer} [ running(?c) => ~reboot(?c)];
 //		forall_{?c : computer, ?c2 : computer} [ reboot(?c) ^ //CONNECTED(?c, ?c2) => ~reboot(?c2) ];
-//		[ sum_{?c : computer} running(?c) ] >= 5;
-//	};
+		[ sum_{?c : computer} running(?c) ] >= 4;
+	};
 
 }
