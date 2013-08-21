@@ -1,7 +1,7 @@
 domain sysadmin_mdp {
   
 	requirements = { 
-//		constrained-state,
+		constrained-state,
 		reward-deterministic // this domain does not use a stochastic reward
 	};
 	
@@ -36,8 +36,9 @@ domain sysadmin_mdp {
 //	state-action-constraints {
 //		[ sum_{?c : computer} reboot(?c) ] > 0;
 //		[ sum_{?c : computer} reboot(?c) ] <= 2;
-//		forall_{?c : computer} [reboot(?c) => ~running(?c)];
-		//forall_{?c : computer, ?c2 : computer} [ reboot(?c) ^ CONNECTED(?c, ?c2) => ~reboot(?c2) ];
+//		forall_{?c : computer} [ running(?c) => ~reboot(?c)];
+//		forall_{?c : computer, ?c2 : computer} [ reboot(?c) ^ //CONNECTED(?c, ?c2) => ~reboot(?c2) ];
+//		[ sum_{?c : computer} running(?c) ] >= 5;
 //	};
 
 }

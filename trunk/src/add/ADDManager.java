@@ -379,7 +379,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 		man.showGraph(inodeC);
 		
-		man.showGraph( man.doApricodd(inodeC, true, 0.2d, APPROX_TYPE.RANGE ) );
+		man.showGraph( man.doApricodd(inodeC, true, 0.2d, APPROX_TYPE.LOWER ) );
 		
 		
 	}
