@@ -324,12 +324,15 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 //	}
 	
 	//depends on _sumorder
-	public Map<String, List<String>> getHindSightOrder( ){
-		final Map<String, List<String>> ret = new HashMap<String, List<String>>();
+	public Map<String, ArrayList<String>> getHindSightOrder( ){
+		final Map<String, ArrayList<String>> ret = new HashMap<String, ArrayList<String>>();
 		final ArrayList<String> sumOrd = getSumOrder();
 		final Map<String, Integer> actionCounts = new HashMap<String, Integer>();
 		for( final String ns : sumOrd ){
 			final ArrayList<String> affectedByActs = _hmvars2act.get(ns);
+			if( affectedByActs == null ){
+				continue;
+			}
 			for( final String affectByAct : affectedByActs ){
 				final Integer current_count = actionCounts.get(affectByAct);
 				actionCounts.put( affectByAct,  ( current_count == null ) ? 1 : current_count + 1 );
@@ -338,11 +341,14 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		
 		for( final String ns : sumOrd ){
 			final ArrayList<String> affectedByActs = _hmvars2act.get(ns);
+			if( affectedByActs == null ){
+				continue;
+			}
 			for( final String affectByAct : affectedByActs ){
 				int current_count = actionCounts.get(affectByAct);
 				current_count--;
 				if( current_count == 0 ){
-					List<String> already_list = ret.get(ns);
+					ArrayList<String> already_list = ret.get(ns);
 					if( already_list == null ){
 						already_list = new ArrayList<String>();
 					}
