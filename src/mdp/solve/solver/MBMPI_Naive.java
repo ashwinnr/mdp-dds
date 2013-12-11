@@ -12,12 +12,16 @@ import util.Timer;
 import util.UnorderedPair;
 import add.ADDManager;
 import add.ADDRNode;
+import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.ADDValueFunction;
 
 public class MBMPI_Naive implements Runnable {
 	
+	private static double APRICODD_EPSILON;
+	private static boolean DO_APRICODD;
+	private static APPROX_TYPE APRICODD_TYPE;
 	private static double	EPSILON	= 0;
 	private boolean LIMIT_EVAL = false;
 	private ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> _bq = null;
@@ -49,7 +53,13 @@ public class MBMPI_Naive implements Runnable {
 			final int evalSteps,
 			final boolean constrain_naively,
 			final long bigdd,
-			final boolean limit_eval ) {
+			final boolean limit_eval ,
+			final boolean do_apricodd,
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
+		DO_APRICODD = do_apricodd;
+		APRICODD_EPSILON = apricodd_epsilon;
+		APRICODD_TYPE = apricodd_type;
 		BIGDD = bigdd;
 		LIMIT_EVAL = limit_eval;
 		CONSTRAIN_NAIVELY = constrain_naively;
@@ -91,7 +101,8 @@ public class MBMPI_Naive implements Runnable {
 			final boolean makePolicy = ( _evalSteps > 0 || lastiter ) ? true : false;
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regressMBFAR( _valueDD, makePolicy, CONSTRAIN_NAIVELY, BIGDD,
-						size_change ); 
+						size_change, DO_APRICODD, APRICODD_EPSILON, 
+						APRICODD_TYPE ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -130,7 +141,8 @@ public class MBMPI_Naive implements Runnable {
 				//policy eval
 				UnorderedPair<ADDRNode, Integer> evaluation 
 					= _dtr.evaluatePolicyMBFAR(_valueDD, _policyDD, _evalSteps, 
-							EPSILON, CONSTRAIN_NAIVELY, false, BIGDD, LIMIT_EVAL );
+							EPSILON, CONSTRAIN_NAIVELY, false, BIGDD, LIMIT_EVAL,
+							DO_APRICODD, APRICODD_EPSILON, APRICODD_TYPE );
 				ADDRNode evaluated = evaluation._o1;
 				eval_backups += evaluation._o2;
 				_solutionTimer.PauseTimer();
@@ -168,7 +180,10 @@ public class MBMPI_Naive implements Runnable {
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]), Integer.parseInt(args[7]),
 				Boolean.parseBoolean(args[8] ), Long.parseLong(args[9]), 
-				Boolean.parseBoolean( args[10]) );
+				Boolean.parseBoolean( args[10]) ,
+				Boolean.parseBoolean(args[11]) ,
+				Double.parseDouble(args[12]) ,
+				APPROX_TYPE.valueOf(args[13]) );
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();

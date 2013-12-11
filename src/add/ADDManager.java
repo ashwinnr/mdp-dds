@@ -3707,6 +3707,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
+	public int countLeaves(final ADDRNode input) {
+		final Set<ADDLeaf> set_o_leaves = getLeaves(input);
+		return set_o_leaves.size();
+	}
+
 	//	public void clearDeadNodes(){
 	//
 	//		clearUnaryIntegerMap( madeINodes, madeLeaf );

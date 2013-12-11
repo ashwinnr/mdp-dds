@@ -19,7 +19,6 @@ import dtr.add.ADDValueFunction;
 public class MPI implements Runnable {
 	
 	private static double	EPSILON	= 0;
-	private ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> _bq = null;
 	private ADDDecisionTheoreticRegression _dtr;
 	private ADDManager _manager;
 	private Timer _cptTimer;
@@ -57,7 +56,6 @@ public class MPI implements Runnable {
 		_FAR = FAR;
 		CONSTRAIN_NAIVELY = constrain_naively;
 		_evalSteps = evalSteps;
-		_bq = bq;
 		EPSILON = epsilon;
 		_cptTimer = new Timer();
 		_mdp = new RDDL2ADD(domain, instance, true, debug, order, true, seed);

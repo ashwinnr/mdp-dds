@@ -111,15 +111,15 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 
 	public boolean	_bRewardActionDependent = false;
 
-	protected ArrayList<String>	_sumOrder = new ArrayList<String>();
+	protected final ArrayList<String>	_sumOrder = new ArrayList<String>();
 
-	protected ArrayList<String>	_elimOrder = new ArrayList<String>();
+	protected final ArrayList<String>	_elimOrder = new ArrayList<String>();
 
-	private Map<Long, Map<String, Boolean>>	_hmjointActionMap = new HashMap<Long, Map<String,Boolean>>();
+	private final Map<Long, Map<String, Boolean>>	_hmjointActionMap = new HashMap<Long, Map<String,Boolean>>();
 
-	private Map<Map<String, Boolean>, Long> _hmActionIDCache = new HashMap<Map<String,Boolean>, Long>();
+	private final Map<Map<String, Boolean>, Long> _hmActionIDCache = new HashMap<Map<String,Boolean>, Long>();
 
-	private Map<String, Map<String, Boolean>> _hmJointActions = new HashMap<String, Map<String,Boolean>>() ;
+	private  final Map<String, Map<String, Boolean>> _hmJointActions = new HashMap<String, Map<String,Boolean>>() ;
 
 	protected INSTANCE	_i;
 

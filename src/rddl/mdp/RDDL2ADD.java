@@ -11,9 +11,12 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -46,6 +49,7 @@ import rddl.RDDL.PVAR_NAME;
 import rddl.RDDL.REAL_CONST_EXPR;
 import rddl.State;
 import rddl.parser.parser;
+import util.Pair;
 import util.UnorderedPair;
 import add.ADDINode;
 import add.ADDLeaf;
@@ -304,6 +308,54 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	//assumes with action vars
+//	public List<String> sortActionsByInDegree( ){
+//		final TreeSet<Pair<Integer, String>> sortedActions = new TreeSet<Pair<Integer,String>>();
+//		for( final Entry<String, ArrayList<String>> entry : _hmact2vars.entrySet() ){
+//			sortedActions.add(new Pair<Integer, String>(entry.getValue().size(), entry.getKey()));
+//		}
+//		final List<String> ret = new ArrayList<String>();
+//		for( final Pair<Integer, String> entry : sortedActions ){
+//			ret.add(entry._o2);
+//		}
+//		return Collections.unmodifiableList(ret);
+//	}
+	
+	//depends on _sumorder
+	public Map<String, List<String>> getHindSightOrder( ){
+		final Map<String, List<String>> ret = new HashMap<String, List<String>>();
+		final ArrayList<String> sumOrd = getSumOrder();
+		final Map<String, Integer> actionCounts = new HashMap<String, Integer>();
+		for( final String ns : sumOrd ){
+			final ArrayList<String> affectedByActs = _hmvars2act.get(ns);
+			for( final String affectByAct : affectedByActs ){
+				final Integer current_count = actionCounts.get(affectByAct);
+				actionCounts.put( affectByAct,  ( current_count == null ) ? 1 : current_count + 1 );
+			}
+		}
+		
+		for( final String ns : sumOrd ){
+			final ArrayList<String> affectedByActs = _hmvars2act.get(ns);
+			for( final String affectByAct : affectedByActs ){
+				int current_count = actionCounts.get(affectByAct);
+				current_count--;
+				if( current_count == 0 ){
+					List<String> already_list = ret.get(ns);
+					if( already_list == null ){
+						already_list = new ArrayList<String>();
+					}
+					already_list.add(affectByAct);
+					ret.put(ns, already_list);
+					actionCounts.remove(affectByAct);
+				}else{
+					actionCounts.put(affectByAct, current_count);
+				}
+			}
+		}
+		
+		return Collections.unmodifiableMap(ret);
 	}
 	
 	private Map<String, Boolean> getDefaultAct() {
