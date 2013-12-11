@@ -65,6 +65,7 @@ public class ADDDecisionTheoreticRegression implements
 	private Set<ADDRNode> __policy_constraints = new HashSet<ADDRNode>();
 	private final ADDRNode __action_constraints;
 	private final ADDRNode __state_constraints;
+	private ADDRNode _hsReward = null;
 
 	public ADDDecisionTheoreticRegression(RDDL2ADD mdp, final long seed){
 		_manager = mdp.getManager();
@@ -293,10 +294,12 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean do_apricodd, 
 			final double apricodd_epsilon,
 			final APPROX_TYPE apricodd_type ) {
-
+		
 		final ArrayList<String> sum_order = _mdp.getSumOrder();
 		System.out.print("Regressing all actions " );
-		ADDRNode ret = primed;
+		ADDRNode ret = constrain_naively ? 
+				applyMDPConstraints(primed, null, _manager.DD_NEG_INF, constrain_naively, size_change)
+				: primed ;
 		for( String str : sum_order ){
 //			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.print( "*" );// + str );
@@ -412,6 +415,167 @@ public class ADDDecisionTheoreticRegression implements
 		
 	}
 
+	public ADDValueFunction regressHindSight(final ADDRNode input, 
+			final boolean constrain_naively, final List<Long> size_change ,
+			final boolean do_apricodd, 
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ) {
+
+		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
+		
+		final ArrayList<String> sum_order = _mdp.getSumOrder();
+		final Map<String, List<String>> hsOrder = _mdp.getHindSightOrder();
+		
+		System.out.print("Regressing all actions " );
+		ADDRNode ret = constrain_naively ? 
+				applyMDPConstraints(primed, null, _manager.DD_NEG_INF, constrain_naively, size_change)
+				: primed;
+		for( final String str : sum_order ){
+//			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+				System.out.print( "*" );// + str );
+//			}
+			ret = computeExpectation( ret, str, null, constrain_naively, size_change,
+					do_apricodd, 
+					apricodd_epsilon, apricodd_type );
+			for( final String act_var : hsOrder.get(str) ){
+				ret = maxOneActionVariable( ret, act_var, constrain_naively, size_change,
+					do_apricodd, 
+					apricodd_epsilon, apricodd_type );
+			}
+		}
+		System.out.println();
+		
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
+				&& _manager.hasSuffixVars(ret, "'") ){
+			try{
+				throw new Exception("has primed var after expectations");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
+		ADDRNode reward_added = hsDiscountAndAddReward( ret, constrain_naively, size_change,
+				do_apricodd, 
+				apricodd_epsilon, apricodd_type );
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println( "reward added " );
+		}
+		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
+			System.out.println( "showing diagrams");
+			_manager.showGraph( ret, reward_added);
+		}
+		
+		ret = reward_added;
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
+				&& _manager.hasVars( ret, _mdp.getFactoredActionSpace().getActionVariables() ) ){
+			try{
+				throw new Exception("Has action vars after max");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
+		if(_dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
+				&& _manager.hasVars( ret, _mdp.getFactoredActionSpace().getActionVariables() ) ){
+			try{
+				throw new Exception("Has action vars after max");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
+		ADDRNode v_func = ret;
+		return new ADDValueFunction(v_func, null, null, _manager);
+	}
+	
+	private ADDRNode hsDiscountAndAddReward(
+			final ADDRNode input, 
+			boolean constrain_naively, List<Long> size_change,
+			boolean do_apricodd, double apricodd_epsilon,
+			APPROX_TYPE apricodd_type) {
+		
+		if( _hsReward  == null ){
+			makeHSReward();
+		}
+		
+		final ADDRNode discounted = _manager.scalarMultiply(input, _mdp.getDiscount());
+//		final ADDRNode discounted_approx = _manager.doApricodd( discounted, 
+//				do_apricodd, apricodd_epsilon, apricodd_type );
+		ADDRNode ret = discounted; 
+		
+		if( size_change != null ){
+			size_change.addAll( _manager.countNodes( input, ret ) );
+		}
+
+		final ADDRNode added_rew = _manager.apply( ret, _hsReward, DDOper.ARITH_PLUS );
+//		final ADDRNode added_rew_approx = _manager.doApricodd( added_rew, 
+//					do_apricodd,
+//					apricodd_epsilon, apricodd_type );
+		final ADDRNode added_rew_constrained 
+			= constrain_naively ? 
+					added_rew : applyMDPConstraints(added_rew, null, _manager.DD_NEG_INF,
+				constrain_naively, size_change );
+		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
+			System.out.println("Showing diagrams after one addition" );
+			_manager.showGraph( ret, _hsReward, added_rew, added_rew_constrained );
+		}
+			
+//			System.out.println("Adding reward " 
+		if( size_change != null ){
+			size_change.addAll( _manager.countNodes( added_rew , added_rew_constrained ) );
+		}
+		ret = added_rew_constrained;
+		_manager.flushCaches( );
+		return ret;
+	}
+
+	private void makeHSReward() {
+		final List<ADDRNode> rewards = _mdp.getRewards();
+		ADDRNode reward = _manager.DD_ZERO;
+		for( ADDRNode this_reward : rewards ){
+				reward = _manager.apply(reward, this_reward, DDOper.ARITH_PLUS);
+		}
+		_hsReward = maxActionVariables(reward, _mdp.getElimOrder(), 
+				null, false, 0, APPROX_TYPE.NONE);
+	}
+
+	private ADDRNode maxOneActionVariable(
+			final ADDRNode input, final String act_var,
+			final boolean constrain_naively, final List<Long> size_change,
+			final boolean do_apricodd, final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type) {
+		ADDRNode ret = input;
+		if( size_change != null ){
+			size_change.addAll( _manager.countNodes(input) );
+		}
+		
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println("Maxing " + act_var );
+			System.out.println("Size of input " + _manager.countNodes( ret ) );
+		}
+		final ADDRNode maxd = _manager.marginalize(ret, act_var, DDMarginalize.MARGINALIZE_MAX);
+//		final ADDRNode maxd_approx = _manager.doApricodd(maxd, do_apricodd,
+//				apricodd_epsilon, apricodd_type);
+		if( size_change != null ){
+			size_change.addAll( _manager.countNodes( maxd ) );
+		}
+		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
+			System.out.println("showing diagrams");
+			_manager.showGraph(ret, maxd );
+			try {
+				System.in.read();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		ret = maxd;
+		_manager.flushCaches( );
+		return ret;
+	}
+
 	private ADDRNode multiplyActionPreconditions( final ADDRNode input, 
 			final NavigableMap<String, Boolean> action ) {
 		ADDRNode constraint = convertToNegInfDD( __action_precondition );
@@ -445,21 +609,21 @@ public class ADDDecisionTheoreticRegression implements
 				System.out.println("Size of input " + _manager.countNodes( ret ) );
 			}
 			final ADDRNode maxd = _manager.marginalize(ret, str, DDMarginalize.MARGINALIZE_MAX);
-			final ADDRNode maxd_approx = _manager.doApricodd(maxd, do_apricodd,
-					apricodd_epsilon, apricodd_type);
+//			final ADDRNode maxd_approx = _manager.doApricodd(maxd, do_apricodd,
+//					apricodd_epsilon, apricodd_type);
 			if( size_change != null ){
-				size_change.addAll( _manager.countNodes( maxd, maxd_approx ) );
+				size_change.addAll( _manager.countNodes( maxd ) );
 			}
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("showing diagrams");
-				_manager.showGraph(ret, maxd, maxd_approx );
+				_manager.showGraph(ret, maxd );
 				try {
 					System.in.read();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
-			ret = maxd_approx;
+			ret = maxd;
 			_manager.flushCaches( );
 		}
 		return ret;
@@ -475,19 +639,22 @@ public class ADDDecisionTheoreticRegression implements
 			final APPROX_TYPE apricodd_type ){
 		int total_leaves = 0;
 		//primed
-		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
+		ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
+		primed = constrain_naively ? 
+				applyMDPConstraints(primed, null, _manager.DD_NEG_INF, 
+						constrain_naively, size_change) : primed ;
 //		final ADDRNode constrained_zero = _manager.remapLeaf( primed , 
 //				_manager.DD_NEG_INF, _manager.DD_ZERO );
-		
-		final ArrayList<String> sum_order = _mdp.getSumOrder();
-		ADDRNode value_func = _manager.DD_NEG_INF;
-		ADDRNode policy = _manager.DD_ZERO;
 		final Deque< UnorderedPair< NavigableMap< String, Boolean >, 
 				UnorderedPair<Integer, ADDRNode > > > 
 					evaluations = new ArrayDeque<UnorderedPair<NavigableMap<String, Boolean>, UnorderedPair<Integer, ADDRNode>>>();
 		evaluations.addFirst( new UnorderedPair< NavigableMap< String, Boolean >, 
 				UnorderedPair<Integer, ADDRNode > >( new TreeMap<String, Boolean>(), 
 				new UnorderedPair<Integer, ADDRNode>( 0, primed ) ) );
+
+		final ArrayList<String> sum_order = _mdp.getSumOrder();
+		ADDRNode value_func = _manager.DD_NEG_INF;
+		ADDRNode policy = _manager.DD_ZERO;
 		final ArrayList<String> action_variables = _mdp.getElimOrder();
 		final int num_action_vars = action_variables.size();
 		boolean recurse = false;
@@ -726,9 +893,10 @@ public class ADDDecisionTheoreticRegression implements
 //		_manager.flushCaches(   );
 		
 		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
-		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
+//		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
 		_manager.flushCaches(  );
-		ADDRNode summed_constrained = applyMDPConstraints(summed_approx, action, _manager.DD_NEG_INF,
+		ADDRNode summed_constrained = 
+				constrain_naively ? summed : applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
 				constrain_naively, size_change);
 		_manager.flushCaches(   );
 		
@@ -769,7 +937,9 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean do_apricodd, final double apricodd_epsilon,
 			final APPROX_TYPE apricodd_type ) {
 		ArrayList<String> order = _mdp.getSumOrder();
-		ADDRNode ret = primed;
+		ADDRNode ret = constrain_naively ? 
+			applyMDPConstraints(primed, action, _manager.DD_NEG_INF, 
+					constrain_naively, size_change) : primed;
 		
 		for( String xp : order ){
 			ret = computeExpectation(ret, xp, action, constrain_naively, size_change,
@@ -852,9 +1022,9 @@ public class ADDDecisionTheoreticRegression implements
 		}
 
 		final ADDRNode discounted = _manager.scalarMultiply(input, _mdp.getDiscount());
-		final ADDRNode discounted_approx = _manager.doApricodd( discounted, 
-				do_apricodd, apricodd_epsilon, apricodd_type );
-		ADDRNode ret = discounted_approx; 
+//		final ADDRNode discounted_approx = _manager.doApricodd( discounted, 
+//				do_apricodd, apricodd_epsilon, apricodd_type );
+		ADDRNode ret = discounted; 
 		
 		if( size_change != null ){
 			size_change.addAll( _manager.countNodes( input, ret ) );
@@ -863,11 +1033,12 @@ public class ADDDecisionTheoreticRegression implements
 		
 		for( ADDRNode this_reward : rewards ){
 			final ADDRNode added_rew = _manager.apply( ret, this_reward, DDOper.ARITH_PLUS );
-			final ADDRNode added_rew_approx = _manager.doApricodd( added_rew, 
-					do_apricodd,
-					apricodd_epsilon, apricodd_type );
+//			final ADDRNode added_rew_approx = _manager.doApricodd( added_rew, 
+//					do_apricodd,
+//					apricodd_epsilon, apricodd_type );
 			final ADDRNode added_rew_constrained 
-				= applyMDPConstraints(added_rew_approx, action, _manager.DD_NEG_INF,
+				= constrain_naively ? added_rew : 
+					applyMDPConstraints(added_rew, action, _manager.DD_NEG_INF,
 					constrain_naively, size_change );
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("Showing diagrams after one addition" );

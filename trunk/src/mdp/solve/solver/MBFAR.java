@@ -13,6 +13,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 
 import javax.print.attribute.standard.Sides;
 
+import com.sun.corba.se.spi.ior.MakeImmutable;
+
+import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.ADDValueFunction;
@@ -28,6 +31,9 @@ import util.UnorderedPair;
 
 public class MBFAR implements Runnable{
 
+	private static boolean DO_APRICODD = false;
+	private static  double APRICODD_EPSILON = 0;
+	private static  APPROX_TYPE APRICODD_TYPE = null;
 	private boolean CONSTRAIN_NAIVELY = false;
 	private static double	EPSILON	= 0;
 	private ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> _bq = null;
@@ -45,6 +51,9 @@ public class MBFAR implements Runnable{
 	 * @param debug 
 	 * @param order 
 	 * @param seed 
+	 * @param do_apricodd 
+	 * @param apricodd_epsilon 
+	 * @param apricodd_type 
 	 * 
 	 */
 	public MBFAR(String domain, String instance, double epsilon,
@@ -54,7 +63,10 @@ public class MBFAR implements Runnable{
 			final int numStates,
 			final int numRounds,
 			final boolean constrain_naively,
-			final long bigdd ) {
+			final long bigdd, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon, 
+			final APPROX_TYPE apricodd_type ) {
 		_bq = bq;
 		BIGDD = bigdd;
 		EPSILON = epsilon;
@@ -69,6 +81,9 @@ public class MBFAR implements Runnable{
 		DISCOUNT = mdp.getDiscount();
 		HORIZON = mdp.getHorizon();
 		CONSTRAIN_NAIVELY = constrain_naively;
+		DO_APRICODD = do_apricodd;
+		APRICODD_EPSILON = apricodd_epsilon;
+		APRICODD_TYPE = apricodd_type;
 	}
 
 	/* (non-Javadoc)
@@ -92,8 +107,12 @@ public class MBFAR implements Runnable{
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
-				= _dtr.regressMBFAR(_valueDD, lastiter, CONSTRAIN_NAIVELY, BIGDD,
-						size_change ); 
+				= _dtr.regressMBFAR(_valueDD,
+						lastiter, CONSTRAIN_NAIVELY, BIGDD,
+						size_change ,
+						DO_APRICODD,
+						APRICODD_EPSILON,
+						APRICODD_TYPE ); 
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -155,7 +174,10 @@ public class MBFAR implements Runnable{
 				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean( args[4] ), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]) , Boolean.parseBoolean(args[7]),
-				Long.parseLong( args[8] ) );
+				Long.parseLong( args[8] ),
+				Boolean.parseBoolean(args[9]) ,
+				Double.parseDouble(args[10]) ,
+				APPROX_TYPE.valueOf(args[11]) );
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();
