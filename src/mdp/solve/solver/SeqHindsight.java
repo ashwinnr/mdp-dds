@@ -122,12 +122,12 @@ public class SeqHindsight implements Runnable {
 		System.out.println("Size of policy = " + 
 				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
 		System.out.println("Bellman backups = " + iter );
-//		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
+		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
 		Runnable worker = new SeqHindsight(args[0], args[1], Double.parseDouble(args[2]), 
-				DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
+				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]), 
 				Boolean.parseBoolean(args[7] ), Boolean.parseBoolean(args[8]) ,

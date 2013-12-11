@@ -424,7 +424,7 @@ public class ADDDecisionTheoreticRegression implements
 		final ADDRNode primed = _manager.remapVars(input, _mdp.getPrimeRemap() );
 		
 		final ArrayList<String> sum_order = _mdp.getSumOrder();
-		final Map<String, List<String>> hsOrder = _mdp.getHindSightOrder();
+		final Map<String, ArrayList<String>> hsOrder = _mdp.getHindSightOrder();
 		
 		System.out.print("Regressing all actions " );
 		ADDRNode ret = constrain_naively ? 
@@ -437,10 +437,9 @@ public class ADDDecisionTheoreticRegression implements
 			ret = computeExpectation( ret, str, null, constrain_naively, size_change,
 					do_apricodd, 
 					apricodd_epsilon, apricodd_type );
-			for( final String act_var : hsOrder.get(str) ){
-				ret = maxOneActionVariable( ret, act_var, constrain_naively, size_change,
-					do_apricodd, 
-					apricodd_epsilon, apricodd_type );
+			ArrayList<String> maxes = hsOrder.get(str);
+			if( maxes != null ){
+				ret = maxActionVariables(ret, maxes, size_change, do_apricodd, apricodd_epsilon, apricodd_type);
 			}
 		}
 		System.out.println();
