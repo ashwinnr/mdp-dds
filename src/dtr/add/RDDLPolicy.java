@@ -1,5 +1,6 @@
 package dtr.add;
 
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.viz.StateViz;

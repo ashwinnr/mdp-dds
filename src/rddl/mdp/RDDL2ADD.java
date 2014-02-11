@@ -49,6 +49,7 @@ import rddl.RDDL.PVAR_NAME;
 import rddl.RDDL.REAL_CONST_EXPR;
 import rddl.State;
 import rddl.parser.parser;
+import sun.security.action.GetLongAction;
 import util.Pair;
 import util.UnorderedPair;
 import add.ADDINode;
@@ -59,12 +60,11 @@ import add.ADDRNode;
 
 public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
-	private static final int MANAGER_STORE_INIT_SIZE = 400000;
-	private static final int MANAGER_STORE_INCR_SIZE = 1000;
+	private static final long  MANAGER_STORE_INIT_SIZE = (int) 1e5;
+	private static final long  MANAGER_STORE_INCR_SIZE = 10;
 	
 	protected ADDManager _manager;
 	private boolean _bCPFDeterministic;
-	private ArrayList<String> _nextStateVars;
 	private ArrayList<String> _varOrder;
 	private List<NavigableMap<String, Boolean>> _regOrder;
 	private ADDRNode _concurrencyConstraint;
@@ -73,6 +73,27 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	private RDDLFactoredTransition _rddlTransition;
 	private RDDLFactoredReward _rddlReward;
 	private Random _rand;
+	private ArrayList<Pair<String, String>> _transition_relation_last = null;//to make dynamic quantificatoin linear time
+	private Map< NavigableMap<String, Boolean>, ArrayList< Pair<String, String> > > _actionTransitionRelationLast = null;
+	private int _totalVariables;
+	private int _numStateVars;
+	private int _numActionVars;
+
+	public int getNumStateVars(){
+		return _numStateVars;
+	}
+	
+	public int getOrderIndex( final String var ){
+		return _varOrder.indexOf( var );
+	}
+	
+	public ArrayList<Pair<String, String>> getTransitionRelationLastFAR() {
+		return _transition_relation_last;
+	}
+	
+	public Map<NavigableMap<String, Boolean>, ArrayList<Pair<String, String>>> getTransitionRelationLastSPUDD() {
+		return _actionTransitionRelationLast;
+	}
 	
 	@Override
 	public ADDRNode enumerateAssignments(HashSet<UnorderedPair<PVAR_NAME, ArrayList<LCONST> > > vars, 
@@ -229,8 +250,6 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	public void buildFromFile(final String pDomain, final String pInstance, boolean withActionVars,
 			boolean buildADDs) {
 
-		RDDL _rddltemp = new RDDL();
-
 		File domf = new File(pDomain);
 		File instf = new File(pInstance);
 
@@ -288,12 +307,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			initializeState(i, d, n);
 			assert (_state._tmIntermNames.size() == 0);
 			initRDDLData();
-			initADD();
-			makePrimeRemap();
-			makeOrders();
-			if( buildADDs ){
-				buildCPTs(withActionVars);
-			}
+
 			_rddlActionSpace = new RDDLFactoredActionSpace();
 			_rddlActionSpace.setActionVariables(_actionVars);
 			
@@ -305,6 +319,24 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 			_rddlReward = new RDDLFactoredReward(_state, _tmStateVars, 
 					_rand.nextLong(), _tmActionVars);
+
+			initADD();
+			makePrimeRemap();
+			makeOrders();
+			addConcurrencyConstraint();
+			for( EXPR constraint : _state._alConstraints ){
+				if( constraint instanceof BOOL_EXPR ){
+					BOOL_EXPR be = (BOOL_EXPR)constraint;
+					addConstraint(be);
+					_manager.flushCaches( );
+				}else{
+					System.err.println("Constraint not tpye of bool expr");
+					System.exit(1);
+				}
+			}
+			if( buildADDs ){
+				buildCPTs(withActionVars);
+			}
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -428,25 +460,12 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			}
 		}
 
-		addConcurrencyConstraint();
-
-		for( EXPR constraint : _state._alConstraints ){
-
-			if( constraint instanceof BOOL_EXPR ){
-				BOOL_EXPR be = (BOOL_EXPR)constraint;
-				addConstraint(be);
-				_manager.flushCaches( );
-			}else{
-				System.err.println("Constraint not tpye of bool expr");
-				System.exit(1);
-			}
-			
-		}
-
 		List<NavigableMap<String, Boolean>> acts = null;
 		if( !withActionVars ){
 			_actionCpts = new HashMap<Map<String,Boolean>,Map<String,ADDRNode>>();
 			acts = getFullRegressionOrder();
+		}else{
+			_cpts = new TreeMap< String, ADDRNode >();
 		}
 
 		for( int act = 0 ; (act == 0) || (!withActionVars && act < acts.size() ); ++act ){
@@ -475,10 +494,11 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 					HashMap<LVAR,LCONST> subs = new HashMap<LVAR,LCONST>();
 					for (ArrayList<LCONST> assign : assignments) {
 
-						String cpt_var = CleanFluentName(p.toString() + assign);
-
+						final String cpt_var = CleanFluentName(p.toString() + assign);
+						final String ns_var = (cpt_var+"'").intern();
+						
 						if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ) {
-							System.out.println("Processing: " + cpt_var + "'");
+							System.out.println("Processing: " + ns_var );
 						}
 
 						subs.clear();
@@ -504,7 +524,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 							relevant_vars = removeActionVars(relevant_vars);
 						}
 
-						add2InfluenceMap(cpt_var+"'", relevant_vars, _action_vars);
+						add2InfluenceMap( ns_var, relevant_vars, _action_vars);
 
 						if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ) {
 							System.out.println("Relevant variables : " + relevant_vars);
@@ -518,11 +538,11 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 						ADDRNode prob_false = _manager.apply(_manager.DD_ONE, prob_true, DDOper.ARITH_MINUS);
 
-						cpt = _manager.getINode( (cpt_var+"'").intern() , prob_true, prob_false );
+						cpt = _manager.getINode( ns_var, prob_true, prob_false );
 
 						if( withActionVars ){
 							if (iter == 0) {
-								_cpts.put( cpt_var+"'", cpt);
+								_cpts.put( ns_var, cpt);
 							}else {
 								throw new Exception("observ vars not handled yet.");
 							}
@@ -533,13 +553,13 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 								inner = new TreeMap<String, ADDRNode >();
 								_actionCpts.put( thisAct, inner );
 							}
-							inner.put( cpt_var+"'", cpt);
+							inner.put( ns_var, cpt);
 						}
 
 						_manager.addPermenant(cpt);
 						_manager.flushCaches( );
 						if( __debug_level.compareTo(DEBUG_LEVEL.DIAGRAMS) == 0 ) {
-							System.out.println("Displaying CPT for " + cpt_var+"'");
+							System.out.println("Displaying CPT for " + ns_var );
 							_manager.showGraph(cpt);
 							System.out.println("Press any key");
 							System.in.read();
@@ -587,11 +607,55 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 				unsetAction( acts.get(act) );
 			}
 		}
+	}
 
-//		translateReward(withActionVars);
+	public ADDRNode getIIDUniformDistribution( final String... vars ){
+		final double total_mass = Math.pow( 0.5, vars.length );
+		return _manager.getLeaf(total_mass, total_mass);
+	}
 
+	public ADDRNode getIIDBernoulliDistribution( final double prob_true,
+			final String... vars ){
+		ADDRNode ret = _manager.DD_ONE;
+		for( final String var : vars ){
+			ret = _manager.apply( ret, 
+					_manager.getINode(var, 
+							_manager.getLeaf(prob_true, prob_true),
+							_manager.getLeaf(1-prob_true, 1-prob_true) ),
+					DDOper.ARITH_PROD );
+		}
+		return ret;
 	}
 	
+	public ADDRNode getIIDConjunction( final boolean truth, 
+			final String... vars ){
+		ADDRNode ret = _manager.DD_ONE;
+		for( final String var : vars ){
+			ret = _manager.apply(
+					ret, 
+					_manager.getIndicatorDiagram(var, truth),
+					DDOper.ARITH_PROD );
+		}
+		return ret;
+	}
+	
+	public ADDRNode getSumOfIndicators( final boolean truth, 
+			final String... vars ){
+		ADDRNode ret = _manager.DD_ZERO;
+		for( final String var : vars ){
+			ret = _manager.apply( ret, 
+					_manager.getIndicatorDiagram(var, truth),
+					DDOper.ARITH_PLUS );
+		}
+		return ret;
+	}
+	
+	public ADDRNode getIIDDisjunctionDistribution( final boolean truth,
+			final String... vars ){
+		ADDRNode conjunct = getIIDConjunction(!truth, vars);
+		return _manager.BDDNegate( conjunct );
+	}
+			
 	private void unsetAction(Map<String, Boolean> assignment) {
 
 		for( Map.Entry<String, Boolean> assign : assignment.entrySet() ){
@@ -842,8 +906,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 		if( _regOrder == null ){
 			_regOrder = new ArrayList<NavigableMap<String, Boolean>>();
-			List<NavigableMap<String, Boolean>> partialRegOrder 
-				= _manager.enumeratePaths(_concurrencyConstraint, false, true, 1.0d);
+			Set<NavigableMap<String, Boolean>> partialRegOrder 
+				= _manager.enumeratePaths( _concurrencyConstraint, false, true, (ADDLeaf)(_manager.DD_ONE.getNode()) );
 			//partial paths need to be filled with all possible values 
 			//for ininstantiated variables
 			
@@ -924,7 +988,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			for( UnorderedPair<Integer, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>> p : ret ) {
 				UnorderedPair<PVAR_NAME, ArrayList<LCONST>> pvar = p._o2;
 				String var = CleanFluentName(pvar._o1.toString()+pvar._o2);
-				_sumOrder.add( (var+"'") );
+				_sumOrder.add( (var+"'").intern() );
 			}
 			
 		} catch (EvalException e){
@@ -949,9 +1013,22 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	
 	protected void makePrimeRemap() {
 		for( String s : _stateVars ) {
-			String ns = s + "'";
+			String ns = (s + "'").intern();
 			_hmPrimeRemap.put(s , ns);
+			_hmPrimeUnMap.put(ns, s );
 		}
+	}
+	
+	public ADDRNode getVMax(){
+		return _manager.scalarMultiply( getRMax(), 1.0d/(1.0d-getDiscount()) );
+	}
+	
+	public ADDRNode getRMax(){
+		double ret = 0;
+		for( final ADDRNode rewards : getRewards() ){
+			ret += rewards.getMax();
+		}
+		return _manager.getLeaf(ret, ret);
 	}
 	
 	private ArrayList<UnorderedPair<Integer, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>>>  
@@ -1088,7 +1165,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 			}
 
-			order.add(cpt_var+"'");
+			order.add( (cpt_var+"'").intern() );
 
 		}
 
@@ -1129,20 +1206,20 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	
 	private void initADD() throws EvalException {
-
 		ArrayList<String> Order = null;
-
+		_nextStateVars = _rddlStateSpace.getNextStateVars();
+		
 		if( _order != ORDER.GUESS ){
 			Order  = makeOrdering();
 		}else{
 			Order = guessOrdering();
 		}
-
 		_manager = new ADDManager(MANAGER_STORE_INIT_SIZE,
-				MANAGER_STORE_INCR_SIZE, Order);
-		
+				MANAGER_STORE_INCR_SIZE, Order,42);
 		_varOrder = Order;
-	
+		_totalVariables = Order.size();
+		_numStateVars = _stateVars.size();
+		_numActionVars = _actionVars.size();
 	}
 
 	private ArrayList<String> makeOrdering() throws EvalException {
@@ -1155,43 +1232,40 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 			for( String s : _stateVars ) {
 				order.add(s);
-				order.add(s+"'");
+				order.add( (s+"'").intern() );
 			}
-
 			order.addAll(_actionVars);
-
 			break;
 
 		case AXPX:
 			order.addAll(_actionVars);
-			order.addAll(getNextStateVars());
+			order.addAll(_nextStateVars);
 			order.addAll(_stateVars);
-
 			break;
 
 		case AXXP:
 			order.addAll(_actionVars);
 			order.addAll(_stateVars);
-			order.addAll(getNextStateVars());
+			order.addAll(_nextStateVars);
 			break;
 
 		case XAXP:
 
 			order.addAll(_stateVars);
 			order.addAll(_actionVars);
-			order.addAll(getNextStateVars());
+			order.addAll(_nextStateVars);
 			break;
 
 		case XPAX:
 
-			order.addAll(getNextStateVars());
+			order.addAll(_nextStateVars);
 			order.addAll(_actionVars);
 			order.addAll(_stateVars);
 			break;
 
 		case XPXA:
 
-			order.addAll(getNextStateVars());
+			order.addAll(_nextStateVars);
 			order.addAll(_stateVars);
 			order.addAll(_actionVars);
 			break;
@@ -1203,7 +1277,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 
 			order.addAll(_stateVars);
-			order.addAll(getNextStateVars());
+			order.addAll(_nextStateVars);
 			order.addAll(_actionVars);
 		}
 
@@ -1216,19 +1290,6 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	}
 
 	
-	private List<String> getNextStateVars() {
-
-		if( _nextStateVars == null ){
-			_nextStateVars = new ArrayList<String>();
-			for( String s : _stateVars ){
-				_nextStateVars.add( s + "'");
-			}
-		}
-		
-		return _nextStateVars;
-		
-	}
-
 	private void initializeState(INSTANCE pI, DOMAIN pD, NONFLUENTS pN) {
 		_state.init(pN != null ? pN._hmObjects : null, pI._hmObjects,  
 				pD._hmTypes, pD._hmPVariables, pD._hmCPF,
@@ -1244,13 +1305,11 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		
 		_stateVars = new TreeSet<String>();
 		_actionVars = new TreeSet<String>();
+		_nextStateVars = new TreeSet<String>();
 		
 		_state_constraints = new TreeSet<ADDRNode>();
 		_action_constraints = new TreeSet<ADDRNode>();
 		_action_preconditions = new TreeSet<ADDRNode>();
-		
-		
-		_cpts = new TreeMap< String, ADDRNode >();
 
 		for (Map.Entry<PVAR_NAME,ArrayList<ArrayList<LCONST>>> e : _state_vars.entrySet()) {
 			PVAR_NAME p = e.getKey();
@@ -1317,8 +1376,9 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	}
 
 	public static void main(String[] args) {
-		new RDDL2ADD( args[0], args[1], false, 
-				DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true , 42);
+//		new RDDL2ADD( args[0], args[1], false, 
+//				DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true , 42);
+		testMakeTransition();
 	}
 
 	public ADDManager getManager() {
@@ -1370,5 +1430,158 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	public Set<ADDRNode> getStateConstraints() {
 		return _state_constraints;
+	}
+
+	public static void testMakeTransition(){
+//		new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_7_3.rddl",
+//				true, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, 
+//				true, 42 ).makeTransitionRelation( true );
+		new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_7_3.rddl",
+				false , DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, 
+				true, 42 ).makeTransitionRelation( false );
+	}
+	
+	@Override
+	public void makeTransitionRelation( final boolean withActionVars ){
+		if( withActionVars ){
+			makeTransitionRelationFAR();
+		}else{
+			makeTransitionRelationSPUDD();
+		}
+		return;
+	}
+	
+	@Override
+	public void makeTransitionRelationSPUDD(){
+		final List<NavigableMap<String, Boolean>> all_actions = getFullRegressionOrder();
+		 _actionTransitionRelation 
+		 	= new HashMap<Map<String,Boolean>, Map<String,ADDRNode>>();
+		 _actionTransitionRelationLast 
+		 	= new HashMap<NavigableMap<String,Boolean>, ArrayList<Pair<String,String>>>();
+		 
+		for( final NavigableMap<String, Boolean> action : all_actions ){
+			final Map<String, ADDRNode> theCPTs = _actionCpts.get(action);
+			final Map<String, ADDRNode> inner = new TreeMap<String, ADDRNode>();
+			final ArrayList<Pair<String, String>> inner_last = new ArrayList<Pair<String, String>>();
+			final String[] lastSeen = new String[ _totalVariables ];
+			
+			for( final String ns_var : _sumOrder ){
+				final int ns_index = _varOrder.indexOf( ns_var );
+				final ADDRNode theCPT = theCPTs.get( ns_var );
+				final ADDRNode theRelation = 
+						_manager.apply(
+								_manager.DD_ONE, 
+								_manager.threshold( theCPT, 0.0d, false ),
+								DDOper.ARITH_MINUS );
+				inner.put( ns_var, theRelation );
+				final Set<String> vars = _manager.getVars( theRelation );
+				for( final String var : vars ){
+					if( isActionVariable( var ) ){
+						try{
+							throw new Exception("action variable in SPuDD style relation");
+						}catch( Exception e ){
+							e.printStackTrace();
+							System.exit(1);
+						}
+					}
+					final int index = _varOrder.indexOf( var );
+					if( index != ns_index ){
+						lastSeen[ index ] = ns_var;
+					}
+				}
+			}
+		/////
+			for( int i = 0 ; i < lastSeen.length; ++i ){
+				final String lastVar = lastSeen[ i ];
+				final String thisVar = _varOrder.get(i);
+				if( lastVar == null && ( isNextStateVariable( thisVar ) ||
+						isActionVariable( thisVar ) ) ){ //because both next state vars and 
+					continue;
+				}
+				inner_last.add( new Pair<String, String>( lastVar,  thisVar ) );
+			}
+			Collections.sort( inner_last, new Comparator< Pair<String, String> >() {
+				@Override
+				public int compare(Pair<String, String> o1, Pair<String, String> o2) {
+					if( o1._o1 == null ){
+						return -1;
+					}else if( o2._o1 == null ){
+						return 1;
+					}
+					final int index1 = _sumOrder.indexOf( o1._o1 );
+					final int index2 = _sumOrder.indexOf( o2._o1 );
+					return index1 - index2; 
+				}
+			});
+					////
+			_actionTransitionRelationLast.put( action, inner_last );
+			_actionTransitionRelation.put( action,  inner );
+		}
+	}
+	//convert ADD CPTs to BDDs
+	//call threshold()
+	@Override
+	public void makeTransitionRelationFAR(  ) {
+		System.out.println("Making transition relation");
+		if( _transitionRelation == null ){
+			_transitionRelation = new TreeMap<String, ADDRNode>();
+			_transition_relation_last = new ArrayList< Pair< String, String> >();
+		}
+		//do in same order as sum order
+		//so that only last seen variable can be stored for parents
+		//can dynamically move existential quant. around
+		final String[] lastSeen = new String[ _totalVariables ];
+		for( final String nextVar : _sumOrder ){
+			final ADDRNode theCpt = _cpts.get(nextVar);
+			ADDRNode theRelation = _manager.threshold(theCpt, 0.0d, false );
+			theRelation = _manager.apply( _manager.DD_ONE, theRelation, DDOper.ARITH_MINUS );
+			_transitionRelation.put( nextVar , theRelation );
+//			System.out.print("CPT nodes " );
+//			System.out.print( _manager.countNodes(theCpt) );
+//			System.out.print("\nTransition relation nodes ");
+//			System.out.print( _manager.countNodes(theRelation) );
+//			System.out.print("\nCPT relevant vars " );
+//			System.out.print(_manager.getVars(theCpt) );
+//			System.out.print("\nRelation relevant vars " );
+			Set<String> vars = _manager.getVars( theRelation );
+//			System.out.print( vars );
+			final int ns_index = _varOrder.indexOf( nextVar );
+			for( final String v : vars ){
+				final int index = _varOrder.indexOf( v );
+				if( index != ns_index ) {
+					lastSeen[ index ] = nextVar;	
+				}
+			}
+		}
+		
+		for( int i = 0 ; i < lastSeen.length; ++i ){
+			final String lastVar = lastSeen[ i ];
+			//put nulls in first
+			//since they are not in the transition relation
+			//they can be immediately quantified
+			//from the input BDD
+			final String thisVar = _varOrder.get(i);
+			if( lastVar == null && isNextStateVariable( thisVar ) ){ //because both next state vars and 
+				// vars that are not in relation are last seen null/
+				// but NS should not be quantified and 
+				// the others can be quantified at the beginning
+				continue;
+			}
+			_transition_relation_last.add( new Pair<String, String>( lastVar,  thisVar ) );
+		}
+		Collections.sort( _transition_relation_last, new Comparator< Pair<String, String> >() {
+			@Override
+			public int compare(Pair<String, String> o1, Pair<String, String> o2) {
+				if( o1._o1 == null ){
+					return -1;
+				}else if( o2._o1 == null ){
+					return 1;
+				}
+				final int index1 = _sumOrder.indexOf( o1._o1 );
+				final int index2 = _sumOrder.indexOf( o2._o1 );
+				return index1 - index2; 
+			}
+		});
+		return;
 	}
 }
