@@ -39,13 +39,13 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 		DI extends DDINode<D,DR,? extends Collection<DR> >, 
 		DL extends DDLeaf<?> > {
 	
-	public void createStore( final int NumDDs  );
+	public void createStore( final long NumDDs  );
 	
 	public void addPermenant( final DR... input );
 	
 	public D getOneNullDD( final boolean leaf );
 	
-	public void addToStore( final int soManyDDs,  final boolean leaf, final boolean node );
+	public void addToStore( final long  soManyDDs,  final boolean leaf, final boolean node );
 	
 //	public void nullifyDD( final D input );
 	
@@ -60,11 +60,15 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	};
 	
 	public enum DDMarginalize{
-		MARGINALIZE_SUM, MARGINALIZE_MAX
+		MARGINALIZE_SUM, MARGINALIZE_MAX, MARGINALIZE_MIN
 	};
 	
 	public enum APPROX_TYPE{
 		LOWER, UPPER, AVERAGE, RANGE, NONE
+	};
+	
+	public enum DDQuantify{
+		EXISTENTIAL, UNIVERSAL
 	};
 
 //	public DR approximate(DR input, double epsilon, APPROX_TYPE type);
@@ -79,9 +83,9 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public Set<String> getVars(DR input);
 	
-	public List<NavigableMap<String, Boolean>> enumeratePaths(DR input, boolean leaf,
+	public Set<NavigableMap<String, Boolean>> enumeratePaths(DR input, boolean leaf,
 			 final boolean leafValSpecified, 
-				final double leafVal);
+				final DL leafVal);
 	
 	public boolean compare(DR input1, DR input2);
 	

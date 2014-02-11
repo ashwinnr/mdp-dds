@@ -45,7 +45,7 @@ public class ADDPolicy extends
 	private RDDLFactoredTransition _transition;
 	private FactoredReward<RDDLFactoredStateSpace, RDDLFactoredActionSpace> _reward;
 	private RDDLFactoredStateSpace _stateSpace;
-	private Random _rand;
+	protected Random _rand;
 	
 	public ADDPolicy(ADDManager man, 
 			RDDLFactoredStateSpace stateSpace,
@@ -129,67 +129,98 @@ public class ADDPolicy extends
 	
 	public PolicyStatistics executePolicy( final int numRounds, final int numStates, 
 			final boolean useDiscounting, final int horizon,
+			final double discount, final StateViz visualizer ,
+			final ADDRNode initial_state_dist ){
+		
+		PolicyStatistics stats = new PolicyStatistics(numStates, numRounds);
+		
+		for( int i = 0 ; i < numStates; ++i ){
+			FactoredState<RDDLFactoredStateSpace> init_state 
+				= _transition.sampleState( initial_state_dist );
+			
+			
+			System.out.println("Initial state #" + i );
+			System.out.println( init_state );
+			runRounds( init_state, numRounds ,
+					useDiscounting, horizon, discount, visualizer, stats );
+		}
+		
+		return stats;
+	}
+	
+	public PolicyStatistics executePolicy( final int numRounds, final int numStates, 
+			final boolean useDiscounting, final int horizon,
 			final double discount, final StateViz visualizer ){
 		PolicyStatistics stats = new PolicyStatistics(numStates, numRounds);
 		
 		for( int i = 0 ; i < numStates; ++i ){
 			FactoredState<RDDLFactoredStateSpace> init_state = _transition.randomState();
-			System.out.println("Random initial state #" + i );
+			System.out.println("Initial state #" + i );
 			System.out.println( init_state );
-			if( DISPLAY ){
-				System.out.println("Random initial state : ");
-				System.out.println( init_state );
-			}
-			for( int j = 0 ; j < numRounds; ++j ){
-				FactoredState<RDDLFactoredStateSpace> current_state = init_state;
-				double round_reward = 0.0d;
-				double cur_discount = ( useDiscounting ? discount : 0 );
-				for( int k = 0 ; k < horizon; ++k ){
-					if( DISPLAY ){
-						System.out.println("*State : " + current_state );
-					}
-					
-					FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act 
-						= this.getAction(current_state);
-
-					if( visualizer != null ){
-						_transition.displayState( visualizer,
-								current_state, act, k );
-					}
-					
-					FactoredState<RDDLFactoredStateSpace> new_state = null;
-					try{
-						new_state
-							= _transition.sample(current_state, act);
-					}catch( Exception e ){
-						e.printStackTrace();
-						System.exit(1);
-					}
-						
-					if( DISPLAY ){
-						System.out.println("***State : " + current_state );
-					}
-					double reward = _reward.sample(current_state, act);
-					round_reward += ( useDiscounting ? cur_discount*reward : reward );
-					cur_discount = ( useDiscounting ? cur_discount*discount : 0 );
-					if( DISPLAY ){
-						System.out.println("State : " + current_state );
-						System.out.println("Action : " + act );
-						System.out.println("Reward : " + reward );
-						System.out.println("Next state : " + new_state );
-					}
-					current_state = null;
-					current_state = new_state;
-					if( DISPLAY ){
-						System.out.println("**State : " + current_state );
-					}
-				}
-				System.out.println( " Round reward : " + round_reward );
-				stats.addRoundStats(round_reward);
-			}
+			runRounds( init_state, numRounds ,
+					useDiscounting, horizon, discount, visualizer, stats );
 		}
 		
 		return stats;
+	}
+	
+	//WARNING : side effects - adds entry to stats
+	public void  runRounds(
+			final FactoredState<RDDLFactoredStateSpace> init_state,
+			final int numRounds,
+			final boolean useDiscounting ,
+			final int horizon, 
+			final double discount ,
+			final StateViz visualizer,
+			final PolicyStatistics stats ) {
+		for( int j = 0 ; j < numRounds; ++j ){
+			FactoredState<RDDLFactoredStateSpace> current_state = init_state;
+			double round_reward = 0.0d;
+			double cur_discount = ( useDiscounting ? discount : 0 );
+			for( int k = 0 ; k < horizon; ++k ){
+				if( DISPLAY ){
+					System.out.println("*State : " + current_state );
+				}
+				
+				FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act 
+					= this.getAction(current_state);
+
+				if( visualizer != null ){
+					_transition.displayState( visualizer,
+							current_state, act, k );
+				}
+				
+				FactoredState<RDDLFactoredStateSpace> new_state = null;
+				try{
+					new_state
+						= _transition.sample(current_state, act);
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+					
+				if( DISPLAY ){
+					System.out.println("***State : " + current_state );
+				}
+				double reward = _reward.sample(current_state, act);
+				round_reward += ( useDiscounting ? cur_discount*reward : reward );
+				cur_discount = ( useDiscounting ? cur_discount*discount : 0 );
+				if( DISPLAY ){
+					System.out.println("State : " + current_state );
+					System.out.println("Action : " + act );
+					System.out.println("Reward : " + reward );
+					System.out.println("Next state : " + new_state );
+				}
+				current_state = null;
+				current_state = new_state;
+				if( DISPLAY ){
+					System.out.println("**State : " + current_state );
+				}
+			}
+			System.out.println( " Round reward : " + round_reward );
+			stats.addRoundStats(round_reward);
+		}
+
 	}
 
 	@Override

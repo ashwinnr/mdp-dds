@@ -5,31 +5,30 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
-//import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import java_cup.production;
-
-import javax.print.attribute.standard.Sides;
+import com.google.common.collect.Lists;
+import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
 
 import rddl.EvalException;
-import rddl.RDDL.LCONST;
-import rddl.RDDL.PVAR_NAME;
-import rddl.State;
 import rddl.mdp.RDDL2ADD;
-import rddl.mdp.RDDLFactoredActionSpace;
-import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
+import rddl.mdp.RDDLFactoredActionSpace;
+import rddl.mdp.RDDLFactoredStateSpace;
 import util.Pair;
 import util.Timer;
 import util.UnorderedPair;
@@ -41,19 +40,21 @@ import add.ADDRNode;
 import dd.DDManager.APPROX_TYPE;
 import dd.DDManager.DDMarginalize;
 import dd.DDManager.DDOper;
+import dd.DDManager.DDQuantify;
 import dtr.SymbolicPolicy;
 import dtr.SymbolicRegression;
 import dtr.SymbolicValueFunction;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
-import factored.mdp.define.FactoredActionSpace;
-import factored.mdp.define.FactoredReward;
-import factored.mdp.define.FactoredStateSpace;
-import factored.mdp.define.FactoredTransition;
 
 public class ADDDecisionTheoreticRegression implements
 		SymbolicRegression<ADDNode, ADDRNode, ADDINode, ADDLeaf, RDDLFactoredStateSpace, 
 		RDDLFactoredActionSpace> {
 
+	public enum BACKUP_TYPE{
+		VMAX, VI_SPUDD, VI_FAR, VI_MBFAR
+	}
+	
 	private ADDManager _manager;
 	private RDDL2ADD _mdp;
 	private DEBUG_LEVEL _dbg;
@@ -61,20 +62,240 @@ public class ADDDecisionTheoreticRegression implements
 	private Random _rand;
 	private List<String> __order_action_vars_appear;
 	private ArrayList< Integer > __nextVar_to_actionVar_range;
-	private ADDRNode __action_precondition = null;
-	private Set<ADDRNode> __policy_constraints = new HashSet<ADDRNode>();
-	private final ADDRNode __action_constraints;
-	private final ADDRNode __state_constraints;
+	private ArrayList< ADDRNode >  __action_precondition = new ArrayList<ADDRNode>();
+	private final ArrayList<ADDRNode> __policy_constraints = new ArrayList<ADDRNode>();
+	private final ArrayList<ADDRNode> __action_constraints = new ArrayList<ADDRNode>();
+	private final ArrayList<ADDRNode> __state_constraints = new ArrayList<ADDRNode>();
 	private ADDRNode _hsReward = null;
+	
+	public enum INITIAL_STATE_CONF{
+		UNIFORM, BERNOULLI, CONJUNCTIVE
+	}
+	
+	public enum GENERALIZE_PATH{
+		ALL_PATHS
+	}
+	
+	private class Heuristic_Compute implements Callable<ADDRNode>{
+		
+		 private final int steps;
+		 private final BACKUP_TYPE heuristic_type;
+		 private final boolean constrain_naively;
+		 private final boolean do_apricodd;
+		 private final double apricodd_epsilon;
+		 private final APPROX_TYPE apricodd_type;
+		 private final long MB;
+		 private ADDRNode ret = null;
+		private boolean timeOut;
+		 
+		public Heuristic_Compute(int steps, BACKUP_TYPE heuristic_type,
+				boolean constrain_naively, boolean do_apricodd,
+				double apricodd_epsilon, APPROX_TYPE apricodd_type, long mB) {
+			super();
+			this.steps = steps;
+			this.heuristic_type = heuristic_type;
+			this.constrain_naively = constrain_naively;
+			this.do_apricodd = do_apricodd;
+			this.apricodd_epsilon = apricodd_epsilon;
+			this.apricodd_type = apricodd_type;
+			MB = mB;
+		}
+		
+		public ADDRNode getLastResult( ){
+			return ret;
+		}
+		
+		public void setTimeOut( ) {
+			this.timeOut = true;
+		}
+
+		@Override
+		public ADDRNode call() throws Exception {
+			final ADDRNode Vmax = _mdp.getVMax();
+			if( heuristic_type.equals(BACKUP_TYPE.VMAX) ){
+				ret = Vmax;
+				return ret;
+			}
+			
+			int iter = 0;
+			ret = Vmax;
+			while( ( ( steps != -1 && ++iter < steps ) || steps == -1 )
+					&& !timeOut ){// NOTE : steps removed 1/20 for steps = -1 -ANR
+				System.out.println("Heur step : " + iter );
+				switch( heuristic_type ){
+				case VI_SPUDD:
+					final UnorderedPair<SymbolicValueFunction<ADDNode, ADDRNode, 
+					ADDINode, ADDLeaf, RDDLFactoredStateSpace, RDDLFactoredActionSpace>, 
+					SymbolicPolicy<ADDNode, ADDRNode, ADDINode, ADDLeaf, 
+					RDDLFactoredStateSpace, RDDLFactoredActionSpace>> 
+					regressed_spudd = regress(ret, false, false, false, constrain_naively, null, do_apricodd,
+							apricodd_epsilon, apricodd_type );
+					ret = regressed_spudd._o1.get_valueFn();
+					break;
+				case VI_FAR : 
+					final UnorderedPair<SymbolicValueFunction<ADDNode, ADDRNode, 
+					ADDINode, ADDLeaf, RDDLFactoredStateSpace, RDDLFactoredActionSpace>, 
+					SymbolicPolicy<ADDNode, ADDRNode, ADDINode, ADDLeaf, 
+					RDDLFactoredStateSpace, RDDLFactoredActionSpace>> 
+					regressed_far = regress(ret, true , false, false, constrain_naively, null, do_apricodd,
+							apricodd_epsilon, apricodd_type );
+					ret = regressed_far._o1.get_valueFn();
+					break;
+				case VI_MBFAR :
+					if( MB <= 0 ){
+						try{
+							throw new Exception("Heuristic type VI_MBFAR does not make sense with MB 0" );
+						}catch( Exception e ){
+							e.printStackTrace();
+							System.exit(1);
+						}
+					}
+					final UnorderedPair<ADDValueFunction, ADDPolicy> 
+					regressed_mbfar = regressMBFAR( ret, false, constrain_naively, MB, null, do_apricodd, apricodd_epsilon, apricodd_type);
+					ret = regressed_mbfar._o1.get_valueFn();
+					break;
+				}
+			}
+			return ret;
+		}
+	}
+	
+	public ADDRNode generalize( final ADDRNode input, 
+			final NavigableMap<String, Boolean> path ,
+			final GENERALIZE_PATH rule ){
+		ADDRNode eval = _manager.evaluate(input, path);
+		ADDLeaf leaf = (ADDLeaf)eval.getNode();
+		switch( rule ){
+		case ALL_PATHS :
+			return _manager.all_paths_to_leaf(input, leaf); 
+		}
+		return null;
+	}
+	
+	public static void testComputeHeuristic(){
+		
+		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
+				true, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, true, 42);
+		
+		ADDDecisionTheoreticRegression ADD_dtr 
+			= new ADDDecisionTheoreticRegression(mdp, 42);
+		ADDManager manager = mdp.getManager();
+		
+		final ADDRNode result
+			= ADD_dtr.computeLAOHeuristic(100, 
+					BACKUP_TYPE.VI_FAR, true, false, 0.1, APPROX_TYPE.UPPER, 0, 0.01 );
+		System.out.println("received result");
+		manager.showGraph( result );
+	}
+	
+	//from and to needs to be a BDD
+	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup( final ADDRNode current_value, 
+			final ADDRNode from, 
+			final ADDRNode to, 
+			final BACKUP_TYPE backup_type, 
+			final boolean do_apricodd,
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ,
+			final boolean makePolicy,
+			final long BIGDD ){
+		
+		final ADDRNode unprimed = _manager.BDDIntersection(current_value, from);
+		final ADDRNode primed = 
+				_manager.remapVars( 
+						unprimed  ,
+						_mdp.getPrimeRemap() );
+		int idx = addStateConstraint(to);
+		UnorderedPair<ADDValueFunction, ADDPolicy> backup = null;
+		switch( backup_type ){
+		case VI_FAR : 
+			backup = regressAllActions( primed, false, makePolicy, true, null,
+					do_apricodd, apricodd_epsilon, apricodd_type );
+			break;//backup will have value and policy for things not in to, 
+			//should be masked
+		case VI_SPUDD :
+			backup = regressSPUDD(primed, false, makePolicy, true, null, 
+					do_apricodd, apricodd_epsilon, apricodd_type);
+			break;
+		case VI_MBFAR :
+			backup = regressMBFAR(unprimed, makePolicy, true, BIGDD, null,
+					do_apricodd, apricodd_epsilon, apricodd_type);
+			break;
+		}
+		
+		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
+		ADDRNode saveV = _manager.BDDIntersection( current_value ,
+				_manager.BDDNegate(to) );
+		value_ret = _manager.apply( value_ret, saveV, DDOper.ARITH_PLUS );
+		final double residual = getBellmanError(value_ret, current_value);
+		
+		ADDRNode policy_ret = null;
+		if( makePolicy ){
+			policy_ret = backup._o2._addPolicy == null ? backup._o2._bddPolicy :
+					backup._o2._addPolicy ;
+			policy_ret = _manager.BDDIntersection(policy_ret, to);//policy in 
+		//to states
+		//zero in others
+		//put one in others
+//			policy_ret = _manager.BDDUnion( policy_ret, _manager.BDDNegate(to) );
+		}
+		removeStateConstraint(idx);
+		
+		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double> >( 
+				value_ret, new UnorderedPair<ADDRNode, Double>( policy_ret , residual ) );
+	}
+	
+	public enum INITIAL_VALUE{
+		ZERO, VMAX
+	}
+	
+	public ADDRNode computeLAOHeuristic( final int steps, 
+			final BACKUP_TYPE heuristic_type ,
+			final boolean constrain_naively, 
+			final boolean do_apricodd, 
+			final double apricodd_epsilon, 
+			final APPROX_TYPE apricodd_type,
+			final long MB ,
+			final double time_heuristic_mins ){
+		
+		
+		final Heuristic_Compute worker = new Heuristic_Compute(steps, heuristic_type, 
+				constrain_naively, do_apricodd, 
+				apricodd_epsilon, apricodd_type, MB);
+		ExecutorService exec_serv = Executors.newSingleThreadExecutor();
+		Future<ADDRNode> future = exec_serv.submit( 
+				worker );
+		ADDRNode ret = null;
+		try {
+			final ADDRNode result = future.get((long)( time_heuristic_mins * 60 * 1000), TimeUnit.MILLISECONDS );
+			System.out.println("computation completed, returning result");
+			ret = result;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			System.exit(1);
+		} catch (ExecutionException e) {
+			e.printStackTrace();
+			System.exit(1);
+		} catch( TimeoutException e ){
+			System.out.println("time out for heuristic compute, returning current result ");
+			worker.setTimeOut();
+			ret = worker.getLastResult();
+			System.out.print("task has been cancelled ");
+			System.out.println(future.cancel( true ));
+		}
+		System.out.println( exec_serv.shutdownNow() );
+		return ret;
+	}
 
 	public ADDDecisionTheoreticRegression(RDDL2ADD mdp, final long seed){
 		_manager = mdp.getManager();
 		_mdp = mdp;
 		_dbg = mdp.__debug_level;
+		__action_constraints.add( _manager.productDD( _mdp.getActionConstraints() ) );
+		__state_constraints.add( _manager.productDD( mdp.getStateConstraints() ) );
 		final ADDRNode action_precon = _manager.productDD(_mdp.getActionPreconditions() );
-		__action_constraints = _manager.productDD( _mdp.getActionConstraints() );
-		__state_constraints = _manager.productDD( mdp.getStateConstraints() );
-		__action_precondition = _manager.productDD( action_precon ) ;
+		if( action_precon != null ){
+			__action_precondition.add( action_precon );
+		}
 		_rand = new Random( seed );
 		setupMBFAR();
 	}
@@ -123,14 +344,16 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		ADDRNode all_constraints = _manager.productDD( 
 				__action_precondition, __state_constraints,
-				_manager.productDD( __policy_constraints, 
-				__action_constraints ) );
+				 __policy_constraints, 
+				__action_constraints );
 		
 		if( action != null ){
 			all_constraints = _manager.restrict(all_constraints, action);
 		}
-		all_constraints = convertToNegInfDD( all_constraints );
+		all_constraints = convertToNegInfDD( Lists.newArrayList( all_constraints ) ).get(0);
 		ADDRNode ret = _manager.apply(input, all_constraints, DDOper.ARITH_PLUS );
+		ret = _manager.remapLeaf(ret, _manager.DD_NEG_INF, violate);
+		
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( ret ) ) ;
 		}
@@ -180,8 +403,8 @@ public class ADDDecisionTheoreticRegression implements
 		
 		ADDRNode all_constraints = _manager.productDD( 
 				__action_precondition, __state_constraints,
-				_manager.productDD( __policy_constraints, 
-				__action_constraints ) );
+				__policy_constraints, 
+				__action_constraints );
 		
 		if( action != null ){
 			all_constraints = _manager.restrict(all_constraints, action);
@@ -288,6 +511,253 @@ public class ADDDecisionTheoreticRegression implements
 				, policy);
 	}
 	
+	//function to compute next state distribution over states
+	//with/without given probabilistic policy
+	//ie. with action variables
+	//P(s') = sum_s P(s) sum_a P(a|s) P(s' | s,a)
+	//P(a|s) is an ADD policy
+	// no form of P(a|s) is assumed
+	//when no policy is specified, assume uniform?
+	//use discounting?
+	public ADDRNode exactProbabilisticImage( final ADDRNode state_distribution, 
+			final ADDRNode probabilistic_policy ){
+		return null;
+	}
+	
+	public ADDRNode BDDImagePolicy( final ADDRNode reachable_states,
+			final boolean withActionVars,
+			final DDQuantify action_qualification, 
+			final ADDRNode policy ){
+		int index_added = addPolicyConstraint(policy);
+		final ADDRNode ret = BDDImage(reachable_states, withActionVars, action_qualification);
+		removePolicyConstraint(index_added);
+		return ret;
+	}
+	
+	//all actions?
+	//spudd style?
+	//far style?
+	//sLAO* style  BDD image
+	//given : BDD over states
+	//use transition ``relation'' 
+	//existentially quantify actions
+	//or policy is specified
+	public  ADDRNode BDDImage( final ADDRNode reachable_states, 
+			final boolean withActionVars, 
+			final DDQuantify action_quantification ){
+		if( !_mdp.isTransitionRelationReady(withActionVars) ){
+			_mdp.makeTransitionRelation( withActionVars );
+		}
+		
+		ADDRNode ret_ns = null; 
+		if( withActionVars ){
+			ret_ns =  BDDImageFAR( reachable_states, action_quantification );
+		}else {
+			ret_ns =  BDDImageSPUDD( reachable_states, action_quantification );
+		}
+		return _manager.remapVars(ret_ns, _mdp.getPrimeUnMap() );
+	}
+	
+	private ADDRNode BDDImageSPUDD(final ADDRNode reachable_states,
+			final DDQuantify quantification) {
+		final List<NavigableMap<String, Boolean>> actions = _mdp.getFullRegressionOrder();
+		final Map<Map<String, Boolean>, Map<String, ADDRNode>> theRelations = _mdp.getTransitionRelationSPUDD();
+		final Map<NavigableMap<String, Boolean>, ArrayList<Pair<String, String>>> 
+			theRelationsLast = _mdp.getTransitionRelationLastSPUDD();
+		ADDRNode ret = _manager.DD_ZERO;
+		for( final NavigableMap<String, Boolean> action : actions ){
+			ADDRNode ret_action = applyMDPConstraintsNaively(reachable_states, action, _manager.DD_ZERO, null);
+			final Map<String, ADDRNode> action_relation = theRelations.get( action );
+			final ArrayList<Pair<String, String>> action_last = theRelationsLast.get( action );
+			int lastSeen_index = 0;
+			final int lastSeen_size = action_last.size();
+			for( final String ns_var : _mdp.getSumOrder() ){
+				ret_action = _manager.apply( ret_action, 
+						action_relation.get( ns_var ),
+						DDOper.ARITH_PROD );
+				
+				if( lastSeen_index == lastSeen_size ){
+					continue;
+				}else{//check for state vars to quantify
+					Pair<String, String> first_lastSeen = action_last.get( lastSeen_index );
+					while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == ns_var ) && 
+							lastSeen_index < lastSeen_size ){ //counts on interned string
+						ret_action = _manager.quantify( ret_action, first_lastSeen._o2, quantification );
+						if( ++lastSeen_index < lastSeen_size ){
+							first_lastSeen = action_last.get( lastSeen_index );
+						}
+					}
+				}
+			}
+			ret = _manager.apply( ret, ret_action, DDOper.ARITH_MAX );
+		}
+		return ret;
+	}
+
+	private static void testImageAllActions(){
+//		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
+//				true, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true, 42);
+//		
+//		ADDDecisionTheoreticRegression ADD_dtr 
+//			= new ADDDecisionTheoreticRegression(mdp, 42);
+//		ADDManager manager = mdp.getManager();
+//		
+//		int i = 0;
+//		Set<String> state_vars = mdp.getFactoredStateSpace().getStateVariables();
+//		ADDRNode states = manager.DD_ONE;
+//		for( final String state_var : state_vars ){
+//			states = manager.apply( states , 
+//					manager.getIndicatorDiagram(state_var, false),
+//					DDOper.ARITH_PROD ) ;
+//		}
+//		
+//		ADDRNode iter = states;
+//		while( i++ < 5 ){
+//			manager.showGraph( iter );
+//			System.out.println( i +  " " + manager.countNodes(iter) );
+//			iter = ADD_dtr.BDDImage(iter, true,  DDQuantify.EXISTENTIAL);
+//		}
+
+		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
+				false, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true, 42);
+		
+		ADDDecisionTheoreticRegression ADD_dtr 
+			= new ADDDecisionTheoreticRegression(mdp, 42);
+		ADDManager manager = mdp.getManager();
+		
+		int i = 0;
+		Set<String> state_vars = mdp.getFactoredStateSpace().getStateVariables();
+		ADDRNode states = manager.DD_ONE;
+		for( final String state_var : state_vars ){
+			states = manager.apply( states , 
+					manager.getIndicatorDiagram(state_var, false),
+					DDOper.ARITH_PROD ) ;
+		}
+		
+		ADDRNode iter = states;
+		while( i++ < 5 ){
+			manager.showGraph( iter );
+			System.out.println( i +  " " + manager.countNodes(iter) );
+			iter = ADD_dtr.BDDImage(iter, false,  DDQuantify.EXISTENTIAL);
+		}
+	}
+
+	private static void testImagePolicy(){
+//		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
+//				true, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true, 42);
+//		
+//		ADDDecisionTheoreticRegression ADD_dtr 
+//			= new ADDDecisionTheoreticRegression(mdp, 42);
+//		ADDManager manager = mdp.getManager();
+//		
+//		int i = 0;
+//		Set<String> state_vars = mdp.getFactoredStateSpace().getStateVariables();
+//		ADDRNode states = manager.DD_ONE;
+//		for( final String state_var : state_vars ){
+//			states = manager.apply( states , 
+//					manager.getIndicatorDiagram(state_var, false),
+//					DDOper.ARITH_PROD ) ;
+//		}
+//		
+//		ADDRNode policy = manager.DD_ZERO;
+//		for( final String action_var : mdp.getFactoredActionSpace().getActionVariables() ){
+//			policy = manager.apply( policy, 
+//					manager.getIndicatorDiagram(action_var, true),
+//					DDOper.ARITH_MAX );
+//		}
+//		
+//		ADDRNode iter = states;
+//		while( i++ < 5 ){
+//			manager.showGraph( iter );
+//			System.out.println( i +  " " + manager.countNodes(iter) );
+//			iter = ADD_dtr.BDDImagePolicy(iter, true,  DDQuantify.EXISTENTIAL, policy);
+//		}
+
+		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
+				false, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true, 42);
+		
+		ADDDecisionTheoreticRegression ADD_dtr 
+			= new ADDDecisionTheoreticRegression(mdp, 42);
+		ADDManager manager = mdp.getManager();
+		
+		int i = 0;
+		Set<String> state_vars = mdp.getFactoredStateSpace().getStateVariables();
+		ADDRNode states = manager.DD_ONE;
+		for( final String state_var : state_vars ){
+			states = manager.apply( states , 
+					manager.getIndicatorDiagram(state_var, false),
+					DDOper.ARITH_PROD ) ;
+		}
+		
+		ADDRNode policy = manager.DD_ZERO;
+		for( final String action_var : mdp.getFactoredActionSpace().getActionVariables() ){
+			policy = manager.apply( policy, 
+					manager.getIndicatorDiagram(action_var, true),
+					DDOper.ARITH_MAX );
+		}
+		
+		ADDRNode iter = states;
+		while( i++ < 5 ){
+			manager.showGraph( iter );
+			System.out.println( i +  " " + manager.countNodes(iter) );
+			iter = ADD_dtr.BDDImagePolicy(iter, false,  DDQuantify.EXISTENTIAL, policy);
+		}
+		
+	}
+
+	//get transition relation
+	//convert CPTs to BDDs
+	private ADDRNode BDDImageFAR(final ADDRNode primed_reachable_states,
+			final DDQuantify quantification) {
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
+			&& _manager.hasVars( primed_reachable_states, _mdp.getFactoredActionSpace().getActionVariables() )
+			&& _manager.hasVars( primed_reachable_states, _mdp.getFactoredStateSpace().getNextStateVars() ) ){
+			try{
+				throw new Exception("Has action/next state vars in Image.");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		ADDRNode ret = primed_reachable_states;
+		final NavigableMap<String, ADDRNode> transitionRelation = _mdp.getTransitionRelationFAR();
+		final ArrayList<Pair<String, String>> lastSeen = _mdp.getTransitionRelationLastFAR();
+		final ArrayList<String> sumOrder = _mdp.getSumOrder();
+		int lastSeen_index = 0;
+		final int lastSeen_size = lastSeen.size();
+		ret = applyMDPConstraintsNaively( ret, null, _manager.DD_ZERO, null );
+
+		for( final String nextState : sumOrder ){
+//			System.out.print("Image for variable ");
+//			System.out.print( nextState );
+//			System.out.println();
+			final ADDRNode theRelation = transitionRelation.get(nextState);
+			ret = _manager.apply( ret , theRelation, DDOper.ARITH_PROD );
+			
+			Pair<String, String> first_lastSeen = lastSeen.get( lastSeen_index );
+			while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == nextState ) && 
+					lastSeen_index < lastSeen_size ){ //counts on interned string
+				ret = _manager.quantify( ret, first_lastSeen._o2, quantification );
+				if( ++lastSeen_index < lastSeen_size ){
+					first_lastSeen = lastSeen.get( lastSeen_index );
+				}
+			}
+		}
+
+		for( String state_var : _mdp.getFactoredStateSpace().getStateVariables() ){
+			ret = _manager.quantify( ret ,  state_var , quantification);
+		}
+		 
+		for( String action_var : _mdp.getFactoredActionSpace().getActionVariables() ){
+			ret = _manager.quantify(ret, action_var, quantification);
+		}
+		 
+		return ret;
+	}
+
+	//	preImage using BDDs
+	//preImage with probabilities
+	
 	private UnorderedPair<ADDValueFunction, ADDPolicy> regressAllActions(final ADDRNode primed, 
 			final boolean keepQ, final boolean makePolicy, 
 			final boolean constrain_naively, final List<Long> size_change ,
@@ -296,19 +766,23 @@ public class ADDDecisionTheoreticRegression implements
 			final APPROX_TYPE apricodd_type ) {
 		
 		final ArrayList<String> sum_order = _mdp.getSumOrder();
-		System.out.print("Regressing all actions " );
+		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
+			System.out.print("Regressing all actions " );
+		}
 		ADDRNode ret = constrain_naively ? 
 				applyMDPConstraints(primed, null, _manager.DD_NEG_INF, constrain_naively, size_change)
 				: primed ;
 		for( String str : sum_order ){
-//			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.print( "*" );// + str );
-//			}
+			}
 			ret = computeExpectation( ret, str, null, constrain_naively, size_change,
 					do_apricodd, 
 					apricodd_epsilon, apricodd_type );
 		}
-		System.out.println();
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println();	
+		}
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasSuffixVars(ret, "'") ){
@@ -343,7 +817,9 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
-		System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
+		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
+			System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
+		}
 		
 		ret = maxActionVariables(q_func, _mdp.getElimOrder(), size_change,
 				do_apricodd, apricodd_epsilon, apricodd_type );
@@ -426,14 +902,16 @@ public class ADDDecisionTheoreticRegression implements
 		final ArrayList<String> sum_order = _mdp.getSumOrder();
 		final Map<String, ArrayList<String>> hsOrder = _mdp.getHindSightOrder();
 		
-		System.out.print("Regressing all actions " );
+		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
+			System.out.print("Regressing all actions " );
+		}
 		ADDRNode ret = constrain_naively ? 
 				applyMDPConstraints(primed, null, _manager.DD_NEG_INF, constrain_naively, size_change)
 				: primed;
 		for( final String str : sum_order ){
-//			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.print( "*" );// + str );
-//			}
+			}
 			ret = computeExpectation( ret, str, null, constrain_naively, size_change,
 					do_apricodd, 
 					apricodd_epsilon, apricodd_type );
@@ -442,7 +920,9 @@ public class ADDDecisionTheoreticRegression implements
 				ret = maxActionVariables(ret, maxes, size_change, do_apricodd, apricodd_epsilon, apricodd_type);
 			}
 		}
-		System.out.println();
+		if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
+			System.out.println();			
+		}
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasSuffixVars(ret, "'") ){
@@ -577,7 +1057,9 @@ public class ADDDecisionTheoreticRegression implements
 
 	private ADDRNode multiplyActionPreconditions( final ADDRNode input, 
 			final NavigableMap<String, Boolean> action ) {
-		ADDRNode constraint = convertToNegInfDD( __action_precondition );
+		final ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __action_precondition );
+		ADDRNode constraint = _manager.productDD( all_constraint );
+		
 		if( action != null ){
 			constraint =_manager.restrict( constraint, action ); 
 		}
@@ -585,9 +1067,12 @@ public class ADDDecisionTheoreticRegression implements
 		return ret;
 	}
 
-	private ADDRNode convertToNegInfDD(final ADDRNode input) {
-		ADDRNode ret = _manager.remapLeaf(input, _manager.DD_ZERO, _manager.DD_NEG_INF );
-		ret = _manager.remapLeaf(ret, _manager.DD_ONE, _manager.DD_ZERO);
+	private ArrayList<ADDRNode> convertToNegInfDD(final ArrayList<ADDRNode> input) {
+		final ArrayList<ADDRNode>  ret = new ArrayList<ADDRNode>(input.size());
+		for( final ADDRNode in : input ){
+			final ADDRNode inter = _manager.remapLeaf(in, _manager.DD_ZERO, _manager.DD_NEG_INF );
+			ret.add( _manager.remapLeaf( inter, _manager.DD_ONE, _manager.DD_ZERO) );
+		}
 		return ret;
 	}
 
@@ -794,6 +1279,145 @@ public class ADDDecisionTheoreticRegression implements
 				//sets neginf to zero
 				//and zero to one
 				//positive nos. to zero 
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				//optimal action is 1
 //				final ADDRNode opt_one = _manager.apply( _manager.DD_ONE, opt_zero, DDOper.ARITH_MINUS );
 //				final ADDRNode opt_zero = _manager.apply( _manager.DD_ONE, 
@@ -843,7 +1467,8 @@ public class ADDDecisionTheoreticRegression implements
 	
 	private ADDRNode multiplyActionConstraints(final ADDRNode input,
 			NavigableMap<String, Boolean> action ) {
-		ADDRNode constraint = convertToNegInfDD( __action_constraints );
+		ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __action_constraints );
+		ADDRNode constraint = _manager.productDD( all_constraint ); 
 		if( action != null ){
 			constraint = _manager.restrict( constraint, action );
 		}
@@ -852,7 +1477,8 @@ public class ADDDecisionTheoreticRegression implements
 	}
 
 	private ADDRNode multiplyStateConstraints( final ADDRNode input ) {
-		final ADDRNode constraint = convertToNegInfDD( __state_constraints );
+		final ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __state_constraints );
+		ADDRNode constraint = _manager.productDD( all_constraint );
 		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
 		return ret;
 	}
@@ -1066,21 +1692,30 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean do_apricodd, final double apricodd_epsilon,
 			final APPROX_TYPE apricodd_type ) {
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
-		addPolicyConstraint( policy );
+		int index_added = addPolicyConstraint( policy );
 		ret = regress(initial_value_func, withActionVars, false, false,
 				constrain_naively, size_change, do_apricodd, apricodd_epsilon, apricodd_type );
-		if( !removePolicyConstraint( policy ) ){
+		if( !removePolicyConstraint( index_added ) ){
 			System.err.println("policy constraint not found");
 			System.exit(1);
 		}
 		return ret._o1.get_valueFn();
 	}
 
-	private boolean removePolicyConstraint( final ADDRNode input ) {
-		return __policy_constraints.remove( input );
+	public int addStateConstraint( final ADDRNode input ){
+		__state_constraints.add( input );
+		return __state_constraints.size()-1;
+	}
+	
+	public boolean removeStateConstraint( final int index ){
+		return __state_constraints.remove( index ) == null;
+	}
+	
+	public boolean removePolicyConstraint( final int index ) {
+		return __policy_constraints.remove( index ) == null;
 	}
 
-	private int addPolicyConstraint(ADDRNode policy) {
+	public int addPolicyConstraint(ADDRNode policy) {
 		__policy_constraints.add(policy);
 		return __policy_constraints.size()-1;
 	}
@@ -1169,7 +1804,10 @@ public class ADDDecisionTheoreticRegression implements
 //		testRegressAction();
 //		testRegressAllActions();
 //		testSPUDD();
-		testConstrainNaively();
+//		testConstrainNaively();
+//		testImageAllActions();
+		testImagePolicy();
+//		testComputeHeuristic();
 //		try {
 //			testRegressPolicy(true);
 //		} catch (EvalException e) {
@@ -1226,7 +1864,7 @@ public class ADDDecisionTheoreticRegression implements
 		}
 //		manager.showGraph( (ADDRNode[])ret._o1._qFn.values().toArray() );
 		manager.showGraph( newValueFn );	
-		//execute policy
+		//execute policyregre
 		ADDPolicy policy = new ADDPolicy(manager, mdp.getFactoredStateSpace(), 
 				mdp.getFactoredTransition(), mdp.getFactoredReward(), 42);
 		policy._bddPolicy = handCodedPolicy;
@@ -1392,11 +2030,11 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean do_apricodd, 
 			final double apricodd_epsilon, final APPROX_TYPE apricodd_type ) {
 		UnorderedPair<ADDValueFunction,ADDPolicy> ret = null;
-		addPolicyConstraint( policy );
+		final int index_added = addPolicyConstraint( policy );
 		ret = regressMBFAR(input, make_policy, constraint_naively, BIGDD, null ,
 				do_apricodd, 
 				apricodd_epsilon, apricodd_type );
-		if( !removePolicyConstraint( policy ) ){
+		if( !removePolicyConstraint( index_added ) ){
 			System.err.println("policy constraint not found");
 			System.exit(1);
 		}
@@ -1437,6 +2075,20 @@ public class ADDDecisionTheoreticRegression implements
 			final double epsilon,
 			final int horizon) {
 		return ( iteration >= horizon || BE <= epsilon );
+	}
+
+	public ADDRNode getIIDInitialStates(INITIAL_STATE_CONF init_state_conf,
+			double init_state_prob) {
+		final String[]  stateVarsArary = _mdp.get_stateVars().toArray( new String[ _mdp.getNumStateVars() ] );
+		switch( init_state_conf ){
+		case BERNOULLI :
+			return _mdp.getIIDBernoulliDistribution(init_state_prob, stateVarsArary);
+		case CONJUNCTIVE :
+			return _mdp.getIIDConjunction(!(init_state_prob==0.0d), stateVarsArary );
+		case UNIFORM :
+			return _mdp.getIIDUniformDistribution( stateVarsArary );
+		}
+		return null;
 	}
 
 //	TODO

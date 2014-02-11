@@ -9,6 +9,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
+import add.ADDManager;
+import add.ADDRNode;
+
 import mdp.define.Action;
 import mdp.define.State;
 import rddl.EvalException;
@@ -227,4 +230,17 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	//atom sfor each state var then 
 	//simulates factored transitions
 	//by substitution
+
+	public FactoredState<RDDLFactoredStateSpace> sampleState(
+			final ADDRNode initial_state_dist ) {
+		NavigableMap<String, Boolean> partial_state = 
+				ADDManager.sampleOneLeaf( initial_state_dist, _rand );
+		FactoredState<RDDLFactoredStateSpace> ret 
+			= new FactoredState<RDDLFactoredStateSpace>();
+		for( final String svar : _stateVars ){
+			final Boolean val = partial_state.get(svar);
+			ret.setStateVariable(svar, val == null ? false : val );
+		}
+		return ret;
+	}
 }
