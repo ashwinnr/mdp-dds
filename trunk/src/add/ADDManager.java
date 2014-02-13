@@ -2386,7 +2386,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	@Override
 	public ADDRNode evaluate(final ADDRNode input, final Map<?, Boolean> assign) {
-//		Objects.requireNonNull( input );
+		System.out.println( input );
+		System.out.println( assign.toString() );
+		
 		ADDRNode ret = input;
 		while( !( ret.getNode() instanceof ADDLeaf ) ){
 			final String testVar = ret.getTestVariable();
