@@ -169,10 +169,10 @@ public class ADDDecisionTheoreticRegression implements
 	public ADDRNode generalize( final ADDRNode input, 
 			final NavigableMap<String, Boolean> path ,
 			final GENERALIZE_PATH rule ){
-		ADDRNode eval = _manager.evaluate(input, path);
-		ADDLeaf leaf = (ADDLeaf)eval.getNode();
 		switch( rule ){
 		case ALL_PATHS :
+			ADDRNode eval = _manager.evaluate(input, path);
+			ADDLeaf leaf = (ADDLeaf)eval.getNode();
 			return _manager.all_paths_to_leaf(input, leaf); 
 		case NONE :
 			return _manager.getProductBDDFromAssignment( path );
