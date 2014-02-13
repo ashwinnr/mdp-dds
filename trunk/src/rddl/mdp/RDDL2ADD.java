@@ -1532,6 +1532,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		//can dynamically move existential quant. around
 		final String[] lastSeen = new String[ _totalVariables ];
 		for( final String nextVar : _sumOrder ){
+			System.out.println( nextVar );
+			
 			final ADDRNode theCpt = _cpts.get(nextVar);
 			ADDRNode theRelation = _manager.threshold(theCpt, 0.0d, false );
 			theRelation = _manager.apply( _manager.DD_ONE, theRelation, DDOper.ARITH_MINUS );
