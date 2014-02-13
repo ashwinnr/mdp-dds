@@ -226,7 +226,7 @@ public class SymbolicRTDP implements Runnable {
 				= _dtr.generalize(value_fn, cur_state.getFactoredState(), _genRule );
 				final ADDRNode next_states 
 				= _dtr.BDDImage(abstract_state, _FAR, DDQuantify.EXISTENTIAL);
-				System.out.println("Updating " + _manager.countNodes(abstract_state, next_states) );
+//				System.out.println("Updating " + _manager.countNodes(abstract_state, next_states) );
 				_DPTimer.ResumeTimer();
 				backed = _dtr.backup(value_fn, policy, next_states, abstract_state, 
 						dp_type, do_apricodd, apricodd_epsilon, apricodd_type, 
@@ -240,10 +240,11 @@ public class SymbolicRTDP implements Runnable {
 				final NavigableMap<String, Boolean> action = _manager.sampleOneLeaf(action_dd, _rand );
 				cur_action.setFactoredAction( action );
 				cur_state = _transition.sampleFactored(cur_state, cur_action);
-				System.out.println( "Steps to go " + steps_to_go );
+//				System.out.println( "Steps to go " + steps_to_go );
 //				System.out.println( cur_action.toString() );
+				System.out.print("*");
 			}
-			System.out.print( "Trials to go  " + trials_to_go );
+			System.out.println("\nTrials to go  " + trials_to_go );
 		}
 		return backed;
 	}
