@@ -144,9 +144,8 @@ public class SPUDDFAR implements Runnable{
 			}
 			
 			++iter;
-//			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
-//			_manager.showGraph( _valueDD, _policy );
+//			_manager.showGraph( _valueDD );//, _policy );
 		}
 
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
@@ -156,7 +155,7 @@ public class SPUDDFAR implements Runnable{
 		System.out.println("Size of policy = " + 
 				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
 		System.out.println( "No. of leaves = " + _manager.countLeaves(_valueDD) );
-		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
+//		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
 	public static void main(String[] args) throws InterruptedException {

@@ -60,7 +60,7 @@ domain grid_mdp {
  			reward = [sum_{?x : xpos, ?y : ypos} [ 0.0 -(GOAL(?x,?y) ^ ~robot-at(?x,?y))] ];
  		
  			state-action-constraints {
- 		
+				move-north + move-south + move-west + move-east <= 1;
  				// Robot at exactly one position
  				[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] == 1;
  			};

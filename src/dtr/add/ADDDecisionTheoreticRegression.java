@@ -62,10 +62,16 @@ public class ADDDecisionTheoreticRegression implements
 	private Random _rand;
 	private List<String> __order_action_vars_appear;
 	private ArrayList< Integer > __nextVar_to_actionVar_range;
+	
 	private ArrayList< ADDRNode >  __action_precondition = new ArrayList<ADDRNode>();
 	private final ArrayList<ADDRNode> __policy_constraints = new ArrayList<ADDRNode>();
 	private final ArrayList<ADDRNode> __action_constraints = new ArrayList<ADDRNode>();
 	private final ArrayList<ADDRNode> __state_constraints = new ArrayList<ADDRNode>();
+	private ArrayList< ADDRNode >  __action_precondition_neginf = new ArrayList<ADDRNode>();
+	private final ArrayList<ADDRNode> __policy_constraints_neginf = new ArrayList<ADDRNode>();
+	private final ArrayList<ADDRNode> __action_constraints_neginf = new ArrayList<ADDRNode>();
+	private final ArrayList<ADDRNode> __state_constraints_neginf = new ArrayList<ADDRNode>();
+	
 	private ADDRNode _hsReward = null;
 	
 	public enum INITIAL_STATE_CONF{
@@ -73,7 +79,7 @@ public class ADDDecisionTheoreticRegression implements
 	}
 	
 	public enum GENERALIZE_PATH{
-		ALL_PATHS
+		ALL_PATHS, NONE
 	}
 	
 	private class Heuristic_Compute implements Callable<ADDRNode>{
@@ -168,6 +174,8 @@ public class ADDDecisionTheoreticRegression implements
 		switch( rule ){
 		case ALL_PATHS :
 			return _manager.all_paths_to_leaf(input, leaf); 
+		case NONE :
+			return _manager.getProductBDDFromAssignment( path );
 		}
 		return null;
 	}
@@ -190,6 +198,7 @@ public class ADDDecisionTheoreticRegression implements
 	
 	//from and to needs to be a BDD
 	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup( final ADDRNode current_value, 
+			final ADDRNode cur_policy,//BDD
 			final ADDRNode from, 
 			final ADDRNode to, 
 			final BACKUP_TYPE backup_type, 
@@ -235,8 +244,9 @@ public class ADDDecisionTheoreticRegression implements
 			policy_ret = _manager.BDDIntersection(policy_ret, to);//policy in 
 		//to states
 		//zero in others
-		//put one in others
-//			policy_ret = _manager.BDDUnion( policy_ret, _manager.BDDNegate(to) );
+		//put input policy in others
+			policy_ret = _manager.BDDUnion( policy_ret, 
+					_manager.BDDIntersection( cur_policy, _manager.BDDNegate(to) ) );
 		}
 		removeStateConstraint(idx);
 		
@@ -290,12 +300,20 @@ public class ADDDecisionTheoreticRegression implements
 		_manager = mdp.getManager();
 		_mdp = mdp;
 		_dbg = mdp.__debug_level;
-		__action_constraints.add( _manager.productDD( _mdp.getActionConstraints() ) );
-		__state_constraints.add( _manager.productDD( mdp.getStateConstraints() ) );
+		final ADDRNode act_constr = _manager.productDD( _mdp.getActionConstraints() );
+		__action_constraints.add( act_constr );
+		__action_constraints_neginf.add( convertToNegInfDD(act_constr)[0] );
+		
+		final ADDRNode state_constr = _manager.productDD( mdp.getStateConstraints() );
+		__state_constraints.add( state_constr );
+		__state_constraints_neginf.add( convertToNegInfDD( state_constr )[0] );
+		
 		final ADDRNode action_precon = _manager.productDD(_mdp.getActionPreconditions() );
 		if( action_precon != null ){
 			__action_precondition.add( action_precon );
+			__action_precondition_neginf.add( convertToNegInfDD( action_precon )[0] );
 		}
+		
 		_rand = new Random( seed );
 		setupMBFAR();
 	}
@@ -342,17 +360,19 @@ public class ADDDecisionTheoreticRegression implements
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( input ) ) ;
 		}
-		ADDRNode all_constraints = _manager.productDD( 
-				__action_precondition, __state_constraints,
-				 __policy_constraints, 
-				__action_constraints );
+		ADDRNode all_constraints = _manager.sumDD( 
+				__action_precondition_neginf, __state_constraints_neginf,
+				 __policy_constraints_neginf, 
+				__action_constraints_neginf );
 		
 		if( action != null ){
 			all_constraints = _manager.restrict(all_constraints, action);
 		}
-		all_constraints = convertToNegInfDD( Lists.newArrayList( all_constraints ) ).get(0);
+//		all_constraints = convertToNegInfDD( Lists.newArrayList( all_constraints ) ).get(0);
 		ADDRNode ret = _manager.apply(input, all_constraints, DDOper.ARITH_PLUS );
-		ret = _manager.remapLeaf(ret, _manager.DD_NEG_INF, violate);
+		if( ! violate.equals(_manager.DD_NEG_INF) ){
+			ret = _manager.remapLeaf(ret, _manager.DD_NEG_INF, violate);
+		}
 		
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( ret ) ) ;
@@ -467,7 +487,6 @@ public class ADDDecisionTheoreticRegression implements
 			
 			//not noting down the size of V
 			v_func = _manager.apply( v_func, this_q, DDOper.ARITH_MAX );
-			_manager.flushCaches( );
 			
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("showing diagrams: " + action );
@@ -1007,7 +1026,6 @@ public class ADDDecisionTheoreticRegression implements
 			size_change.addAll( _manager.countNodes( added_rew , added_rew_constrained ) );
 		}
 		ret = added_rew_constrained;
-		_manager.flushCaches( );
 		return ret;
 	}
 
@@ -1057,8 +1075,8 @@ public class ADDDecisionTheoreticRegression implements
 
 	private ADDRNode multiplyActionPreconditions( final ADDRNode input, 
 			final NavigableMap<String, Boolean> action ) {
-		final ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __action_precondition );
-		ADDRNode constraint = _manager.productDD( all_constraint );
+//		final ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __action_precondition );
+		ADDRNode constraint = _manager.sumDD( __action_precondition_neginf );
 		
 		if( action != null ){
 			constraint =_manager.restrict( constraint, action ); 
@@ -1072,6 +1090,16 @@ public class ADDDecisionTheoreticRegression implements
 		for( final ADDRNode in : input ){
 			final ADDRNode inter = _manager.remapLeaf(in, _manager.DD_ZERO, _manager.DD_NEG_INF );
 			ret.add( _manager.remapLeaf( inter, _manager.DD_ONE, _manager.DD_ZERO) );
+		}
+		return ret;
+	}
+	
+	private ADDRNode[] convertToNegInfDD(final ADDRNode... input) {
+		final ADDRNode[]  ret = new ADDRNode[input.length];
+		int i = 0;
+		for( final ADDRNode in : input ){
+			final ADDRNode inter = _manager.remapLeaf(in, _manager.DD_ZERO, _manager.DD_NEG_INF );
+			ret[i++] = ( _manager.remapLeaf( inter, _manager.DD_ONE, _manager.DD_ZERO) );
 		}
 		return ret;
 	}
@@ -1477,8 +1505,8 @@ public class ADDDecisionTheoreticRegression implements
 	}
 
 	private ADDRNode multiplyStateConstraints( final ADDRNode input ) {
-		final ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __state_constraints );
-		ADDRNode constraint = _manager.productDD( all_constraint );
+//		final ArrayList<ADDRNode> all_constraint = convertToNegInfDD( __state_constraints );
+		ADDRNode constraint = _manager.sumDD( __state_constraints_neginf );
 		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
 		return ret;
 	}
@@ -1512,14 +1540,13 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode ret = input;
 		final ADDRNode mult = _manager.apply(ret, this_cpt, DDOper.ARITH_PROD);
 //		final ADDRNode mult_approx = _manager.doApricodd( mult, do_apricodd, apricodd_epsilon, apricodd_type );
-		_manager.flushCaches(   );
 //		ADDRNode mult_constrained = applyMDPConstraints(mult, action, _manager.DD_ZERO,
 //				constrain_naively, size_change );
 //		_manager.flushCaches(   );
 		
 		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
 //		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
-		_manager.flushCaches(  );
+//		_manager.flushCaches(  );
 		ADDRNode summed_constrained = 
 				constrain_naively ? summed : applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
 				constrain_naively, size_change);
@@ -1675,12 +1702,11 @@ public class ADDDecisionTheoreticRegression implements
 				size_change.addAll( _manager.countNodes( added_rew , added_rew_constrained ) );
 			}
 			ret = added_rew_constrained;
-			_manager.flushCaches( );
 		}
 		
 //		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 //		}
-		
+		_manager.flushCaches( );
 		return ret;
 	}
 
@@ -1704,19 +1730,25 @@ public class ADDDecisionTheoreticRegression implements
 
 	public int addStateConstraint( final ADDRNode input ){
 		__state_constraints.add( input );
+		__state_constraints_neginf.add( convertToNegInfDD(input)[0] );
 		return __state_constraints.size()-1;
 	}
 	
 	public boolean removeStateConstraint( final int index ){
-		return __state_constraints.remove( index ) == null;
+		final boolean ret1 =  __state_constraints.remove( index ) == null;
+		final boolean ret2 = __state_constraints_neginf.remove(index) == null;
+		return ret1 && ret2;
 	}
 	
 	public boolean removePolicyConstraint( final int index ) {
-		return __policy_constraints.remove( index ) == null;
+		final boolean ret1 =  __policy_constraints.remove( index ) == null;
+		final boolean ret2 = __policy_constraints_neginf.remove( index ) == null;
+		return ret1 && ret2;
 	}
 
 	public int addPolicyConstraint(ADDRNode policy) {
 		__policy_constraints.add(policy);
+		__policy_constraints_neginf.add( convertToNegInfDD(policy)[0] );
 		return __policy_constraints.size()-1;
 	}
 
@@ -1898,7 +1930,7 @@ public class ADDDecisionTheoreticRegression implements
 		return policy;
 	}
 
-	private static ADDRNode getNoOpPolicy(final Set<String> actionVariables,
+	public static ADDRNode getNoOpPolicy(final Set<String> actionVariables,
 			final ADDManager manager) {
 		ADDRNode ret = manager.DD_ONE;
 		for(String s : actionVariables ){

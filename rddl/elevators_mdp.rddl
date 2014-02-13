@@ -122,10 +122,10 @@ domain elevators_mdp {
 		//forall_{?e : elevator} [ person-in-elevator-going-up(?e) => //~move-down(?e) ^ ~change-dir(?e) ];
 		//forall_{?e : elevator} [ person-in-elevator-going-down(?e) => //~move-up(?e) ^ ~change-dir(?e) ];
 		//state constraints for the above
-		forall_{?e : elevator} [ 
-			person-in-elevator-going-up(?e) => elevator-dir-up(?e) ];
-		forall_{?e : elevator} [ 
-			person-in-elevator-going-down(?e) => ~elevator-dir-up(?e) ];
+		//forall_{?e : elevator} [ 
+			//person-in-elevator-going-up(?e) => elevator-dir-up(?e) ];
+		//forall_{?e : elevator} [ 
+			//person-in-elevator-going-down(?e) => ~elevator-dir-up(?e) ];
 		
 		
 		// Can check uniqueness constraint in many ways, but for simulator easiest 
