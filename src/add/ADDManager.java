@@ -1533,7 +1533,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			for( int i = 0 ; i < managerStoreInitSize; ++i ){
 				try{
 					ADDLeaf aLeaf = new ADDLeaf();
-					storeLeaf.add( aLeaf.getNullDD() );
+					storeLeaf.offer( aLeaf.getNullDD() );
 				}catch(OutOfMemoryError e){
 					e.printStackTrace();
 					System.exit(1);
@@ -1545,7 +1545,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		if( node ){
 			for( int i = 0 ; i < managerStoreInitSize; ++i ){
 				try{
-					storeINodes.add( new ADDINode().getNullDD() );
+					storeINodes.offer( new ADDINode().getNullDD() );
 				}catch(OutOfMemoryError e){
 					e.printStackTrace();
 					System.exit(1);
