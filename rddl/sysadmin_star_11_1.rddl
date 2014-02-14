@@ -36,6 +36,6 @@ instance sysadmin_star_11_1 {
 	};
 
 	max-nondef-actions = 1;
-	horizon  = 40;
+	horizon  = 20;
 	discount = 0.9;
 }
