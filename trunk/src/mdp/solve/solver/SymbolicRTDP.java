@@ -3,6 +3,7 @@ package mdp.solve.solver;
 import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.Random;
+import java.util.Stack;
 
 import mdp.define.PolicyStatistics;
 import rddl.mdp.RDDL2ADD;
@@ -148,9 +149,7 @@ public class SymbolicRTDP implements Runnable {
 				roundTimer.ResetTimer();
 				
 				while( horizon_to_go --> 0 ){
-					System.out.println( "State : " + cur_state.toString() ); 
 					_solutionTimer.ResetTimer();
-					
 					UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> result 
 					= do_sRTDP( value_fn, policy, cur_state );
 					value_fn = result._o1;
@@ -163,11 +162,15 @@ public class SymbolicRTDP implements Runnable {
 					final NavigableMap<String, Boolean> action 
 					= _manager.sampleOneLeaf(action_dd, _rand );
 					cur_action.setFactoredAction( action );
-					System.out.println("Action " + cur_action.toString() );
-
+					
 					final FactoredState<RDDLFactoredStateSpace> next_state 
-						= _transition.sampleFactored(cur_state, cur_action);
+					= _transition.sampleFactored(cur_state, cur_action);
 					round_reward += cur_disc * _reward.sample( cur_state, cur_action );
+				
+					System.out.println( "State : " + cur_state.toString() ); 
+					System.out.println("Action " + cur_action.toString() );
+					System.out.println("Next state " + next_state.toString() );
+					
 					cur_state = next_state;
 					System.out.println( "Horizon to go " + horizon_to_go );
 					cur_disc = ( _useDiscounting ) ? cur_disc * DISCOUNT : cur_disc;
@@ -211,6 +214,8 @@ public class SymbolicRTDP implements Runnable {
 		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backed = null;
 		int trials_to_go = nTrials;
 		_DPTimer.ResetTimer();
+		final Stack< NavigableMap<String, Boolean> > state_trajectory 
+			= new Stack< NavigableMap<String, Boolean> >();
 		
 		while( trials_to_go --> 0 ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
@@ -218,24 +223,13 @@ public class SymbolicRTDP implements Runnable {
 			= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(null);
 			int steps_to_go = HORIZON;
 			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
+			state_trajectory.clear();
 			while( steps_to_go --> 0 ){
+				final NavigableMap<String, Boolean> state_assign = cur_state.getFactoredState();
 //				System.out.println( cur_state.toString() );
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
-
-				final ADDRNode abstract_state 
-				= _dtr.generalize(value_fn, cur_state.getFactoredState(), _genRule );
-				final ADDRNode next_states 
-				= _dtr.BDDImage(abstract_state, _FAR, DDQuantify.EXISTENTIAL);
-//				System.out.println("Updating " + _manager.countNodes(abstract_state, next_states) );
-				_DPTimer.ResumeTimer();
-				backed = _dtr.backup(value_fn, policy, next_states, abstract_state, 
-						dp_type, do_apricodd, apricodd_epsilon, apricodd_type, 
-						true, MB );
-				_DPTimer.PauseTimer();
-				value_fn = backed._o1;
-				policy = backed._o2._o1;
-				//				System.out.println("Residual " + backed._o2._o2 );
-
+				state_trajectory.push( state_assign );
+				
 				final ADDRNode action_dd = _manager.restrict(policy, cur_state.getFactoredState() );
 				final NavigableMap<String, Boolean> action = _manager.sampleOneLeaf(action_dd, _rand );
 				cur_action.setFactoredAction( action );
@@ -244,11 +238,44 @@ public class SymbolicRTDP implements Runnable {
 //				System.out.println( cur_action.toString() );
 				System.out.print("*");
 			}
-			System.out.println("\nTrials to go  " + trials_to_go );
+			backed = update_trajectory_backwards( state_trajectory, value_fn, policy );
+			value_fn = backed._o1;
+			policy = backed._o2._o1;
+			
+			System.out.println("Trials to go  " + trials_to_go );
 		}
 		return backed;
 	}
-
+	
+	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> 
+		update_trajectory_backwards(
+				final Stack< NavigableMap<String, Boolean> > trajectory,
+				final ADDRNode current_value,
+				final ADDRNode current_policy ){
+		ADDRNode value_fn_ret = current_value;
+		ADDRNode policy_ret = current_policy;
+		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backed = null;
+//		System.out.println("Updating trajectory");
+		
+		while( !trajectory.isEmpty() ){
+			final NavigableMap<String, Boolean>  state_assign = trajectory.pop();
+//			System.out.println( state_assign );
+			
+			final ADDRNode abstract_state 
+				= _dtr.generalize(value_fn_ret, state_assign, _genRule );
+			final ADDRNode next_states 
+				= _dtr.BDDImage(abstract_state, _FAR, DDQuantify.EXISTENTIAL);
+			_DPTimer.ResumeTimer();
+			backed = _dtr.backup(value_fn_ret, policy_ret, next_states, abstract_state, 
+					dp_type, do_apricodd, apricodd_epsilon, apricodd_type, 
+					true, MB );
+			_DPTimer.PauseTimer();
+			value_fn_ret = backed._o1;
+			policy_ret = backed._o2._o1;
+		}
+		return backed;
+	}
+	
 	public static void main(String[] args) throws InterruptedException {
 
 		final boolean use_disc = Boolean.parseBoolean( args[4] );
