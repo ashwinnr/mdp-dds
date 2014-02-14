@@ -108,7 +108,7 @@ public class GenerateStar {
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		new GenerateStar( 7, 8, 1, 0.9d, 40, 0.05, 3, "sysadmin_star_", "./rddl/", 7);
+		new GenerateStar( 7, 15, 1, 0.9d, 20, 0.05, 3, "sysadmin_star_", "./rddl/", 7);
 	}
 	
 }
