@@ -2258,7 +2258,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final ADDRNode input, 
 			final Pair<Double,Double> leafVal ) {
 		ADDRNode ret = DD_ZERO;
-		Set<NavigableMap<String, Boolean>> assigns = enumeratePaths(input, false, true, leafVal);
+		Set<NavigableMap<String, Boolean>> assigns = enumeratePaths(input, false, true, leafVal, false );
 		for( final NavigableMap<String, Boolean> path : assigns ){
 			final ADDRNode this_path_dd = getProductBDDFromAssignment( path );
 			ret = apply( this_path_dd, ret, DDOper.ARITH_MAX);
@@ -2269,21 +2269,31 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public Set<NavigableMap<String,Boolean>> enumeratePaths(
 			final ADDRNode input, 
 			final boolean include_leaves, final boolean specified_leaves_only, 
-			final ADDLeaf leafVal) {
-		return enumeratePaths( input, include_leaves, specified_leaves_only, leafVal.getLeafValues() );
+			final ADDRNode leaf, final boolean invert ) {
+		return enumeratePaths( input, include_leaves, specified_leaves_only, 
+				((ADDLeaf)(leaf.getNode())).getLeafValues(),
+				invert );
 	}
 	
 	public Set<NavigableMap<String,Boolean>> enumeratePaths(
 			final ADDRNode input, 
 			final boolean include_leaves, final boolean specified_leaves_only, 
-			final Pair<Double, Double> leafVal) {
+			final ADDLeaf leafVal, final boolean invert ) {
+		return enumeratePaths( input, include_leaves, specified_leaves_only, leafVal.getLeafValues(),
+				invert );
+	}
+	
+	public Set<NavigableMap<String,Boolean>> enumeratePaths(
+			final ADDRNode input, 
+			final boolean include_leaves, final boolean specified_leaves_only, 
+			final Pair<Double, Double> leafVal, final boolean invert ) {
 //		Objects.requireNonNull( input );
-//		Cache< ADDRNode, Set<NavigableMap<String, Boolean> > > cache = 
-//				CacheBuilder.newBuilder().maximumSize(TEMP_UNARY_CACHE_SIZE).build();
+//		final Cache< ADDRNode, Set<NavigableMap<String,Boolean>> > _tempUnaryCache 
+//		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		final Set<NavigableMap<String, Boolean>> ret 
-			= enumeratePathsInt( input, null, include_leaves, specified_leaves_only, leafVal  );
-//		cache.invalidateAll();
-//		cache = null;
+			= enumeratePathsInt( input, null, include_leaves, specified_leaves_only, leafVal , invert );
+//		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache = null;
 		return Collections.unmodifiableSet( ret );
 	}
 
@@ -2307,9 +2317,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		man.showGraph(inode2);
 
-		System.out.println( man.enumeratePaths(inode2, false, false, ((ADDLeaf)leaf1.getNode()) ) );
+		System.out.println( man.enumeratePaths(inode2, false, false, ((ADDLeaf)leaf1.getNode()) , false) );
 
-		System.out.println( man.enumeratePaths(inode2, false, true, ((ADDLeaf)leaf1.getNode()) ) );
+		System.out.println( man.enumeratePaths(inode2, false, true, ((ADDLeaf)leaf1.getNode()) ,false) );
 		
 	}
 	
@@ -2343,7 +2353,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			NavigableMap<String,Boolean> current, 
 			final boolean include_leaves, 
 			final boolean specified_leaves_only, 
-			final Pair<Double, Double> leafVal ){
+			final Pair<Double, Double> leafVal , final boolean invert ){
+//			final Cache<ADDRNode , Set<NavigableMap<String,Boolean> > > cache ){
 //			final Cache<ADDRNode, Set<NavigableMap<String, Boolean>>> cache ) {
 
 //		Set<NavigableMap<String, Boolean>> lookup = cache.getIfPresent( input );
@@ -2359,24 +2370,36 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Set<NavigableMap<String, Boolean>> ret = new HashSet<NavigableMap<String, Boolean>>();
 		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
+			
 			if( include_leaves ){
 				current.put( node.toString(), false) ;
 			}
-			if( !specified_leaves_only ||
-					( specified_leaves_only && ((ADDLeaf)node).getLeafValues().equals(leafVal) ) ){
+			
+			if( !specified_leaves_only ){
 				ret.add( current );
+			}else if( specified_leaves_only ){
+				if( invert ){
+					if( !(((ADDLeaf)node).getLeafValues().equals(leafVal)) ){
+						ret.add( current );
+					}
+				}else{
+					if( ((ADDLeaf)node).getLeafValues().equals(leafVal) ){
+						ret.add( current );
+					}
+				}
 			}
+		
 		}else{
 			final TreeMap<String, Boolean> truth = new TreeMap<String, Boolean>(current);
 			final String testVar = input.getTestVariable();
 			truth.put( testVar, true );
 			final Set<NavigableMap<String, Boolean>> ret_truth = enumeratePathsInt(input.getTrueChild(), truth, include_leaves, 
-					specified_leaves_only, leafVal );
+					specified_leaves_only, leafVal , invert );// , cache );
 
 			final TreeMap<String, Boolean> falseth = new TreeMap<String, Boolean>(current);
 			falseth.put( testVar, false );
 			Set<NavigableMap<String, Boolean>> ret_false = enumeratePathsInt( input.getFalseChild(), falseth, include_leaves, 
-					specified_leaves_only, leafVal );
+					specified_leaves_only, leafVal, invert );//, cache );
 			ret.addAll( ret_false );
 			ret.addAll( ret_truth );
 //			cache.put( input, ret );
@@ -4037,4 +4060,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 		return ret;
 	}
+
+	public ADDRNode getSumNegInfDDFromAssignment(
+			final NavigableMap<String, Boolean> assign) {
+		ADDRNode ret = DD_ZERO;
+		for( final String var : assign.keySet() ){
+			final boolean value = assign.get( var );
+			final ADDRNode this_dd = getINode(var, value ? DD_ZERO : DD_NEG_INF, value ? DD_NEG_INF : DD_ZERO );
+			ret = apply( ret, this_dd, DDOper.ARITH_PLUS );
+		}
+		return ret;
+	}
+
 }

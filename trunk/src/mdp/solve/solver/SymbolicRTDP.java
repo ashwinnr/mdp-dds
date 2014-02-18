@@ -18,6 +18,7 @@ import util.UnorderedPair;
 import add.ADDManager;
 import add.ADDRNode;
 import dd.DDManager.APPROX_TYPE;
+import dd.DDManager.DDOper;
 import dd.DDManager.DDQuantify;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
@@ -214,8 +215,6 @@ public class SymbolicRTDP implements Runnable {
 		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backed = null;
 		int trials_to_go = nTrials;
 		_DPTimer.ResetTimer();
-		final Stack< NavigableMap<String, Boolean> > state_trajectory 
-			= new Stack< NavigableMap<String, Boolean> >();
 		
 		while( trials_to_go --> 0 ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
@@ -223,12 +222,14 @@ public class SymbolicRTDP implements Runnable {
 			= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(null);
 			int steps_to_go = HORIZON;
 			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
-			state_trajectory.clear();
+			ADDRNode trajectory_states = _manager.DD_NEG_INF;
+			
 			while( steps_to_go --> 0 ){
 				final NavigableMap<String, Boolean> state_assign = cur_state.getFactoredState();
 //				System.out.println( cur_state.toString() );
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
-				state_trajectory.push( state_assign );
+				final ADDRNode this_state = _manager.getSumNegInfDDFromAssignment( state_assign );
+				trajectory_states = _manager.apply( trajectory_states, this_state, DDOper.ARITH_MAX );
 				
 				final ADDRNode action_dd = _manager.restrict(policy, cur_state.getFactoredState() );
 				final NavigableMap<String, Boolean> action = _manager.sampleOneLeaf(action_dd, _rand );
@@ -238,7 +239,11 @@ public class SymbolicRTDP implements Runnable {
 //				System.out.println( cur_action.toString() );
 				System.out.print("*");
 			}
-			backed = update_trajectory_backwards( state_trajectory, value_fn, policy );
+//			System.out.println("Updating : " + _manager.countPaths(trajectory_states) );
+			_DPTimer.ResumeTimer();			
+			backed = update_trajectory( trajectory_states, value_fn, policy );
+			_DPTimer.PauseTimer();
+			
 			value_fn = backed._o1;
 			policy = backed._o2._o1;
 			
@@ -247,6 +252,27 @@ public class SymbolicRTDP implements Runnable {
 		return backed;
 	}
 	
+	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> update_trajectory(
+			final ADDRNode states, final ADDRNode value_fn, final ADDRNode policy) {
+		
+		ADDRNode cur_value = value_fn;
+		ADDRNode cur_policy = policy;
+		
+		final ADDRNode gen_states = _dtr.generalize(value_fn, states, _genRule);
+		final ADDRNode next_states = _dtr.BDDImage(gen_states, _FAR, DDQuantify.EXISTENTIAL);
+		int iter = steps_heuristic;
+		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> one_backup  = null;
+		do{
+			one_backup
+				= _dtr.backup(cur_value, cur_policy, next_states, gen_states, dp_type, 
+				do_apricodd, apricodd_epsilon, apricodd_type, true, MB);
+			System.out.println( one_backup._o2._o2 );
+			cur_value = one_backup._o1;
+			cur_policy = one_backup._o2._o1;
+		}while( iter --> 0 && one_backup._o2._o2 > EPSILON );
+		return one_backup;
+	}
+
 	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> 
 		update_trajectory_backwards(
 				final Stack< NavigableMap<String, Boolean> > trajectory,
