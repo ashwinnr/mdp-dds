@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 import util.MySoftReference;
 import util.Pair;
 import util.UniPair;
@@ -23,6 +25,7 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	private static final int HASH_INIT = 17;
 //	private static final int HASH_PRIME_TRUE = 23;
 	private static final int HASH_MULT = 31;
+	private static final HashCodeBuilder hcb = new HashCodeBuilder(HASH_INIT, HASH_MULT);
 //	private static final int HASH_INIT_NEG = 19;
 //	private static final int HASH_MULT_NEG = 29;
 //	private int _nNegHash;
@@ -135,13 +138,11 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	}
 
 	public int hashCode() {
-//		HashCodeBuilder hb = new HashCodeBuilder( HASH_INIT, HASH_MULT );
 		long true_id = getTrueChild().getID();
 		long false_id = getFalseChild().getID();
 		
-		return Objects.hash(testVariable, true_id, false_id);
-//		return hb.append( testVariable ).append( true_id + false_id ).
-//			append( false_id ).hashCode();
+		return hcb.append( testVariable ).append( true_id + false_id ).
+			append( false_id ).hashCode();
 		
 //		if( hashSet ){
 //			return _nHashCode;
