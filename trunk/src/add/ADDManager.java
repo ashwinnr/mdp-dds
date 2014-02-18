@@ -47,7 +47,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());addadd
-	private static final long APPLY_CACHE_SIZE = (long)1e7;
+	private static final long APPLY_CACHE_SIZE = (long)1e6;
 	private static final boolean EXHAUSTIVE_CACHING = false;
 	protected long STORE_INCREMENT;
 	private static final long leaf_cache_max_size = 100000;
@@ -2494,10 +2494,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private void throwAwayApplyCache() {
-		for( final Cache< 
-				Pair< ADDRNode, ADDRNode >, ADDRNode > cache : applyCache.values() ){
+		for( final Entry<dd.DDManager.DDOper, Cache<Pair<ADDRNode, ADDRNode>, ADDRNode> > entry : applyCache.entrySet() ){
+			Cache<Pair<ADDRNode, ADDRNode>, ADDRNode> cache = entry.getValue();
 			cache.cleanUp();
+//			cache = null;
 		}
+//		for( final Cache< 
+//				Pair< ADDRNode, ADDRNode >, ADDRNode > cache : applyCache.values() ){
+//			cache.cleanUp();
+//		}
 	}
 
 	//testaddPair
