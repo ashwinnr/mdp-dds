@@ -1,6 +1,5 @@
 package mdp.solve.solver;
 
-import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Stack;
@@ -24,8 +23,6 @@ import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.GENERALIZE_PATH;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
-import dtr.add.ADDPolicy;
-import dtr.add.ADDValueFunction;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
 
@@ -181,6 +178,7 @@ public class SymbolicRTDP implements Runnable {
 				System.out.println("Round reward : " + round_reward );
 				stats.addRoundStats(round_reward);
 			}
+			_manager.flushCaches();
 			System.out.println("States to go " + states_to_go );
 		}
 		stats.printStats();
@@ -248,6 +246,7 @@ public class SymbolicRTDP implements Runnable {
 			policy = backed._o2._o1;
 			
 			System.out.println("Trials to go  " + trials_to_go );
+			_manager.flushCaches();
 		}
 		return backed;
 	}

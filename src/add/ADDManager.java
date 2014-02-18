@@ -1,14 +1,11 @@
 package add;
 
-import factored.mdp.define.FactoredState;
 import graph.Graph;
 
-import java.lang.ref.ReferenceQueue;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,38 +13,25 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Queue;
-//import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
-import rddl.mdp.RDDLFactoredStateSpace;
-
-import util.MySoftReference;
 import util.Pair;
-import util.Timer;
-import util.UniPair;
-import util.UnorderedPair;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheBuilderSpec;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalCause;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 
 import dd.DDManager;
-import dd.DDManager.DDQuantify;
 
 
 public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
@@ -63,22 +47,23 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//	protected Map< Integer, MySoftReference< ADDRNode > > madeNodes 
 	//		= new ConcurrentHashMap< Integer, MySoftReference< ADDRNode > >();
 //	private final static Logger LOGGER = Logger.getLogger(ADDManager.class.getName());addadd
-	private static final long APPLY_CACHE_SIZE = (long)1e5;
+	private static final long APPLY_CACHE_SIZE = (long)1e7;
 	private static final boolean EXHAUSTIVE_CACHING = false;
 	protected long STORE_INCREMENT;
+	private static final long leaf_cache_max_size = 100000;
 	
 	private static final CacheBuilderSpec  temp_unary_cache_spec = 
 			CacheBuilderSpec.parse("concurrencyLevel=1");
 	private static final CacheBuilderSpec  made_leaf_cache_spec = 
 		CacheBuilderSpec
-			.parse("concurrencyLevel=1,softValues");
+			.parse("concurrencyLevel=1, softValues, maximumSize = " + leaf_cache_max_size );
 	private static final CacheBuilderSpec  made_inode_cache_spec = 
 			CacheBuilderSpec
 				.parse("concurrencyLevel=1,softValues");
 	private static final CacheBuilderSpec  apply_cache_spec = 
 			CacheBuilderSpec
 				.parse("concurrencyLevel=1, maximumSize = " +
-						APPLY_CACHE_SIZE + ", expireAfterAccess=10m");
+						APPLY_CACHE_SIZE + ", expireAfterAccess=2m");
 		
 //	static{
 //		try {
@@ -192,7 +177,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from(temp_unary_cache_spec).build();
 		final ADDRNode replaced = remapLeavesInt( input, remaps, _tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return replaced;
@@ -1121,10 +1106,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	protected Runtime _runtime = Runtime.getRuntime();
 
 	//caches can be in terms of RNodes
-	protected ConcurrentHashMap< DDOper, Cache< 
-		Pair< ADDRNode, ADDRNode >, ADDRNode > > 
-			applyCache = new ConcurrentHashMap< 
-				DDOper, Cache< Pair< ADDRNode, ADDRNode >, ADDRNode > >();
+	protected EnumMap< DDOper, Cache< Pair< ADDRNode, ADDRNode >, ADDRNode > > 
+			applyCache = new EnumMap< 
+				DDOper, Cache< Pair< ADDRNode, ADDRNode >, ADDRNode > >( DDOper.class );
 	private int applyHit = 0;
 	public ADDRNode DD_ZERO, DD_ONE, DD_NEG_INF;
 
@@ -1133,7 +1117,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		madeINodes = new ConcurrentHashMap< String, 
 		Cache< ADDINode, ADDRNode> >();
 
-	protected LoadingCache< ADDLeaf, ADDRNode > madeLeaf
+	protected Cache< ADDLeaf, ADDRNode > madeLeaf
 	= CacheBuilder.from( made_leaf_cache_spec ).recordStats().
 			removalListener( new RemovalListener<ADDLeaf, ADDRNode>( ) {
 				@Override
@@ -1144,14 +1128,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 						leaf = null;
 					}
 				}
-			}).
-			build(
-			new CacheLoader<ADDLeaf, ADDRNode>() {
-				@Override
-				public ADDRNode load(final ADDLeaf leaf) throws Exception {
-					return new ADDRNode( leaf );
-				}
-			});
+			}).build();
 	
 	//never deleted
 //	protected Set< ADDRNode > permenantNodes = Collections.newSetFromMap( 
@@ -1298,7 +1275,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		final ADDRNode ret = breakTiesInBDDInt( input, tiesIn, default_value, 
 				_tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
@@ -1527,25 +1504,47 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	// d,e -> c
 	// want to get c,b -> a
 	@Override
-	public synchronized void addToStore(final long managerStoreInitSize, final boolean leaf, final boolean node) {
+	public synchronized void addToStore(final long numdds, final boolean leaf, final boolean node) {
 
 		if( leaf ){
-			for( int i = 0 ; i < managerStoreInitSize; ++i ){
+			if( !storeLeaf.isEmpty() ){
 				try{
-					ADDLeaf aLeaf = new ADDLeaf();
-					storeLeaf.offer( aLeaf.getNullDD() );
+					throw new Exception("Adding to store when store not empty" );
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			final ADDLeaf[] news = new ADDLeaf[(int) numdds];
+			for( int i = 0 ; i < numdds; ++i ){
+				news[i] = new ADDLeaf().getNullDD();
+			}
+			for( int i = 0 ; i < numdds; ++i ){
+				try{
+					storeLeaf.offer( news[i] );
 				}catch(OutOfMemoryError e){
 					e.printStackTrace();
 					System.exit(1);
-					return;
 				}
-			}	
+			}
 		}
 		
 		if( node ){
-			for( int i = 0 ; i < managerStoreInitSize; ++i ){
+			if( !storeINodes.isEmpty() ){
 				try{
-					storeINodes.offer( new ADDINode().getNullDD() );
+					throw new Exception("addto store when inodes not empty" );
+				}catch(Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			final ADDINode[] news = new ADDINode[ (int) numdds ];
+			for( int i = 0 ; i < numdds; ++i ){
+				news[i] = new ADDINode().getNullDD();
+			}
+			for( int i = 0 ; i < numdds; ++i ){
+				try{
+					storeINodes.offer( news[i] );
 				}catch(OutOfMemoryError e){
 					e.printStackTrace();
 					System.exit(1);
@@ -1568,7 +1567,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		ADDRNode ret = thresholdInt( input, threshold, strict, _tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
@@ -1655,6 +1654,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 //		throwAwayApplyCache();
+//		System.gc();
 		return ret;
 	}
 	
@@ -2085,7 +2085,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
@@ -2452,10 +2452,18 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
 //		this._tempCache.clear();
-//		final double mem_percent = getMemoryPercent();
+		final double mem_percent = getMemoryPercent();
 //		throwAwayApplyCache();
-//		if( mem_percent > 0.9d ){
-////			cacheSummary();
+		if( mem_percent > 0.9d ){
+			invalidateApplyCache();
+			throwAwayApplyCache();
+			madeLeaf.cleanUp();
+			for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
+				inner.cleanUp();
+			}
+			System.gc();
+		}
+//			cacheSummary();
 ////			_tempUnaryCache.invalidateAll();
 //			madeLeaf.cleanUp();
 //			for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
@@ -2734,7 +2742,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//creates new null leaf
 	//plugs in
 	//getRNode
-	public ADDRNode getLeaf( Double low, Double high ){
+	public ADDRNode getLeaf( final Double low, final Double high ){
 //		Objects.requireNonNull( low );
 //		Objects.requireNonNull( high );
 		//getLeaf assumes create=true
@@ -2744,7 +2752,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		Objects.requireNonNull( leaf );
 		ADDLeaf ret = null;
 		try{
-			ret = leaf.plugIn( new Pair<Double, Double>(low, high) );
+			ret = leaf.plugIn( new Pair<Double, Double>(
+					low, high) );
 		}catch(NullPointerException e){
 			ret = null;
 		}
@@ -2973,11 +2982,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else if( obj instanceof ADDLeaf ){
 
 			final ADDLeaf leaf = (ADDLeaf)obj;
-			try {
-				ret = madeLeaf.get( leaf );//loadingCache, will create if not present
-			} catch (ExecutionException e1) {
-				e1.printStackTrace();
-				System.exit(1);
+			ret = madeLeaf.getIfPresent( leaf );
+			if( ret == null ){
+//				System.out.println("Creating new " + leaf.toString() );
+				ret = new ADDRNode( leaf );
+				madeLeaf.put( leaf, ret );
 			}
 			
 //			if(! looked.getNode().equals(leaf) ){
@@ -3093,9 +3102,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else{
 			final Cache<Pair<ADDRNode, ADDRNode>, ADDRNode> theMap =
 				applyCache.get(op);
-			final Pair< ADDRNode, ADDRNode> key = 
+			Pair< ADDRNode, ADDRNode> key = 
 					new Pair< ADDRNode, ADDRNode>( a, b );
 			ret = theMap.getIfPresent( key );
+			key = null;
 		}
 		return ret;
 	}
@@ -3261,7 +3271,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 		final ADDRNode ret = marginalizeInt( input, index, oper, _tempUnaryCache );	
 //		showGraph( input, ret );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
@@ -3478,7 +3488,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		final ADDRNode ret = remapVarsInt(input, remap, _tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
@@ -3571,7 +3581,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		final ADDRNode ret = restrictInt( input, var, assign, index, _tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return ret;
@@ -3742,7 +3752,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from( temp_unary_cache_spec ).build();
 		final ADDRNode replaced = remapLeafInt( input, source, dest, _tempUnaryCache );
-		_tempUnaryCache.invalidateAll();
+//		_tempUnaryCache.invalidateAll();
 //		_tempUnaryCache.cleanUp();
 		_tempUnaryCache = null;
 		return replaced;

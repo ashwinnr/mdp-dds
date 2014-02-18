@@ -5,7 +5,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -19,9 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import com.google.common.collect.Lists;
-import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
 
 import rddl.EvalException;
 import rddl.mdp.RDDL2ADD;
@@ -44,7 +40,6 @@ import dd.DDManager.DDQuantify;
 import dtr.SymbolicPolicy;
 import dtr.SymbolicRegression;
 import dtr.SymbolicValueFunction;
-import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 
 public class ADDDecisionTheoreticRegression implements
@@ -538,7 +533,7 @@ public class ADDDecisionTheoreticRegression implements
 							 RDDLFactoredActionSpace>(action);
 				q_map.put( thisAction, this_q );
 			}
-			_manager.flushCaches( );
+//			_manager.flushCaches( );
 		}
 		
 		size_change.clear();
@@ -1089,7 +1084,7 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		ret = maxd;
-		_manager.flushCaches( );
+//		_manager.flushCaches( );
 		return ret;
 	}
 
@@ -1156,7 +1151,7 @@ public class ADDDecisionTheoreticRegression implements
 				}
 			}
 			ret = maxd;
-			_manager.flushCaches( );
+//			_manager.flushCaches( );
 		}
 		return ret;
 	}
@@ -1570,7 +1565,7 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode summed_constrained = 
 				constrain_naively ? summed : applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
 				constrain_naively, size_change);
-		_manager.flushCaches(   );
+//		_manager.flushCaches(   );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("showing diagrams");
@@ -1726,7 +1721,7 @@ public class ADDDecisionTheoreticRegression implements
 		
 //		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 //		}
-		_manager.flushCaches( );
+//		_manager.flushCaches( );
 		return ret;
 	}
 

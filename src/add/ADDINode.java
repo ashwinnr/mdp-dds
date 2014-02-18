@@ -5,8 +5,7 @@ import graph.Graph;
 import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 import util.MySoftReference;
 import util.Pair;
@@ -122,7 +121,7 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 			ADDINode thing = (ADDINode)obj;
 			//internalized, so use ==
 			//WARNING : internalization
-			final boolean var_equals = this.testVariable.equals( thing.testVariable );
+			final boolean var_equals = this.testVariable == ( thing.testVariable );
 			final boolean true_id_equals =
 					getTrueChild().getID() == thing.getTrueChild().getID(); 
 			final boolean false_id_equals =
@@ -136,11 +135,13 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	}
 
 	public int hashCode() {
-		HashCodeBuilder hb = new HashCodeBuilder( HASH_INIT, HASH_MULT );
+//		HashCodeBuilder hb = new HashCodeBuilder( HASH_INIT, HASH_MULT );
 		long true_id = getTrueChild().getID();
 		long false_id = getFalseChild().getID();
-		return hb.append( testVariable ).append( true_id + false_id ).
-			append( false_id ).hashCode();
+		
+		return Objects.hash(testVariable, true_id, false_id);
+//		return hb.append( testVariable ).append( true_id + false_id ).
+//			append( false_id ).hashCode();
 		
 //		if( hashSet ){
 //			return _nHashCode;
