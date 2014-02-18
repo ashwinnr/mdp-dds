@@ -11,9 +11,9 @@ package util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> > 
 		implements Comparable< Pair<K1,K2> >  {
@@ -86,12 +86,13 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 
 	@Override
 	public int hashCode() {
-		int h1 = _o1.hashCode();
-		int h2 = _o2.hashCode();
-		int result = new HashCodeBuilder().append( h1+h2 ).
-				append( h2 ).append( h1*h1 ).append( h1*h2 ).hashCode();
+		return Objects.hash( _o1.hashCode(), _o2.hashCode() );
+//		int h1 = _o1.hashCode();
+//		int h2 = _o2.hashCode();
+//		int result = new HashCodeBuilder().append( h1+h2 ).
+//				append( h2 ).append( h1*h1 ).append( h1*h2 ).hashCode();
 //		System.out.println( "Pair hashcode: " + " " + this + " " + result );
-		return result;
+//		return result;
 	}
 
 	@Override

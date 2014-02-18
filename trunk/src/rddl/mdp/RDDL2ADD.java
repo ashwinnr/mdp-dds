@@ -3,29 +3,17 @@ package rddl.mdp;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
 import java.util.Random;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-
-import dd.DDManager;
-import dd.DDManager.DDOper;
-import factored.mdp.define.FactoredActionSpace;
-import factored.mdp.define.FactoredReward;
-import factored.mdp.define.FactoredStateSpace;
-import factored.mdp.define.FactoredTransition;
 
 import rddl.EvalException;
 import rddl.RDDL;
@@ -49,7 +37,6 @@ import rddl.RDDL.PVAR_NAME;
 import rddl.RDDL.REAL_CONST_EXPR;
 import rddl.State;
 import rddl.parser.parser;
-import sun.security.action.GetLongAction;
 import util.Pair;
 import util.UnorderedPair;
 import add.ADDINode;
@@ -57,6 +44,9 @@ import add.ADDLeaf;
 import add.ADDManager;
 import add.ADDNode;
 import add.ADDRNode;
+import dd.DDManager.DDOper;
+import factored.mdp.define.FactoredActionSpace;
+import factored.mdp.define.FactoredStateSpace;
 
 public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 

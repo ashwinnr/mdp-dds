@@ -1,15 +1,5 @@
 package add;
 
-import graph.Graph;
-
-import java.lang.ref.SoftReference;
-import java.util.ArrayList;
-
-import javax.naming.ldap.HasControls;
-
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-
-import dd.DDNode;
 import dd.DDRNode;
 
 public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
