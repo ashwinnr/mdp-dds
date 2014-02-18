@@ -14,16 +14,13 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.logging.Logger;
 
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-
-
 public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> > 
 		implements Comparable< Pair<K1,K2> >  {
 
 	private static final int HASH_PRIME1 = 31;
 	private static final int HASH_PRIME2 = 53;
 	
-	private static final HashCodeBuilder hcb = new HashCodeBuilder( HASH_PRIME1, HASH_PRIME2 );
+	//HASH_PRIME1, HASH_PRIME2);
 	
 	public K1 _o1 = null;
 	public K2 _o2 = null;
@@ -88,13 +85,14 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 
 	@Override
 	public int hashCode() {
+		return com.google.common.base.Objects.hashCode( _o1, _o2 );
 //		return Objects.hash( _o1.hashCode(), _o2.hashCode() );
-		int h1 = _o1.hashCode();
-		int h2 = _o2.hashCode();
-		int result = hcb.append( h1+h2 ).
-				append( h2 ).append( h1*h1 ).append( h1*h2 ).hashCode();
-		System.out.println( "Pair hashcode: " + " " + this + " " + result );
-		return result;
+//		int h1 = _o1.hashCode();
+//		int h2 = _o2.hashCode();
+//		int result = h1 ^ h2;//hcb.append( h1+h2 ).
+//				//append( h2 ).hashCode();//.append( h1*h1 ).append( h1*h2 ).hashCode();
+//		System.out.println( "Pair hashcode: " + " " + this + " " + result );
+//		return result;
 	}
 
 	@Override
