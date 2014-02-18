@@ -85,7 +85,7 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public Set<NavigableMap<String, Boolean>> enumeratePaths(DR input, boolean leaf,
 			 final boolean leafValSpecified, 
-				final DL leafVal);
+				final DL leafVal, final boolean invert );
 	
 	public boolean compare(DR input1, DR input2);
 	

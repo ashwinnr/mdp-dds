@@ -907,7 +907,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		if( _regOrder == null ){
 			_regOrder = new ArrayList<NavigableMap<String, Boolean>>();
 			Set<NavigableMap<String, Boolean>> partialRegOrder 
-				= _manager.enumeratePaths( _concurrencyConstraint, false, true, (ADDLeaf)(_manager.DD_ONE.getNode()) );
+				= _manager.enumeratePaths( _concurrencyConstraint, false, true, (ADDLeaf)(_manager.DD_ONE.getNode()), false );
 			//partial paths need to be filled with all possible values 
 			//for ininstantiated variables
 			

@@ -180,6 +180,26 @@ public class ADDDecisionTheoreticRegression implements
 		return null;
 	}
 	
+	public ADDRNode generalize( final ADDRNode input, 
+			final ADDRNode paths,//0 -infty BDD
+			final GENERALIZE_PATH rule ){
+		switch( rule ){
+		case ALL_PATHS :
+			ADDRNode ret = _manager.DD_ZERO;
+			final ADDRNode good_paths = _manager.apply( input, paths, DDOper.ARITH_PLUS );
+			Set<NavigableMap<String, Boolean>> non_neginf_paths  
+				= _manager.enumeratePaths( good_paths, false, true, _manager.DD_NEG_INF, true );
+			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
+				ret = _manager.BDDUnion(ret, generalize( input, one_path, rule ) );
+			}
+			return ret;
+			
+		case NONE :
+			return null;
+		}
+		return null;
+	}
+	
 	public static void testComputeHeuristic(){
 		
 		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
