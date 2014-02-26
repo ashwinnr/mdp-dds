@@ -60,6 +60,8 @@ public class SymbolicRTDP implements Runnable {
 	private RDDLFactoredReward _reward;
 	private GENERALIZE_PATH _genRule;
 	private Random _rand;
+	private int steps_dp;
+	private int steps_lookahead;
 
 	public SymbolicRTDP(
 			final String domain, 
@@ -83,7 +85,11 @@ public class SymbolicRTDP implements Runnable {
 			final double init_state_prob,
 			final BACKUP_TYPE dp_type,
 			final int nTrials,
-			final GENERALIZE_PATH rule ) {
+			final GENERALIZE_PATH rule,
+			final int steps_dp,
+			final int steps_lookahead ) {
+		this.steps_dp = steps_dp;
+		this.steps_lookahead = steps_lookahead;
 		_rand = new Random( seed );
 		_genRule = rule;
 		this.nTrials = nTrials;
@@ -137,7 +143,9 @@ public class SymbolicRTDP implements Runnable {
 			int rounds_to_go = _nRounds;
 			
 			while( rounds_to_go --> 0 ){
+				
 				int horizon_to_go = HORIZON;
+				
 				FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
 				FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
 				cur_action = new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( null );
@@ -218,7 +226,7 @@ public class SymbolicRTDP implements Runnable {
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
 			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action
 			= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(null);
-			int steps_to_go = HORIZON;
+			int steps_to_go = steps_lookahead;
 			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			ADDRNode trajectory_states = _manager.DD_NEG_INF;
 			
@@ -246,7 +254,6 @@ public class SymbolicRTDP implements Runnable {
 			policy = backed._o2._o1;
 			
 			System.out.println("Trials to go  " + trials_to_go );
-			_manager.flushCaches();
 		}
 		return backed;
 	}
@@ -259,7 +266,8 @@ public class SymbolicRTDP implements Runnable {
 		
 		final ADDRNode gen_states = _dtr.generalize(value_fn, states, _genRule);
 		final ADDRNode next_states = _dtr.BDDImage(gen_states, _FAR, DDQuantify.EXISTENTIAL);
-		int iter = steps_heuristic;
+		
+		int iter = steps_dp;
 		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> one_backup  = null;
 		do{
 			one_backup
@@ -268,6 +276,7 @@ public class SymbolicRTDP implements Runnable {
 			System.out.println( one_backup._o2._o2 );
 			cur_value = one_backup._o1;
 			cur_policy = one_backup._o2._o1;
+			_manager.flushCaches();
 		}while( iter --> 0 && one_backup._o2._o2 > EPSILON );
 		return one_backup;
 	}
@@ -325,7 +334,9 @@ public class SymbolicRTDP implements Runnable {
 				Double.valueOf( args[17] ),
 				BACKUP_TYPE.valueOf( args[ 18 ] ),
 				Integer.parseInt( args[ 19 ] ) , 
-				GENERALIZE_PATH.valueOf( args[ 20 ] ) );
+				GENERALIZE_PATH.valueOf( args[ 20 ] ),
+				Integer.parseInt( args[ 21 ] ) , 
+				Integer.parseInt( args[ 22 ] ) );
 
 		Thread t = new Thread( worker );
 		t.start();
