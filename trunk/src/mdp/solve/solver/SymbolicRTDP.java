@@ -31,10 +31,10 @@ public class SymbolicRTDP implements Runnable {
 	private boolean CONSTRAIN_NAIVELY = false;
 	private static double	EPSILON	= 0;
 	private ADDDecisionTheoreticRegression _dtr;
-	private ADDManager _manager;
+	protected ADDManager _manager;
 	private Timer _cptTimer;
 	private Timer _solutionTimer;
-	private Timer _DPTimer = null;
+	protected Timer _DPTimer = null;
 	private int HORIZON;
 	private double DISCOUNT;
 	private int _nStates;
@@ -54,14 +54,14 @@ public class SymbolicRTDP implements Runnable {
 	private BACKUP_TYPE dp_type;
 	private long seed;
 	private ADDRNode __initial_state_add;
-	private int nTrials;
+	protected int nTrials;
 	private RDDLFactoredStateSpace _stateSpace;
-	private RDDLFactoredTransition _transition;
+	protected RDDLFactoredTransition _transition;
 	private RDDLFactoredReward _reward;
 	private GENERALIZE_PATH _genRule;
-	private Random _rand;
+	protected Random _rand;
 	private int steps_dp;
-	private int steps_lookahead;
+	protected int steps_lookahead;
 
 	public SymbolicRTDP(
 			final String domain, 
@@ -212,7 +212,7 @@ public class SymbolicRTDP implements Runnable {
 		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 	}
 
-	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> do_sRTDP(
+	protected UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> do_sRTDP(
 			final ADDRNode current_value_fn,
 			final ADDRNode current_policy,
 			final FactoredState<RDDLFactoredStateSpace> init_state ) {
@@ -258,7 +258,7 @@ public class SymbolicRTDP implements Runnable {
 		return backed;
 	}
 	
-	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> update_trajectory(
+	protected UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> update_trajectory(
 			final ADDRNode states, final ADDRNode value_fn, final ADDRNode policy) {
 		
 		ADDRNode cur_value = value_fn;
