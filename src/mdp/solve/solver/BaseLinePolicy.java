@@ -3,37 +3,15 @@
  */
 package mdp.solve.solver;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.concurrent.ArrayBlockingQueue;
-
-import mdp.define.Action;
-import mdp.define.PolicyStatistics;
-import mdp.define.State;
-
-import dd.DDManager.APPROX_TYPE;
-import dtr.add.ADDDecisionTheoreticRegression;
-import dtr.add.ADDPolicy;
-import dtr.add.ADDValueFunction;
-import dtr.add.NoOpPolicy;
-import dtr.add.RDDLPolicy;
-import dtr.add.RandomPolicy;
-
-import add.ADDManager;
-import add.ADDRNode;
 import rddl.mdp.RDDL2ADD;
-import rddl.mdp.RDDL2DD;
-import rddl.mdp.RDDLFactoredActionSpace;
-import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
-import rddl.viz.ElevatorDisplay;
-import rddl.viz.StateViz;
 import util.Timer;
-import util.UnorderedPair;
+import add.ADDManager;
+import dtr.add.ADDDecisionTheoreticRegression;
+import dtr.add.ADDPolicy;
+import dtr.add.NoOpPolicy;
+import dtr.add.RandomPolicy;
 
 public class BaseLinePolicy implements Runnable{
 

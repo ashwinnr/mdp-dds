@@ -181,7 +181,7 @@ public class ADDDecisionTheoreticRegression implements
 		switch( rule ){
 		case ALL_PATHS :
 			ADDRNode ret = _manager.DD_ZERO;
-			final ADDRNode good_paths = _manager.apply( input, paths, DDOper.ARITH_PLUS );
+			ADDRNode good_paths = _manager.apply( input, paths, DDOper.ARITH_PLUS );
 			Set<NavigableMap<String, Boolean>> non_neginf_paths  
 				= _manager.enumeratePaths( good_paths, false, true, _manager.DD_NEG_INF, true );
 			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
@@ -190,7 +190,14 @@ public class ADDDecisionTheoreticRegression implements
 			return ret;
 			
 		case NONE :
-			return null;
+			ret = _manager.DD_ZERO;
+			good_paths = _manager.apply( input, paths, DDOper.ARITH_PLUS );
+			non_neginf_paths  
+				= _manager.enumeratePaths( good_paths, false, true, _manager.DD_NEG_INF, true );
+			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
+				ret = _manager.BDDUnion(ret, _manager.getProductBDDFromAssignment(one_path) );
+			}
+			return ret;
 		}
 		return null;
 	}
@@ -1560,16 +1567,16 @@ public class ADDDecisionTheoreticRegression implements
 //		_manager.flushCaches(   );
 		
 		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
-//		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
+		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
 //		_manager.flushCaches(  );
 		ADDRNode summed_constrained = 
-				constrain_naively ? summed : applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
+				constrain_naively ? summed_approx : applyMDPConstraints(summed_approx, action, _manager.DD_NEG_INF,
 				constrain_naively, size_change);
 //		_manager.flushCaches(   );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("showing diagrams");
-			_manager.showGraph(ret, this_cpt, mult, summed, summed_constrained);
+			_manager.showGraph(ret, this_cpt, mult, summed, summed_approx, summed_constrained);
 			try {
 				System.in.read();
 			} catch (IOException e) {
