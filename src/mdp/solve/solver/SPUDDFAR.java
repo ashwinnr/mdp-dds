@@ -155,7 +155,7 @@ public class SPUDDFAR implements Runnable{
 		System.out.println("Size of policy = " + 
 				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
 		System.out.println( "No. of leaves = " + _manager.countLeaves(_valueDD) );
-//		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
+//		_manager.showGraph( _valueDD );//,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
@@ -196,7 +196,8 @@ public class SPUDDFAR implements Runnable{
 	private ADDRNode getInitialStateADD(
 			final INITIAL_STATE_CONF init_conf, 
 			final double init_prob) {
-		return _dtr.getIIDInitialStates(init_conf, init_prob);
+		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
+		return ret;
 	}
 
 	public ADDRNode getValueDD() {

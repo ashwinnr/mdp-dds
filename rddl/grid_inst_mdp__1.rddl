@@ -31,5 +31,5 @@ non-fluents nf_grid_inst_mdp__1 {
  			non-fluents = nf_grid_inst_mdp__1;
  			max-nondef-actions = 1;
  			horizon = 40;
- 			discount = 1.0;
+ 			discount = 0.9;
  		}
