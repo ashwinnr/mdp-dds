@@ -77,7 +77,7 @@ public class ADDDecisionTheoreticRegression implements
 		ALL_PATHS, NONE
 	}
 	
-	private class Heuristic_Compute implements Callable<ADDRNode>{
+	private class Heuristic_Compute implements Callable< UnorderedPair<ADDRNode, ADDRNode> >{
 		
 		 private final int steps;
 		 private final BACKUP_TYPE heuristic_type;
@@ -86,7 +86,7 @@ public class ADDDecisionTheoreticRegression implements
 		 private final double apricodd_epsilon;
 		 private final APPROX_TYPE apricodd_type;
 		 private final long MB;
-		 private ADDRNode ret = null;
+		 private UnorderedPair<ADDRNode, ADDRNode> ret = new UnorderedPair<ADDRNode, ADDRNode>();
 		private boolean timeOut;
 		 
 		public Heuristic_Compute(int steps, BACKUP_TYPE heuristic_type,
@@ -102,7 +102,7 @@ public class ADDDecisionTheoreticRegression implements
 			MB = mB;
 		}
 		
-		public ADDRNode getLastResult( ){
+		public UnorderedPair<ADDRNode, ADDRNode> getLastResult( ){
 			return ret;
 		}
 		
@@ -111,16 +111,17 @@ public class ADDDecisionTheoreticRegression implements
 		}
 
 		@Override
-		public ADDRNode call() throws Exception {
+		public UnorderedPair<ADDRNode, ADDRNode> call() throws Exception {
 			final ADDRNode Vmax = _mdp.getVMax();
 			if( heuristic_type.equals(BACKUP_TYPE.VMAX) ){
-				ret = Vmax;
+				ret._o1 = Vmax;
+				ret._o2 = null;
 				return ret;
 			}
 			
 			int iter = 0;
-			ret = Vmax;
-			while( ( ( steps != -1 && ++iter < steps ) || steps == -1 )
+			ret._o1 = Vmax;
+			while( ( ( steps != -1 && iter++ < steps ) || steps == -1 )
 					&& !timeOut ){// NOTE : steps removed 1/20 for steps = -1 -ANR
 				System.out.println("Heur step : " + iter );
 				switch( heuristic_type ){
@@ -129,18 +130,20 @@ public class ADDDecisionTheoreticRegression implements
 					ADDINode, ADDLeaf, RDDLFactoredStateSpace, RDDLFactoredActionSpace>, 
 					SymbolicPolicy<ADDNode, ADDRNode, ADDINode, ADDLeaf, 
 					RDDLFactoredStateSpace, RDDLFactoredActionSpace>> 
-					regressed_spudd = regress(ret, false, false, false, constrain_naively, null, do_apricodd,
+					regressed_spudd = regress(ret._o1, false, false, true, constrain_naively, null, do_apricodd,
 							apricodd_epsilon, apricodd_type );
-					ret = regressed_spudd._o1.get_valueFn();
+					ret._o1 = regressed_spudd._o1.get_valueFn();
+					ret._o2 = regressed_spudd._o2._addPolicy;
 					break;
 				case VI_FAR : 
 					final UnorderedPair<SymbolicValueFunction<ADDNode, ADDRNode, 
 					ADDINode, ADDLeaf, RDDLFactoredStateSpace, RDDLFactoredActionSpace>, 
 					SymbolicPolicy<ADDNode, ADDRNode, ADDINode, ADDLeaf, 
 					RDDLFactoredStateSpace, RDDLFactoredActionSpace>> 
-					regressed_far = regress(ret, true , false, false, constrain_naively, null, do_apricodd,
+					regressed_far = regress(ret._o1, true , false, true, constrain_naively, null, do_apricodd,
 							apricodd_epsilon, apricodd_type );
-					ret = regressed_far._o1.get_valueFn();
+					ret._o1 = regressed_far._o1.get_valueFn();
+					ret._o2 = regressed_far._o2._bddPolicy;
 					break;
 				case VI_MBFAR :
 					if( MB <= 0 ){
@@ -152,8 +155,9 @@ public class ADDDecisionTheoreticRegression implements
 						}
 					}
 					final UnorderedPair<ADDValueFunction, ADDPolicy> 
-					regressed_mbfar = regressMBFAR( ret, false, constrain_naively, MB, null, do_apricodd, apricodd_epsilon, apricodd_type);
-					ret = regressed_mbfar._o1.get_valueFn();
+					regressed_mbfar = regressMBFAR( ret._o1, true, constrain_naively, MB, null, do_apricodd, apricodd_epsilon, apricodd_type);
+					ret._o1 = regressed_mbfar._o1.get_valueFn();
+					ret._o2 = regressed_mbfar._o2._bddPolicy;
 					break;
 				}
 			}
@@ -211,11 +215,11 @@ public class ADDDecisionTheoreticRegression implements
 			= new ADDDecisionTheoreticRegression(mdp, 42);
 		ADDManager manager = mdp.getManager();
 		
-		final ADDRNode result
+		final UnorderedPair<ADDRNode, ADDRNode> result
 			= ADD_dtr.computeLAOHeuristic(100, 
 					BACKUP_TYPE.VI_FAR, true, false, 0.1, APPROX_TYPE.UPPER, 0, 0.01 );
 		System.out.println("received result");
-		manager.showGraph( result );
+		manager.showGraph( result._o1, result._o2 );
 	}
 	
 	//from and to needs to be a BDD
@@ -280,7 +284,7 @@ public class ADDDecisionTheoreticRegression implements
 		ZERO, VMAX
 	}
 	
-	public ADDRNode computeLAOHeuristic( final int steps, 
+	public UnorderedPair<ADDRNode,ADDRNode> computeLAOHeuristic( final int steps, 
 			final BACKUP_TYPE heuristic_type ,
 			final boolean constrain_naively, 
 			final boolean do_apricodd, 
@@ -294,11 +298,11 @@ public class ADDDecisionTheoreticRegression implements
 				constrain_naively, do_apricodd, 
 				apricodd_epsilon, apricodd_type, MB);
 		ExecutorService exec_serv = Executors.newSingleThreadExecutor();
-		Future<ADDRNode> future = exec_serv.submit( 
+		Future<UnorderedPair<ADDRNode, ADDRNode>> future = exec_serv.submit( 
 				worker );
-		ADDRNode ret = null;
+		UnorderedPair<ADDRNode, ADDRNode> ret = null;
 		try {
-			final ADDRNode result = future.get((long)( time_heuristic_mins * 60 * 1000), TimeUnit.MILLISECONDS );
+			final UnorderedPair<ADDRNode, ADDRNode> result = future.get((long)( time_heuristic_mins * 60 * 1000), TimeUnit.MILLISECONDS );
 			System.out.println("computation completed, returning result");
 			ret = result;
 		} catch (InterruptedException e) {
@@ -1126,7 +1130,7 @@ public class ADDDecisionTheoreticRegression implements
 		return ret;
 	}
 
-	private ADDRNode maxActionVariables( final ADDRNode input, 
+	public ADDRNode maxActionVariables( final ADDRNode input, 
 			final ArrayList<String> action_vars,
 			final List<Long> size_change,
 			final boolean do_apricodd,
@@ -1749,6 +1753,27 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		return ret._o1.get_valueFn();
 	}
+	
+	public ADDRNode getIIDInitialStates(INITIAL_STATE_CONF init_state_conf,
+			double init_state_prob ) {
+		final String[] state_vars = _mdp.get_stateVars().toArray(new String[1]);
+		ADDRNode ret = null;
+		
+		switch( init_state_conf ){
+		case BERNOULLI :
+			ret = _mdp.getIIDBernoulliDistribution(init_state_prob, state_vars);
+		case CONJUNCTIVE :
+			ret = _mdp.getIIDConjunction(!(init_state_prob==0.0d), state_vars );
+		case UNIFORM :
+			ret = _mdp.getIIDUniformDistribution( state_vars );
+		}
+		final ADDRNode constr = _manager.productDD(this.__state_constraints);
+		if( !constr.equals(_manager.DD_ONE) ){
+			ret = _manager.normalizePDF( ret, constr );
+		}
+		
+		return ret;
+	}
 
 	public int addStateConstraint( final ADDRNode input ){
 		__state_constraints.add( input );
@@ -2129,20 +2154,6 @@ public class ADDDecisionTheoreticRegression implements
 			final double epsilon,
 			final int horizon) {
 		return ( iteration >= horizon || BE <= epsilon );
-	}
-
-	public ADDRNode getIIDInitialStates(INITIAL_STATE_CONF init_state_conf,
-			double init_state_prob) {
-		final String[]  stateVarsArary = _mdp.get_stateVars().toArray( new String[ _mdp.getNumStateVars() ] );
-		switch( init_state_conf ){
-		case BERNOULLI :
-			return _mdp.getIIDBernoulliDistribution(init_state_prob, stateVarsArary);
-		case CONJUNCTIVE :
-			return _mdp.getIIDConjunction(!(init_state_prob==0.0d), stateVarsArary );
-		case UNIFORM :
-			return _mdp.getIIDUniformDistribution( stateVarsArary );
-		}
-		return null;
 	}
 
 //	TODO

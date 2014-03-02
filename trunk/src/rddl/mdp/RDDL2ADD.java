@@ -45,6 +45,7 @@ import add.ADDManager;
 import add.ADDNode;
 import add.ADDRNode;
 import dd.DDManager.DDOper;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredActionSpace;
 import factored.mdp.define.FactoredStateSpace;
 

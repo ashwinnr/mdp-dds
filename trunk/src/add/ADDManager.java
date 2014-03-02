@@ -2989,9 +2989,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final ADDLeaf leaf = (ADDLeaf)obj;
 			ret = madeLeaf.getIfPresent( leaf );
 			if( ret == null ){
-//				System.out.println("Creating new " + leaf.toString() );
+//				System.out.println("Creating new " + leaf.toString() + " " + leaf.hashCode() );
+//				leaf.printHash();
 				ret = new ADDRNode( leaf );
 				madeLeaf.put( leaf, ret );
+				
 			}
 			
 //			if(! looked.getNode().equals(leaf) ){
@@ -4049,9 +4051,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		NavigableMap<String, Boolean> ret = new TreeMap<String, Boolean>();
 		ADDRNode curNode = input; 
 		while( curNode.getNode() instanceof ADDINode ){
-			if( curNode.getMax() != 1.0d ){
+			if( curNode.getMax() == 0.0d ){
 				try {
-					throw new Exception("No one leaf but Inode in BDD");
+					throw new Exception("No non zero leaf but Inode in BDD");
 				} catch (Exception e) {
 					e.printStackTrace();
 					System.exit(1);
@@ -4061,10 +4063,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final ADDRNode cur_false_child = curNode.getFalseChild();
 			final double cur_true_max = cur_true_child.getMax();
 			final double cur_false_max = cur_false_child.getMax();
-			if( cur_true_max == 0.0d && cur_false_max == 1.0d ){
+			if( cur_true_max == 0.0d && cur_false_max > 0.0d ){
 				ret.put( curNode.getTestVariable(),  false );
 				curNode = cur_false_child;
-			}else if( cur_true_max == 1.0d && cur_false_max == 0.0d ){
+			}else if( cur_true_max > 0.0d && cur_false_max == 0.0d ){
 				ret.put( curNode.getTestVariable(), true );
 				curNode = cur_true_child;
 			}else{
@@ -4084,6 +4086,34 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final ADDRNode this_dd = getINode(var, value ? DD_ZERO : DD_NEG_INF, value ? DD_NEG_INF : DD_ZERO );
 			ret = apply( ret, this_dd, DDOper.ARITH_PLUS );
 		}
+		return ret;
+	}
+
+	public ADDRNode normalizePDF(final ADDRNode input, final ADDRNode constraint) {
+		final ADDRNode constr_neg = BDDNegate(constraint);
+		final ADDRNode missing_mass_dd = apply( input, constr_neg, DDOper.ARITH_PROD );
+		final ADDRNode missing_mass = sumOutAllVariables( missing_mass_dd );
+		ADDRNode ret = apply( input, constraint, DDOper.ARITH_PROD );
+		ret = apply( ret ,  missing_mass, DDOper.ARITH_DIV );
+		return ret;
+	}
+	
+	public ADDRNode sumOutAllVariables( final ADDRNode input ){
+		ADDRNode ret = input;
+		final Set<String> vars = getVars( input );
+		for( final String var : vars ){
+			ret = marginalize(ret, var, DDMarginalize.MARGINALIZE_SUM );
+		}
+		
+		if( ret.getNode() instanceof ADDINode ){
+			try {
+				throw new Exception("marginalize not leaf");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
 		return ret;
 	}
 

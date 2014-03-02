@@ -65,6 +65,13 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 		return -1;
 	}
 
+	public void printHash(){
+		int h1 = leafValues._o1.hashCode();
+		int h2 = leafValues._o2.hashCode();
+		
+		System.out.println( h1 + " " + h2  + " " + (h1^h2) );
+	}
+	
 	@Override
 	public int hashCode() {
 		int ret;
@@ -72,6 +79,9 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 			ret = -1;
 		}else{
 			ret = super.hashCode();
+//			double avg = ( leafValues._o1 + leafValues._o2 ) / 2d;
+//			double sign1 = Math.abs( leafValues._o1 );
+//			double sign2 = Math.abs( leafValues._o2 );
 		}
 		
 //		System.out.println( "Leaf hashcode : " + this + " " + ret );
