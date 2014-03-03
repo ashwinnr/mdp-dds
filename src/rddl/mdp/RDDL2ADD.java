@@ -557,6 +557,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 						}
 					}
 				}
+				_manager.flushCaches();
 			}
 
 			////
