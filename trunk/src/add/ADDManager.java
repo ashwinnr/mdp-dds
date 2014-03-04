@@ -149,7 +149,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				continue;
 			}
 			
-			if( combinedSpan(cur, next) <= apricodd_epsilon ){
+			if( combinedSpan(mapped_set, next) <= apricodd_epsilon ){
 				final ADDLeaf map_to = mergeLeafPair(cur, next, appricodd_type );
 //				mapped_set.add( cur );
 				mapped_set.add( next );
@@ -244,36 +244,36 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 	}
 
-	private Map<ADDLeaf, ADDLeaf> fixIntervals(
-			final Map<ADDRNode, ADDRNode> mergedNodes,
-			final double apricodd_epsilon,
-			final APPROX_TYPE apricodd_type ) {
-		final TreeSet<ADDLeaf> leaves = new TreeSet<ADDLeaf>();
-		final Collection<ADDRNode> leafNodes = mergedNodes.values();
-		for( ADDRNode leafNode : leafNodes ){
-			final ADDLeaf theLeaf = (ADDLeaf)leafNode.getNode();
-			leaves.add(theLeaf);
-		}
-		final Map<ADDLeaf,ADDLeaf> fixedIntervals = new HashMap<ADDLeaf, ADDLeaf>();
-		ADDLeaf cur = null;
-		for( final ADDLeaf sortedLeaf : leaves ){
-			if( cur == null ){
-				cur = sortedLeaf;
-				fixedIntervals.put( cur ,cur );
-				continue;
-			}
-			if( combinedSpan(cur,sortedLeaf) <= apricodd_epsilon ){
-				final ADDLeaf newLeaf = mergeLeafPair( cur, sortedLeaf, apricodd_type );
-				fixedIntervals.put( cur, newLeaf );
-				fixedIntervals.put( sortedLeaf, newLeaf );
-				cur = newLeaf;
-			}else{
-				fixedIntervals.put( sortedLeaf, sortedLeaf );
-				cur = sortedLeaf;
-			}
-		}
-		return fixedIntervals;
-	}
+//	private Map<ADDLeaf, ADDLeaf> fixIntervals(
+//			final Map<ADDRNode, ADDRNode> mergedNodes,
+//			final double apricodd_epsilon,
+//			final APPROX_TYPE apricodd_type ) {
+//		final TreeSet<ADDLeaf> leaves = new TreeSet<ADDLeaf>();
+//		final Collection<ADDRNode> leafNodes = mergedNodes.values();
+//		for( ADDRNode leafNode : leafNodes ){
+//			final ADDLeaf theLeaf = (ADDLeaf)leafNode.getNode();
+//			leaves.add(theLeaf);
+//		}
+//		final Map<ADDLeaf,ADDLeaf> fixedIntervals = new HashMap<ADDLeaf, ADDLeaf>();
+//		ADDLeaf cur = null;
+//		for( final ADDLeaf sortedLeaf : leaves ){
+//			if( cur == null ){
+//				cur = sortedLeaf;
+//				fixedIntervals.put( cur ,cur );
+//				continue;
+//			}
+//			if( combinedSpan( mapped_,sortedLeaf) <= apricodd_epsilon ){
+//				final ADDLeaf newLeaf = mergeLeafPair( cur, sortedLeaf, apricodd_type );
+//				fixedIntervals.put( cur, newLeaf );
+//				fixedIntervals.put( sortedLeaf, newLeaf );
+//				cur = newLeaf;
+//			}else{
+//				fixedIntervals.put( sortedLeaf, sortedLeaf );
+//				cur = sortedLeaf;
+//			}
+//		}
+//		return fixedIntervals;
+//	}
 	
 	private ADDLeaf mergeLeafPair(final ADDLeaf leaf1, final ADDLeaf leaf2,
 			final APPROX_TYPE apricodd_type) {
@@ -294,10 +294,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return null;
 	}
 
-	private double combinedSpan( final ADDLeaf node1, final ADDLeaf node2 ){
-		final double min = Math.min( node1.getMin(), node2.getMin() );
-		final double max = Math.max( node1.getMax(), node2.getMax() );
-		return Math.abs( max-min );
+	private double combinedSpan( final Set<ADDLeaf> set, final ADDLeaf candidate ){
+		double ret = Double.MIN_VALUE;
+		for( final ADDLeaf leaf : set ){
+			final double min = Math.min( leaf.getMin(), candidate.getMin() );
+			final double max = Math.max( leaf.getMax(), candidate.getMax() );
+			ret = Math.max( ret , Math.abs( max-min ) );
+		}
+		return ret;
 	}
 
 	private void traverseAndMerge(final ADDRNode input, final double apricodd_epsilon,
@@ -3831,9 +3835,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
-	public int countLeaves(final ADDRNode input) {
-		final Set<ADDLeaf> set_o_leaves = getLeaves(input);
-		return set_o_leaves.size();
+	public int[] countLeaves(final ADDRNode... inputs) {
+		final int[] sizes = new int[ inputs.length ];
+		int i = 0;
+		for( final ADDRNode input : inputs ){
+			final Set<ADDLeaf> set_o_leaves = getLeaves(input);
+			sizes[ i++ ] = set_o_leaves.size();
+		}
+		return sizes;
 	}
 
 	//	public void clearDeadNodes(){
@@ -4114,6 +4123,27 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		
+		return ret;
+	}
+
+	public ADDRNode normalizeConditionalPDF(
+			final ADDRNode input, 
+			final String var ) {
+		final ADDRNode var_true = getIndicatorDiagram(var, true);
+		final ADDRNode var_false = getIndicatorDiagram(var, false );
+		
+		final ADDRNode prob_true = apply( var_true, input, DDOper.ARITH_PROD );
+		final ADDRNode prob_false = apply( var_false, input, DDOper.ARITH_PROD );
+		//this step necessary if var is not in DD
+		//i.e. p_true = p_false
+		//direct marginalizze will put leaf to 1
+		//needs to be 0.5
+		//sol : sum true prob  and false prob separately
+		final ADDRNode total_prob_true = marginalize( prob_true, var, DDMarginalize.MARGINALIZE_SUM );
+		final ADDRNode total_prob_false = marginalize( prob_false, var, DDMarginalize.MARGINALIZE_SUM );
+		
+		final ADDRNode total_prob = apply( total_prob_true, total_prob_false, DDOper.ARITH_PLUS );
+		final ADDRNode ret = apply( input, total_prob, DDOper.ARITH_DIV );
 		return ret;
 	}
 

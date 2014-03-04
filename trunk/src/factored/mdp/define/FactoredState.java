@@ -45,6 +45,11 @@ public class FactoredState<S extends FactoredStateSpace> extends State<S> {
 	}
 	
 	@Override
+	public boolean equals(Object obj) {
+		return factoredState.equals(((FactoredState<S>)obj).getFactoredState());
+	}
+	
+	@Override
 	public String toString() {
 		return factoredState.toString();
 	}

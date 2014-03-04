@@ -1578,4 +1578,15 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		});
 		return;
 	}
+
+	public ADDRNode getSumOfRewards() {
+		final List<ADDRNode> rewards = getRewards();
+		ADDRNode ret = _manager.DD_ZERO;
+		
+		 for( int i = 0 ; i < rewards.size(); ++i ){
+			 ret =  _manager.apply( ret, rewards.get(i), DDOper.ARITH_PLUS );
+		 }
+		 
+		 return ret;
+	}
 }
