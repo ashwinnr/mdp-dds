@@ -18,6 +18,11 @@ public class FactoredAction<S extends FactoredStateSpace, A extends FactoredActi
 		factoredAction = facAction;
 	}
 	
+	@Override
+	public boolean equals(Object obj) {
+		return factoredAction.equals( ((FactoredAction<S,A>)obj).getFactoredAction() );
+	}
+	
 	public void setFactoredAction(NavigableMap<String, Boolean> factoredAction) {
 		this.factoredAction = factoredAction;
 	}

@@ -506,7 +506,9 @@ public class ADDDecisionTheoreticRegression implements
 		for( NavigableMap<String, Boolean> action : actions ){
 			ADDRNode this_q = regressAction( primed, action, constrain_naively, 
 					size_change , do_apricodd, apricodd_epsilon, apricodd_type );
-			sum_q += _manager.countNodes( this_q ).get( 0 );
+			if( size_change != null ){
+				sum_q += _manager.countNodes( this_q ).get( 0 );
+			}
 			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.println("Regressing action : " + action );
 			}
@@ -547,8 +549,11 @@ public class ADDDecisionTheoreticRegression implements
 //			_manager.flushCaches( );
 		}
 		
-		size_change.clear();
-		size_change.add( sum_q / actions.size() );
+		if( size_change != null ){
+			size_change.clear();
+			size_change.add( sum_q / actions.size() );
+		}
+		
 //		sum_q *= actions.size();
 				
 		return new UnorderedPair<ADDValueFunction, ADDPolicy>( 
@@ -866,6 +871,7 @@ public class ADDDecisionTheoreticRegression implements
 			System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
 		}
 		
+		q_func = _manager.doApricodd(q_func, do_apricodd, apricodd_epsilon, apricodd_type);
 		ret = maxActionVariables(q_func, _mdp.getElimOrder(), size_change,
 				do_apricodd, apricodd_epsilon, apricodd_type );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
@@ -1286,8 +1292,9 @@ public class ADDDecisionTheoreticRegression implements
 			//max action vars
 			final ArrayList<String> all_action_vars = new ArrayList<String>( maxOrder );
 			all_action_vars.removeAll( assign.keySet() );
-			final ADDRNode this_z = maxActionVariables( ret, all_action_vars,
+			ADDRNode this_z = maxActionVariables( ret, all_action_vars,
 					size_change, do_apricodd, apricodd_epsilon, apricodd_type );
+			this_z = _manager.doApricodd(this_z, do_apricodd, apricodd_epsilon, apricodd_type);
 			
 			//max with value func
 			value_func = _manager.apply( value_func, this_z, DDOper.ARITH_MAX );
@@ -1333,145 +1340,6 @@ public class ADDDecisionTheoreticRegression implements
 				//sets neginf to zero
 				//and zero to one
 				//positive nos. to zero 
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				//optimal action is 1
 //				final ADDRNode opt_one = _manager.apply( _manager.DD_ONE, opt_zero, DDOper.ARITH_MINUS );
 //				final ADDRNode opt_zero = _manager.apply( _manager.DD_ONE, 
@@ -1484,6 +1352,8 @@ public class ADDDecisionTheoreticRegression implements
 //				policy = applyMDPConstraints( policy, assign, _manager.DD_ZERO,
 //						constrain_naively);
 			}
+			_manager.flushCaches();
+			
 		}
 				
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
@@ -1571,16 +1441,15 @@ public class ADDDecisionTheoreticRegression implements
 //		_manager.flushCaches(   );
 		
 		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
-		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
-//		_manager.flushCaches(  );
+//		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
 		ADDRNode summed_constrained = 
-				constrain_naively ? summed_approx : applyMDPConstraints(summed_approx, action, _manager.DD_NEG_INF,
+				constrain_naively ? summed : applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
 				constrain_naively, size_change);
 //		_manager.flushCaches(   );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("showing diagrams");
-			_manager.showGraph(ret, this_cpt, mult, summed, summed_approx, summed_constrained);
+			_manager.showGraph(ret, this_cpt, mult, summed, summed, summed_constrained);
 			try {
 				System.in.read();
 			} catch (IOException e) {
@@ -1604,6 +1473,7 @@ public class ADDDecisionTheoreticRegression implements
 			size_change.addAll( _manager.countNodes( input, mult, 
 					summed, summed_constrained) );
 		}
+		_manager.flushCaches(  );
 		return ret;
 	}
 
@@ -1672,6 +1542,8 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
+		ret = _manager.doApricodd(ret, do_apricodd, apricodd_epsilon, apricodd_type);
+		
 		return ret;
 	}
 
@@ -1732,7 +1604,7 @@ public class ADDDecisionTheoreticRegression implements
 		
 //		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 //		}
-//		_manager.flushCaches( );
+		_manager.flushCaches( );
 		return ret;
 	}
 
@@ -2146,6 +2018,8 @@ public class ADDDecisionTheoreticRegression implements
 		if( !keepQ ){
 			ret._o1.throwAwayQFunctions();
 		}
+		_manager.flushCaches();
+		
 		return (UnorderedPair<T, U>) ret;
 	}
 
