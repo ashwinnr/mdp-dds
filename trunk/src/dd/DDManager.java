@@ -81,7 +81,7 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	
 	public Set<DL> getLeaves(DR input);
 	
-	public Set<String> getVars(DR input);
+	public List<Set<String>> getVars(DR... inputs);
 	
 	public Set<NavigableMap<String, Boolean>> enumeratePaths(DR input, boolean leaf,
 			 final boolean leafValSpecified, 
