@@ -1466,7 +1466,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 								_manager.threshold( theCPT, 0.0d, false ),
 								DDOper.ARITH_MINUS );
 				inner.put( ns_var, theRelation );
-				final Set<String> vars = _manager.getVars( theRelation );
+				final Set<String> vars = _manager.getVars( theRelation ).get( 0 );
 				for( final String var : vars ){
 					if( isActionVariable( var ) ){
 						try{
@@ -1537,7 +1537,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 //			System.out.print("\nCPT relevant vars " );
 //			System.out.print(_manager.getVars(theCpt) );
 //			System.out.print("\nRelation relevant vars " );
-			Set<String> vars = _manager.getVars( theRelation );
+			Set<String> vars = _manager.getVars( theRelation ).get(0);
 //			System.out.print( vars );
 			final int ns_index = _varOrder.indexOf( nextVar );
 			for( final String v : vars ){

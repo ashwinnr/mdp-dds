@@ -15,6 +15,7 @@ import java.util.NavigableMap;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -119,7 +120,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//finally, remap leaves in DD
 //		final double actual_epsilon = apricodd_epsilon/2.0d;
 		
-		Set<ADDLeaf> leaves = getLeaves(input);
+		SortedSet<ADDLeaf> leaves = getLeaves(input);
 		//already sorted
 		Map<ADDLeaf,ADDLeaf> remaps = mergeLeaves( leaves, apricodd_epsilon, 
 				apricodd_type );
@@ -134,12 +135,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	
 	
-	private Map<ADDLeaf, ADDLeaf> mergeLeaves( final Set<ADDLeaf> leaves,
+	private Map<ADDLeaf, ADDLeaf> mergeLeaves( final SortedSet<ADDLeaf> leaves,
 			final double apricodd_epsilon,
 			final APPROX_TYPE appricodd_type ){
 		
 		final Map<ADDLeaf, ADDLeaf> ret = new HashMap<ADDLeaf, ADDLeaf>();
-		final Set<ADDLeaf> mapped_set = new TreeSet<ADDLeaf>();
+		final SortedSet<ADDLeaf> mapped_set = new TreeSet<ADDLeaf>();
 		
 		ADDLeaf cur = null;
 		for( final ADDLeaf next : leaves ){
@@ -149,14 +150,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				continue;
 			}
 			
-			if( combinedSpan(mapped_set, next) <= apricodd_epsilon ){
-				final ADDLeaf map_to = mergeLeafPair(cur, next, appricodd_type );
+			if( combinedSpan(cur, next) <= apricodd_epsilon ){
 //				mapped_set.add( cur );
 				mapped_set.add( next );
-				cur = map_to;
+//				cur = map_to;
 			}else{
+				final ADDLeaf map_to = mergeLeavesInt( mapped_set, appricodd_type );
 				for( final ADDLeaf src : mapped_set ){
-					ret.put( src, cur );
+					ret.put( src, map_to );
 				}
 				mapped_set.clear();
 				cur = next;
@@ -164,12 +165,30 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		if( !mapped_set.isEmpty() ){
+			final ADDLeaf map_to = mergeLeavesInt( mapped_set, appricodd_type );
 			for( final ADDLeaf src : mapped_set ){
-				ret.put( src, cur );
+				ret.put( src, map_to );
 			}
 			mapped_set.clear();
 		}
 		return ret;
+	}
+
+	private ADDLeaf mergeLeavesInt(final SortedSet<ADDLeaf> mapped_set, 
+			final APPROX_TYPE apricodd_type) {
+		switch( apricodd_type ){
+		case LOWER : return mapped_set.first();
+		case UPPER : return mapped_set.last();
+		case RANGE : return (ADDLeaf) getLeaf( mapped_set.first().getMin(), mapped_set.last().getMax() ).getNode();
+		case AVERAGE : ADDLeaf avg = (ADDLeaf) DD_ZERO.getNode();
+			for( final ADDLeaf in : mapped_set ){
+				avg = (ADDLeaf) applyLeafOp( avg, in, DDOper.ARITH_PLUS ).getNode();
+			}
+			avg = (ADDLeaf) applyLeafOp(avg, (ADDLeaf) getLeaf((double)mapped_set.size(), 
+					(double)mapped_set.size()).getNode(), DDOper.ARITH_DIV ).getNode();
+			return avg;
+		}
+		return null;
 	}
 
 	private ADDRNode remapLeaves( final ADDRNode input, 
@@ -294,14 +313,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return null;
 	}
 
-	private double combinedSpan( final Set<ADDLeaf> set, final ADDLeaf candidate ){
-		double ret = Double.MIN_VALUE;
-		for( final ADDLeaf leaf : set ){
-			final double min = Math.min( leaf.getMin(), candidate.getMin() );
-			final double max = Math.max( leaf.getMax(), candidate.getMax() );
-			ret = Math.max( ret , Math.abs( max-min ) );
-		}
-		return ret;
+	private double combinedSpan( final ADDLeaf leaf1, final ADDLeaf leaf2 ){
+		final double min_min = ( Math.min( leaf1.getMin(), leaf2.getMin() ) );
+		final double max_max = ( Math.max( leaf1.getMax(), leaf2.getMax() ) );
+		return Math.abs( max_max - min_min );
 	}
 
 	private void traverseAndMerge(final ADDRNode input, final double apricodd_epsilon,
@@ -1792,14 +1807,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 						
 		return ret;
 	}
-
-	public ADDRNode applyLeafOp(final ADDRNode rnode1, final ADDRNode rnode2, 
+	
+	public ADDRNode applyLeafOp(final ADDLeaf node1, final ADDLeaf node2, 
 			final DDOper op) {
-//		Objects.requireNonNull( new Object[]{rnode1, rnode2} );
-//		Objects.requireNonNull( op );
-		
-		final ADDLeaf node1 = (ADDLeaf) rnode1.getNode();
-		final ADDLeaf node2 = (ADDLeaf) rnode2.getNode();
 		final Pair<Double, Double> leaf1 = node1.getLeafValues();
 		final Pair<Double, Double> leaf2 = node2.getLeafValues();
 		double result_1 = Double.NaN, result_2 = Double.NaN;
@@ -1881,7 +1891,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		ret = getLeaf( result_1, result_2 );
 //		System.out.println( rnode1 + " " + rnode2 + " " + op + " " + ret); 
 		return ret;
+	}
 
+	public ADDRNode applyLeafOp(final ADDRNode rnode1, final ADDRNode rnode2, 
+			final DDOper op) {
+		final ADDLeaf node1 = (ADDLeaf) rnode1.getNode();
+		final ADDLeaf node2 = (ADDLeaf) rnode2.getNode();
+		return applyLeafOp(node1, node2, op);
 	}
 
 //	@Override
@@ -2770,11 +2786,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public Set<ADDLeaf> getLeaves(final ADDRNode input) {
+	public SortedSet<ADDLeaf> getLeaves(final ADDRNode input) {
 //		Objects.requireNonNull( input );
-		TreeSet<ADDLeaf> ret = new TreeSet<ADDLeaf>();
+		SortedSet<ADDLeaf> ret = new TreeSet<ADDLeaf>();
 		getLeavesInt( input, ret, new TreeSet<ADDRNode>() );
-		return Collections.unmodifiableSet( ret );
+		return Collections.unmodifiableSortedSet( ret );
 	}
 
 	public static void testGetLeaves(){
@@ -2800,8 +2816,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	private void getLeavesInt( final ADDRNode input, final TreeSet<ADDLeaf> leaves,
-			final TreeSet<ADDRNode> visited ) {
+	private void getLeavesInt( final ADDRNode input, final SortedSet<ADDLeaf> leaves,
+			final Set<ADDRNode> visited ) {
 
 		if( visited.contains(input) ){
 			return;
@@ -3022,12 +3038,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	}
 
 	@Override
-	public Set<String> getVars(final ADDRNode input) {
-//		Objects.requireNonNull( input );
-		final TreeSet<ADDRNode> seen = new TreeSet<ADDRNode>();
-		final TreeSet<String> vars = new TreeSet<String>();
-		getVarsInt( input, seen, vars);
-		return Collections.unmodifiableSet( vars );
+	public List<Set<String>> getVars(final ADDRNode... inputs) {
+		List<Set<String>> ret = new ArrayList<Set<String>>();
+		
+		for( final ADDRNode input : inputs ){
+			final TreeSet<ADDRNode> seen = new TreeSet<ADDRNode>();
+			final TreeSet<String> vars = new TreeSet<String>();
+			getVarsInt( input, seen, vars);
+			ret.add( Collections.unmodifiableSet( vars ) );
+		}
+		return ret;
 	}
 
 	private void getVarsInt(final ADDRNode input, final TreeSet<ADDRNode> visited, 
@@ -4109,7 +4129,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	public ADDRNode sumOutAllVariables( final ADDRNode input ){
 		ADDRNode ret = input;
-		final Set<String> vars = getVars( input );
+		final Set<String> vars = getVars( input ).get(0);
 		for( final String var : vars ){
 			ret = marginalize(ret, var, DDMarginalize.MARGINALIZE_SUM );
 		}
@@ -4126,9 +4146,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
-	public ADDRNode normalizeConditionalPDF(
+	public ADDRNode normalizeConditionalPDF (
 			final ADDRNode input, 
-			final String var ) {
+			final String var ) throws ArithmeticException {
 		final ADDRNode var_true = getIndicatorDiagram(var, true);
 		final ADDRNode var_false = getIndicatorDiagram(var, false );
 		
@@ -4143,7 +4163,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final ADDRNode total_prob_false = marginalize( prob_false, var, DDMarginalize.MARGINALIZE_SUM );
 		
 		final ADDRNode total_prob = apply( total_prob_true, total_prob_false, DDOper.ARITH_PLUS );
-		final ADDRNode ret = apply( input, total_prob, DDOper.ARITH_DIV );
+		ADDRNode ret = null;
+		try{
+			ret = apply( input, total_prob, DDOper.ARITH_DIV );
+		}catch( ArithmeticException e ){
+			throw e;
+		}
 		return ret;
 	}
 
