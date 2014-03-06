@@ -124,7 +124,7 @@ public class MBMPI_Naive implements Runnable {
 //					System.exit(1);
 //				}
 //			}
-			
+			_manager.flushCaches();
 			prev_error = error;
 
 //			_manager.removePermenant(_valueDD);
@@ -157,6 +157,7 @@ public class MBMPI_Naive implements Runnable {
 			if( error < EPSILON && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
 				lastiter = true;
 			}
+			_manager.flushCaches();
 		}
 		
 //		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();

@@ -1304,6 +1304,7 @@ public class ADDDecisionTheoreticRegression implements
 			if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO ) >= 0 ){
 				System.out.println( "Z-value function " + assign );
 			}
+			_manager.flushCaches();
 			
 			//update policy
 			if( makePolicy ){
@@ -1972,6 +1973,7 @@ public class ADDDecisionTheoreticRegression implements
 				System.out.println("MB stopping evaluation");
 				break;
 			}
+			_manager.flushCaches();
 		}
 		return new UnorderedPair<ADDRNode, Integer>( value_func, steps-1 );
 	}
