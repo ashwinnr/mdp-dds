@@ -16,6 +16,7 @@ import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.ADDValueFunction;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 
 public class MBMPI_Naive implements Runnable {
 	
@@ -24,7 +25,6 @@ public class MBMPI_Naive implements Runnable {
 	private static APPROX_TYPE APRICODD_TYPE;
 	private static double	EPSILON	= 0;
 	private boolean LIMIT_EVAL = false;
-	private ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> _bq = null;
 	private ADDDecisionTheoreticRegression _dtr;
 	private ADDManager _manager;
 	private Timer _cptTimer;
@@ -43,9 +43,10 @@ public class MBMPI_Naive implements Runnable {
 	private RDDL2ADD _mdp;
 	private boolean CONSTRAIN_NAIVELY;
 	private long BIGDD;
+	private ADDPolicy _policy;
+	private boolean _stop = false;
 	
 	public MBMPI_Naive(String domain, String instance, double epsilon,
-			ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> bq,
 			DEBUG_LEVEL debug, ORDER order, final long seed,
 			final boolean useDiscounting, 
 			final int numStates,
@@ -64,7 +65,6 @@ public class MBMPI_Naive implements Runnable {
 		LIMIT_EVAL = limit_eval;
 		CONSTRAIN_NAIVELY = constrain_naively;
 		_evalSteps = evalSteps;
-		_bq = bq;
 		EPSILON = epsilon;
 		_cptTimer = new Timer();
 		_mdp = new RDDL2ADD(domain, instance, true, debug, order, true, seed);
@@ -83,7 +83,7 @@ public class MBMPI_Naive implements Runnable {
 		ADDRNode _valueDD = _manager.DD_ZERO;
 		ADDRNode _policyDD = _manager.DD_ZERO;
 		
-		ADDPolicy _policy = null;
+		_policy = null;
 		
 		int iter = 1;
 
@@ -94,7 +94,7 @@ public class MBMPI_Naive implements Runnable {
 		boolean lastiter = false;
 		List<Long> size_change = new ArrayList<Long>();
 		
-		while( true ) {
+		while( !_stop ) {
 			_solutionTimer.ResumeTimer();
 //			_manager.addPermenant(_valueDD);
 			_improvTimer.ResumeTimer();
@@ -130,7 +130,7 @@ public class MBMPI_Naive implements Runnable {
 //			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
 			
-			if( makePolicy ){
+			if( makePolicy && !_stop ){
 				_policyDD = newValueDD._o2._bddPolicy;
 				_policy = newValueDD._o2;
 				_solutionTimer.ResumeTimer();
@@ -159,7 +159,7 @@ public class MBMPI_Naive implements Runnable {
 			}
 		}
 		
-		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
+//		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetElapsedTimeInMinutes() );
@@ -174,9 +174,13 @@ public class MBMPI_Naive implements Runnable {
 //		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
+	public void stop(){
+		_stop  = true;
+	}
+	
 	public static void main(String[] args) throws InterruptedException {
-		Runnable worker = new MBMPI_Naive(args[0], args[1], Double.parseDouble(args[2]), 
-				null, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
+		MBMPI_Naive worker = new MBMPI_Naive(args[0], args[1], Double.parseDouble(args[2]), 
+				 DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]), Integer.parseInt(args[7]),
 				Boolean.parseBoolean(args[8] ), Long.parseLong(args[9]), 
@@ -186,7 +190,30 @@ public class MBMPI_Naive implements Runnable {
 				APPROX_TYPE.valueOf(args[13]) );
 		Thread t = new Thread( worker );
 		t.start();
-		t.join();
+		t.join( (long) (Double.parseDouble( args[14] ) * 60 * 1000) ) ;
+		worker.stop();
+		System.out.println("Stopping!" );
+		
+		final ADDPolicy policy = worker.getPolicy();
+		try{
+			policy.executePolicy( Integer.parseInt(args[7]), Integer.parseInt(args[6]), Boolean.parseBoolean(args[8] ), 
+					worker.getHorizon(), worker.getDiscount(), null ).printStats();
+		}catch( Exception e ){
+			e.printStackTrace();
+		}
+		
+	}
+
+	private ADDPolicy getPolicy() {
+		return _policy;//._bddPolicy != null ? _policy._bddPolicy : _policy._addPolicy;
+	}
+
+	private double getDiscount() {
+		return DISCOUNT;
+	}
+
+	private int getHorizon() {
+		return HORIZON;
 	}
 
 }

@@ -1661,8 +1661,8 @@ public class ADDDecisionTheoreticRegression implements
 	}
 	
 	public boolean removePolicyConstraint( final int index ) {
-		final boolean ret1 =  __policy_constraints.remove( index ) == null;
-		final boolean ret2 = __policy_constraints_neginf.remove( index ) == null;
+		final boolean ret1 =  __policy_constraints.remove( index ) != null;
+		final boolean ret2 = __policy_constraints_neginf.remove( index ) != null;
 		return ret1 && ret2;
 	}
 
@@ -1958,7 +1958,7 @@ public class ADDDecisionTheoreticRegression implements
 			final long size = _manager.countNodes(new_value_func).get(0);
 			System.out.println( "MBFAR Policy evaluation " + steps + " " +
 					error + " Size of value : " + size + " time : " + evalT.GetElapsedTimeInMinutes() );
-			if( prev_error != Double.NaN && prev_error < error ){
+			if( !do_apricodd && prev_error != Double.NaN && prev_error < error ){
 				try{
 					throw new Exception("BE increased here");
 				}catch( Exception e ){
