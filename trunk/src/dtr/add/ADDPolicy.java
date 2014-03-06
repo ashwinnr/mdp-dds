@@ -131,6 +131,9 @@ public class ADDPolicy extends
 			final boolean useDiscounting, final int horizon,
 			final double discount, final StateViz visualizer ,
 			final ADDRNode initial_state_dist ){
+		if( initial_state_dist == null ){
+			return executePolicy(numRounds, numStates, useDiscounting, horizon, discount, visualizer);
+		}
 		
 		PolicyStatistics stats = new PolicyStatistics(numStates, numRounds);
 		

@@ -178,8 +178,8 @@ public class SPUDDFAR implements Runnable{
 			policy.executePolicy( nRounds, nStates, useDisc, 
 					worker.getHorizon(), worker.getDiscount(), null, 
 					worker.getInitialStateADD( 
-							INITIAL_STATE_CONF.valueOf( args[14] ), 
-							Double.parseDouble( args[15] ) ) ).printStats();
+							( args.length < 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] ), 
+							( args.length < 14 ) ? null : Double.parseDouble( args[15] ) ) ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
@@ -196,6 +196,9 @@ public class SPUDDFAR implements Runnable{
 	private ADDRNode getInitialStateADD(
 			final INITIAL_STATE_CONF init_conf, 
 			final double init_prob) {
+		if( init_conf == null ){
+			return null;
+		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
 		return ret;
 	}
