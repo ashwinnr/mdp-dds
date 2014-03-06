@@ -858,7 +858,8 @@ public class ADDDecisionTheoreticRegression implements
 		}
 //		ret = reward_added;
 		final ADDRNode improper_q_func = reward_added;
-		ADDRNode q_func = improper_q_func;
+		ADDRNode q_func = _manager.doApricodd(improper_q_func, do_apricodd, apricodd_epsilon, apricodd_type);
+		
 		if( !constrain_naively ){
 			q_func = multiplyActionPreconditions( q_func, null );
 			q_func = multiplyStateConstraints( q_func );
@@ -871,7 +872,7 @@ public class ADDDecisionTheoreticRegression implements
 			System.out.println("Size of |Q| = " + _manager.countNodes(q_func) );
 		}
 		
-		q_func = _manager.doApricodd(q_func, do_apricodd, apricodd_epsilon, apricodd_type);
+		
 		ret = maxActionVariables(q_func, _mdp.getElimOrder(), size_change,
 				do_apricodd, apricodd_epsilon, apricodd_type );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
@@ -1822,7 +1823,7 @@ public class ADDDecisionTheoreticRegression implements
 		policy.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
 	}
 
-	private static ADDRNode getRebootDeadPolicy(ADDManager manager,
+	public static ADDRNode getRebootDeadPolicy(ADDManager manager,
 			ADDDecisionTheoreticRegression dtr, Set<String> actionVars) throws EvalException {
 		
 		ADDRNode policy = manager.DD_ONE;
@@ -1845,7 +1846,7 @@ public class ADDDecisionTheoreticRegression implements
 			policy = manager.apply(policy, thisPolicy, DDOper.ARITH_PROD );
 		}
 		
-		policy = dtr.applyMDPConstraints( policy , null, manager.DD_ZERO, false, null);
+		policy = dtr.applyMDPConstraints( policy , null, manager.DD_ZERO, true, null);
 		return policy;
 	}
 

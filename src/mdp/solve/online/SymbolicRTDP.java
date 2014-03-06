@@ -5,6 +5,7 @@ import java.util.Random;
 import java.util.Stack;
 
 import mdp.define.PolicyStatistics;
+import rddl.EvalException;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
@@ -43,6 +44,7 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 	protected int steps_lookahead;
 	private ADDRNode _valueDD;
 	private ADDRNode _policyDD;
+	private ADDRNode base_line;
 
 	public SymbolicRTDP(
 			final String domain, 
@@ -98,6 +100,11 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 		}
 		_DPTimer = new Timer();
 		_DPTimer.PauseTimer();
+		try {
+			base_line = ADDDecisionTheoreticRegression.getRebootDeadPolicy(_manager, _dtr, _mdp.get_actionVars() );
+		} catch (EvalException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
