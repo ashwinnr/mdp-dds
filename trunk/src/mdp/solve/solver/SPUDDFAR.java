@@ -4,6 +4,7 @@
 package mdp.solve.solver;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +155,7 @@ public class SPUDDFAR implements Runnable{
 		System.out.println("Size of value fn. = " + _manager.countNodes(_valueDD) );
 		System.out.println("Size of policy = " + 
 				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
-		System.out.println( "No. of leaves = " + _manager.countLeaves(_valueDD) );
+		System.out.println( "No. of leaves = " + Arrays.toString( _manager.countLeaves(_valueDD) ) );
 //		_manager.showGraph( _valueDD );//,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
@@ -174,12 +175,16 @@ public class SPUDDFAR implements Runnable{
 		t.start();
 		t.join( (long) ( Double.parseDouble( args[13] ) * 60 * 1000 ) );
 		final ADDPolicy policy = worker.getPolicy();
+		
+		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
+		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
+		
+		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
+		
 		try{
 			policy.executePolicy( nRounds, nStates, useDisc, 
 					worker.getHorizon(), worker.getDiscount(), null, 
-					worker.getInitialStateADD( 
-							( args.length < 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] ), 
-							( args.length < 14 ) ? null : Double.parseDouble( args[15] ) ) ).printStats();
+					init_state ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
@@ -195,7 +200,7 @@ public class SPUDDFAR implements Runnable{
 
 	private ADDRNode getInitialStateADD(
 			final INITIAL_STATE_CONF init_conf, 
-			final double init_prob) {
+			final Double init_prob) {
 		if( init_conf == null ){
 			return null;
 		}

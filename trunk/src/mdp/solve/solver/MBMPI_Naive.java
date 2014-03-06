@@ -129,10 +129,12 @@ public class MBMPI_Naive implements Runnable {
 
 //			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
-			
-			if( makePolicy && !_stop ){
+			if( makePolicy ){
 				_policyDD = newValueDD._o2._bddPolicy;
 				_policy = newValueDD._o2;
+			}
+			
+			if( makePolicy && !_stop ){
 				_solutionTimer.ResumeTimer();
 				_evalTimer.ResumeTimer();
 				//	break ties in policy
@@ -197,7 +199,7 @@ public class MBMPI_Naive implements Runnable {
 		
 		final ADDPolicy policy = worker.getPolicy();
 		try{
-			policy.executePolicy( Integer.parseInt(args[7]), Integer.parseInt(args[6]), Boolean.parseBoolean(args[8] ), 
+			policy.executePolicy( Integer.parseInt(args[7]), Integer.parseInt(args[6]), Boolean.parseBoolean(args[4] ), 
 					worker.getHorizon(), worker.getDiscount(), null ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
