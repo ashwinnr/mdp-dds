@@ -2621,9 +2621,6 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	private synchronized <T extends Comparable<T> > T getFirstRealOne(
 			final Queue<T> store) {
-		if( store.isEmpty()  ){
-			return null;
-		}
 		return store.poll();//store poll() might block - using ArrayBlockingQueue
 	}
 
@@ -2881,7 +2878,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public ADDNode getOneNullDD( final boolean leaf ) {
+	public synchronized ADDNode getOneNullDD( final boolean leaf ) {
 		ADDNode ret = null;
 
 		if( leaf ){
