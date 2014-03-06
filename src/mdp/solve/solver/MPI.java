@@ -40,6 +40,12 @@ public class MPI implements Runnable {
 	private boolean DO_APRICODD;
 	private double APRICODD_EPSILON;
 	private APPROX_TYPE APRICODD_APRROX;
+	private boolean _stop = false;
+	private ADDPolicy _policy = null;
+	
+	public void stop(){
+		_stop = true;
+	}
 	
 	public MPI(String domain, String instance, double epsilon,
 			ArrayBlockingQueue<UnorderedPair<ADDRNode, Integer>> bq,
@@ -77,8 +83,6 @@ public class MPI implements Runnable {
 		ADDRNode _valueDD = _manager.DD_ZERO;
 		ADDRNode _policyDD = _manager.DD_ZERO;
 		
-		ADDPolicy _policy = null;
-		
 		int iter = 1;
 
 		_solutionTimer = new Timer();
@@ -88,7 +92,7 @@ public class MPI implements Runnable {
 		boolean lastiter = false;
 		final ArrayList< Long > size_change = new ArrayList<Long>(); 
 
-		while( true ) {
+		while( !_stop ) {
 			_solutionTimer.ResumeTimer();
 //			_manager.addPermenant(_valueDD);
 			_improvTimer.ResumeTimer();
@@ -122,11 +126,13 @@ public class MPI implements Runnable {
 
 //			_manager.removePermenant(_valueDD);
 			_valueDD = newValueDD._o1.getValueFn();
-			
 			if( makePolicy ){
 				_policyDD = _FAR ? newValueDD._o2._bddPolicy : 
 					newValueDD._o2._addPolicy;
-				_policy = newValueDD._o2;
+				_policy  = newValueDD._o2;				
+			}
+			
+			if( makePolicy && !_stop ){
 				_solutionTimer.ResumeTimer();
 				_evalTimer.ResumeTimer();
 				//	break ties in policy
@@ -153,7 +159,7 @@ public class MPI implements Runnable {
 			}
 		}
 		
-		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
+//		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetElapsedTimeInMinutes() );
@@ -169,7 +175,7 @@ public class MPI implements Runnable {
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
-		Runnable worker = new MPI(args[0], args[1], Double.parseDouble(args[2]), 
+		MPI worker = new MPI(args[0], args[1], Double.parseDouble(args[2]), 
 				null, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
 				Integer.parseInt(args[6]), Integer.parseInt(args[7]),
@@ -178,7 +184,31 @@ public class MPI implements Runnable {
 				APPROX_TYPE.valueOf(args[12]) );
 		Thread t = new Thread( worker );
 		t.start();
-		t.join();
+		t.join( (long) (Double.parseDouble( args[13] ) * 60 * 1000) );
+		
+		worker.stop();
+		System.out.println("Stopping!" );
+		
+		final ADDPolicy policy = worker.getPolicy();
+		try{
+			policy.executePolicy( Integer.parseInt(args[7]), Integer.parseInt(args[6]), Boolean.parseBoolean(args[8] ), 
+					worker.getHorizon(), worker.getDiscount(), null ).printStats();
+		}catch( Exception e ){
+			e.printStackTrace();
+		}
+		
+	}
+	
+	private ADDPolicy getPolicy() {
+		return _policy;//._bddPolicy != null ? _policy._bddPolicy : _policy._addPolicy;
+	}
+
+	private double getDiscount() {
+		return DISCOUNT;
+	}
+
+	private int getHorizon() {
+		return HORIZON;
 	}
 
 }
