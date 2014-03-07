@@ -119,14 +119,16 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 			}
 		}
 		
-		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> result 
-				= do_sRTDP( _valueDD, _policyDD, state );
-		_valueDD = result._o1;
-		_policyDD = result._o2._o1;
+//		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> result 
+//				= do_sRTDP( _valueDD, _policyDD, state );
+//		_valueDD = result._o1;
+//		_policyDD = result._o2._o1;
 //		display( result );
 
 		final ADDRNode action_dd 
-			= _manager.restrict(_policyDD,  state.getFactoredState() );
+			= _manager.restrict(//_policyDD
+					base_line
+					,  state.getFactoredState() );
 		final NavigableMap<String, Boolean> action 
 			= ADDManager.sampleOneLeaf(action_dd, _rand );
 		
@@ -177,7 +179,7 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 				cur_state = _transition.sampleFactored(cur_state, cur_action);
 //				System.out.println( "Steps to go " + steps_to_go );
 //				System.out.println( cur_action.toString() );
-//				System.out.print("*");
+//				System.out.print("-");		
 			}
 //			System.out.println("Updating : " + _manager.countPaths(trajectory_states) );
 			_DPTimer.ResumeTimer();			
@@ -186,9 +188,10 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 			
 			value_fn = backed._o1;
 			policy = backed._o2._o1;
-			
+			System.out.print("*");			
 //			System.out.println("Trials to go  " + trials_to_go );
 		}
+		System.out.println();
 		return backed;
 	}
 	

@@ -49,6 +49,7 @@ public class SPUDDFAR implements Runnable{
 	private ADDRNode _valueDD;
 	private ADDPolicy _policy;
 	private RDDL2ADD _mdp;
+	private boolean _stop = false;
 	
 	/**
 	 * @param debug 
@@ -104,7 +105,7 @@ public class SPUDDFAR implements Runnable{
 		double prev_error = Double.NEGATIVE_INFINITY;
 		List<Long> size_change = new ArrayList<Long>();
 		
-		while( !done ) {
+		while( !done && !_stop ) {
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
@@ -161,6 +162,10 @@ public class SPUDDFAR implements Runnable{
 //		_manager.showGraph( _valueDD );//,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
+	public void stop(){
+		_stop = true;
+	}
+	
 	public static void main(String[] args) throws InterruptedException {
 		final int nStates = Integer.parseInt(args[5]);
 		final int nRounds = Integer.parseInt(args[6]);
@@ -174,8 +179,11 @@ public class SPUDDFAR implements Runnable{
 				Double.parseDouble( args[10] ),  APPROX_TYPE.valueOf( args[11] ) ,
 				INITIAL_VALUE.valueOf( args[12] )  );
 		Thread t = new Thread( worker );
+		System.out.println("Timeout = " + args[13] ); 
 		t.start();
 		t.join( (long) ( Double.parseDouble( args[13] ) * 60 * 1000 ) );
+		worker.stop();
+		
 		final ADDPolicy policy = worker.getPolicy();
 		
 		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
