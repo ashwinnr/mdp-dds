@@ -108,7 +108,7 @@ public class SPUDDFAR implements Runnable{
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
-				= _dtr.regress(_valueDD, _FAR, false, lastiter, CONSTRAIN_NAIVELY, size_change,
+				= _dtr.regress(_valueDD, _FAR, false, true, CONSTRAIN_NAIVELY, size_change,
 						do_apricodd, apricodd_epsilon, apricodd_type );
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
@@ -146,6 +146,8 @@ public class SPUDDFAR implements Runnable{
 			
 			++iter;
 			_valueDD = newValueDD._o1.getValueFn();
+			_policy = newValueDD._o2;
+					
 //			_manager.showGraph( _valueDD );//, _policy );
 		}
 
