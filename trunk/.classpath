@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry excluding="add/ADDReduceOper.java|add/PrintADDOper.java|mdp/simulate/|mdp/define/RandomStateGenerator.java|factored/mdp/define/FactoredRandomStateGenerator.java|rddl/competition/generators/ElevatorPOMDPGen.java|add/ADDManager_backup.java|rddl/competition/generators/" kind="src" path="src"/>
-	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/grappa1_4.jar"/>
-	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/guava-14.0-rc1.jar"/>
-	<classpathentry kind="lib" path="D:/workspace/MDP-DDs/lib/java_cup.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="/scratch/mdp-dds/lib/guava-14.0-rc1.jar"/>
+	<classpathentry kind="lib" path="/scratch/mdp-dds/lib/grappa1_4.jar"/>
+	<classpathentry kind="lib" path="/scratch/mdp-dds/lib/java_cup.jar"/>
+	<classpathentry kind="lib" path="/scratch/mdp-dds/lib/jlex.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

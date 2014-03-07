@@ -12,7 +12,7 @@ domain sysadmin_mdp {
 	pvariables { 
     		  		    		  		
 		REBOOT-PROB : { non-fluent, real, default = 0.1 };
-		REBOOT-PENALTY : { non-fluent, real, default = 0.75 };
+		REBOOT-PENALTY : { non-fluent, real, default = 0.35 };
 
 		CONNECTED(computer, computer) : { non-fluent, bool, default = false };
 
@@ -26,7 +26,7 @@ domain sysadmin_mdp {
 		running'(?x) = if (reboot(?x))
 						then KronDelta(true)  // if computer is rebooted then must be running 
 						else if (running(?x)) // otherwise outcome depends on network properties
-							then Bernoulli(.35 + .5*[1 + sum_{?y : computer} (CONNECTED(?y,?x) ^ running(?y))] 
+							then Bernoulli(.15 + .5*[1 + sum_{?y : computer} (CONNECTED(?y,?x) ^ running(?y))] 
 													/ [1 + sum_{?y : computer} CONNECTED(?y,?x)])
 							else KronDelta(false);
 							//Bernoulli(REBOOT-PROB); 

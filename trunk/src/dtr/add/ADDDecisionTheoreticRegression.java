@@ -1825,10 +1825,10 @@ public class ADDDecisionTheoreticRegression implements
 	}
 
 	public static ADDRNode getRebootDeadPolicy(ADDManager manager,
-			ADDDecisionTheoreticRegression dtr, Set<String> actionVars) throws EvalException {
+			ADDDecisionTheoreticRegression dtr, final Set<String> actionVars) throws EvalException {
 		
 		ADDRNode policy = manager.DD_ONE;
-		for( String actionVar : actionVars ){
+		for( final String actionVar : actionVars ){
 //			ADDRNode rebooter = manager.getIndicatorDiagram(actionVar, true);
 //			ADDRNode runner = manager.getIndicatorDiagram(actionVar.replace("reboot", "running"), 
 //					false );
