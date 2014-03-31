@@ -196,7 +196,7 @@ public class SymbolicLAOStar extends RDDLOnlineActor {
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> one_backup = 
 					_dtr.backup(ret_value, current_policy, one_step, states, 
 					this.dp_type, this.do_apricodd, this.apricodd_epsilon, 
-					this.apricodd_type, done, this.MB );
+					this.apricodd_type, done, this.MB, CONSTRAIN_NAIVELY );
 			
 			residual = getResidual( one_backup._o1, ret_value, states );
 			ret_value = one_backup._o1;
