@@ -209,7 +209,7 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 		do{
 			one_backup
 				= _dtr.backup(cur_value, cur_policy, next_states, gen_states, dp_type, 
-				do_apricodd, apricodd_epsilon, apricodd_type, true, MB);
+				do_apricodd, apricodd_epsilon, apricodd_type, true, MB, CONSTRAIN_NAIVELY);
 //			System.out.println( one_backup._o2._o2 );
 			cur_value = one_backup._o1;
 			cur_policy = one_backup._o2._o1;
@@ -239,7 +239,7 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 			_DPTimer.ResumeTimer();
 			backed = _dtr.backup(value_fn_ret, policy_ret, next_states, abstract_state, 
 					dp_type, do_apricodd, apricodd_epsilon, apricodd_type, 
-					true, MB );
+					true, MB, CONSTRAIN_NAIVELY );
 			_DPTimer.PauseTimer();
 			value_fn_ret = backed._o1;
 			policy_ret = backed._o2._o1;

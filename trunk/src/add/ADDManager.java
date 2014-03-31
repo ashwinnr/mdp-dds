@@ -1129,7 +1129,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			applyCache = new EnumMap< 
 				DDOper, Cache< Pair< ADDRNode, ADDRNode >, ADDRNode > >( DDOper.class );
 	private int applyHit = 0;
-	public ADDRNode DD_ZERO, DD_ONE, DD_NEG_INF;
+	public static ADDRNode DD_ZERO;
+	public static ADDRNode DD_ONE;
+	public static ADDRNode DD_NEG_INF;
 
 	protected ConcurrentHashMap< String,
 	Cache< ADDINode, ADDRNode > > 
@@ -1164,7 +1166,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	protected Multiset< ADDRNode > permanentNodes 
 		= HashMultiset.create();
-	private Random _rand;
+//	private Random _rand;
 	
 	public ADDManager( final long managerStoreInitSize, final long managerStoreIncrSize, 
 			final ArrayList<String> ordering, final long seed ){
@@ -1177,7 +1179,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		DD_NEG_INF = getLeaf(getNegativeInfValue(), getNegativeInfValue());
 		_ordering = ordering;
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
-		_rand = new Random(seed);
+//		_rand = new Random(seed);
 	}
 
 	private synchronized void addPair( final ADDRNode op1, final ADDRNode op2, 
@@ -4066,6 +4068,21 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				ret = apply( ret, node, DDOper.ARITH_PROD );
 			}
 		}
+		return ret;
+	}
+	
+	public ADDRNode sampleBDD( final ADDRNode input,
+			final Random rand , final int num_paths ){
+		ADDRNode ret = DD_ZERO;
+		
+		int i = 0;
+		while( i <= num_paths ){
+			final NavigableMap<String, Boolean> new_path = sampleOneLeaf(input, rand);
+			final ADDRNode this_path = this.getProductBDDFromAssignment(new_path);
+			ret = this.BDDUnion( ret, this_path );
+			++i;
+		}
+		
 		return ret;
 	}
 	

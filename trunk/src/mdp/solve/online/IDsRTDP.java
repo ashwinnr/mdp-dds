@@ -135,12 +135,12 @@ public class IDsRTDP extends RDDLOnlineActor {
 			final int effective_horizon //update V(1:steps)
 			) {
 		_DPTimer.ResetTimer();
+		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action
+		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(null);
 		
 		int trials_to_go = nTrials;
 		while( trials_to_go --> 0 ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = state;
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action
-			= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(null);
 			
 			Stack<NavigableMap<String, Boolean>> trajectory_states 
 				= new Stack<NavigableMap<String, Boolean>>();
@@ -186,7 +186,8 @@ public class IDsRTDP extends RDDLOnlineActor {
 			final ADDRNode next_states = _dtr.BDDImage(this_gen_state, _actionVars, DDQuantify.EXISTENTIAL);
 			final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> one_backup 
 				= _dtr.backup(this_vfn, this_policy, next_states, this_gen_state, dp_type, 
-					do_apricodd, apricodd_epsilon/Math.pow(EPSILON, steps_lookahead-index), apricodd_type, true, MB);
+					do_apricodd, apricodd_epsilon/Math.pow(EPSILON, steps_lookahead-index), apricodd_type, true, MB,
+					CONSTRAIN_NAIVELY );
 //			System.out.println( one_backup._o2._o2 );
 			value_fns[ index ] = one_backup._o1;
 			policy[ index ] = one_backup._o2._o1;
