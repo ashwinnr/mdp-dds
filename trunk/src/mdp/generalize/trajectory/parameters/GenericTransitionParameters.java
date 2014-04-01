@@ -33,6 +33,7 @@ public class GenericTransitionParameters< T extends GeneralizationType, P extend
 	    this.num_states = num_states;
 	    this.inner_generalizer = inner_generalizer;
 	    this.inner_parameters = inner_parameters;
+	    inner_parameters.set_manager(_manager);
 	}
 	public Generalization<S, A, T, P> getGeneralizer() {
 	    return this.inner_generalizer;

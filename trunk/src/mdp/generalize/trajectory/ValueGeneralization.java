@@ -30,10 +30,8 @@ public class ValueGeneralization extends
 			//so that init state is always same
 		}
 		
-		final ADDRNode input = manager.doApricodd((parameters.getValue_fn())[ depth ],
-				true, (parameters.getEpsilons_t())[depth], parameters.getApricodd_type());
-		
-		final ADDRNode ret = generalize( input , state_assign, parameters.get_genRule(),
+		final ADDRNode ret = generalize( (parameters.get_valueDD())[ depth ] , 
+				state_assign, parameters.get_genRule(),
 				parameters.get_manager() );
 		return ret;
 				

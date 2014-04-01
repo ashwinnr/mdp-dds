@@ -69,9 +69,10 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     }
     
     @Override
-    public ADDRNode[] generalize_trajectory( FactoredState<RDDLFactoredStateSpace>[] states, 
-	    FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] actions, 
-	    GenericTransitionParameters<T,P,RDDLFactoredStateSpace,RDDLFactoredActionSpace> parameters) {
+    public ADDRNode[] generalize_trajectory( 
+    		final FactoredState<RDDLFactoredStateSpace>[] states, 
+	    final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] actions, 
+	    final GenericTransitionParameters<T,P,RDDLFactoredStateSpace,RDDLFactoredActionSpace> parameters) {
 	if( states.length != actions.length + 1 ){
 	    try{
 		throw new Exception("Improper trajectory");
@@ -89,7 +90,9 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	int j = 0;
 	
 	for( int i = 0; i < states.length; ++i ){
-	    final ADDRNode cur_gen_state = generalize_state(states[i], actions[i], states[i+1], parameters, i);
+	    final ADDRNode cur_gen_state = generalize_state(states[i], 
+	    		i == states.length - 1 ? null : actions[i], 
+	    		i == states.length - 1 ? null : states[i+1], parameters, i);
 	    final ADDRNode cur_gen_action = 
 		i == states.length - 1 ? null : generalize_action( states[i], actions[i], states[i+1], parameters, i );
 	    
@@ -97,7 +100,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		ret[j++] = cur_gen_state;
 	    }else{
 		//cur gen state must be a valid successor of prev gen state and prev gen action
-		prev_gen_state = manager.BDDIntersection(cur_gen_state, _dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, prev_gen_action, true) );
+		prev_gen_state = manager.BDDIntersection(cur_gen_state, 
+				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, prev_gen_action, true) );
 		ret[j++] = prev_gen_state;
 	    }
 	    

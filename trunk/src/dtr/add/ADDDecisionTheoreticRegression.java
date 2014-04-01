@@ -500,7 +500,7 @@ public class ADDDecisionTheoreticRegression implements
 				FactoredAction<RDDLFactoredStateSpace , 
 				 RDDLFactoredActionSpace> thisAction 
 				 	= new FactoredAction<RDDLFactoredStateSpace , 
-							 RDDLFactoredActionSpace>(action);
+							 RDDLFactoredActionSpace>().setFactoredAction(action);
 				q_map.put( thisAction, this_q );
 			}
 //			_manager.flushCaches( );
@@ -2107,6 +2107,18 @@ public class ADDDecisionTheoreticRegression implements
 			final double epsilon,
 			final int horizon) {
 		return ( iteration >= horizon || BE <= epsilon );
+	}
+
+	public UnorderedPair<ADDRNode, ADDRNode> getGreedyPolicy(
+			final ADDRNode dd_with_action) {
+		final ADDRNode constrainted = applyMDPConstraintsNaively(dd_with_action,
+				null, _manager.DD_NEG_INF, null );
+		
+		final ADDRNode max = maxActionVariables(constrainted, 
+				_mdp.getElimOrder(), null, false, 0.0d, APPROX_TYPE.NONE);
+		final ADDRNode diff = _manager.apply( max, constrainted, DDOper.ARITH_MINUS );
+		final ADDRNode greedyPolicy = _manager.threshold(diff, 0.0d, false );
+		return new UnorderedPair<ADDRNode, ADDRNode>( max, greedyPolicy );
 	}
 
 //	TODO

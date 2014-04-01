@@ -23,7 +23,6 @@ public abstract class Generalization<S extends FactoredStateSpace,
 	A extends FactoredActionSpace<S>,
 	T extends GeneralizationType, U extends GeneralizationParameters<T> > {
 	
-	
 	public ADDRNode generalize( final ADDRNode input, 
 			final NavigableMap<String, Boolean> path ,
 			final GENERALIZE_PATH rule ,
