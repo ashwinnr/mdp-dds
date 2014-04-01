@@ -386,6 +386,13 @@ public class Graph {
 			return false;
 		}
 	}
+	
+	@Override
+	public int hashCode() {
+	    int h1 = _hmNodes.hashCode();
+	    int h2 = _hmLinks.hashCode();
+	    return com.google.common.base.Objects.hashCode( _bDirected, h1+h2, h2 );
+	}
 
 	public Object clone() {
 		Graph g = new Graph();

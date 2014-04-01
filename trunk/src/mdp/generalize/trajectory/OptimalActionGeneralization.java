@@ -51,8 +51,7 @@ public class OptimalActionGeneralization extends Generalization<
 			final ADDRNode action_dd = manager.restrict(this_policy, action_assign);
 			ret = generalize(action_dd, state.getFactoredState(), parameters.get_genRule(), manager );
 		}
-		return parameters.getNum_states() == -1 ?
-				ret : manager.sampleBDD( ret, parameters.get_rand(), parameters.getNum_states() );
+		return ret;
 		
 	}
 
@@ -67,15 +66,15 @@ public class OptimalActionGeneralization extends Generalization<
 	
 	}
 
-	@Override
-	public ADDRNode generalize_next_state(
-			FactoredState<RDDLFactoredStateSpace> state,
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
-			FactoredState<RDDLFactoredStateSpace> next_state,
-			OptimalActionParameters parameters, int depth) {
-
-		return null;
-		
-	}
+//	@Override
+//	public ADDRNode generalize_next_state(
+//			FactoredState<RDDLFactoredStateSpace> state,
+//			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
+//			FactoredState<RDDLFactoredStateSpace> next_state,
+//			OptimalActionParameters parameters, int depth) {
+//
+//		return null;
+//		
+//	}
 
 }

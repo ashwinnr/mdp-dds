@@ -8,6 +8,10 @@ public class QAdvantageParameters  implements GeneralizationParameters<QAdvantag
 	public void setDelta(double delta) {
 		this.delta = delta;
 	}
+	public QAdvantageParameters(double delta) {
+	    super();
+	    this.delta = delta;
+	}
 	public double getDelta() {
 		return delta;
 	}

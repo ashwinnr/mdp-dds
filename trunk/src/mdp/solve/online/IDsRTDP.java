@@ -1,5 +1,6 @@
 package mdp.solve.online;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Stack;
@@ -63,8 +64,8 @@ public class IDsRTDP extends RDDLOnlineActor {
 			GENERALIZE_PATH rule, int steps_dp, int steps_lookahead) {
 		super(domain, instance, FAR, debug, order, seed, useDiscounting, numStates,
 				numRounds, init_state_conf, init_state_prob );
-		value_fns = new ADDRNode[ HORIZON ];
-		policy = new ADDRNode[ HORIZON ];
+		value_fns = new ADDRNode[ steps_lookahead+1 ];//V0 = R. 
+		policy = new ADDRNode[ steps_lookahead+1 ];
 		EPSILON = epsilon;
 		this.steps_dp = steps_dp;
 		this.steps_lookahead = steps_lookahead;
@@ -96,7 +97,7 @@ public class IDsRTDP extends RDDLOnlineActor {
 			FactoredState<RDDLFactoredStateSpace> state) {
 		int steps_to_go = 1;
 		while( steps_to_go <= steps_lookahead ){
-//			System.out.println("depth iter : " + steps_to_go );
+			System.out.println("depth iter : " + steps_to_go );
 			if( value_fns[ steps_to_go ] == null ){
 				//INITIALIZE TO previous + Rmax ? - admissible
 				value_fns[ steps_to_go ] =
@@ -122,12 +123,25 @@ public class IDsRTDP extends RDDLOnlineActor {
 			= ADDManager.sampleOneLeaf(action_dd, _rand );
 		_manager.flushCaches();
 		
+		display();
 //		value_fns = new ADDRNode[HORIZON];
 //		policy = new ADDRNode[HORIZON];
 //		value_fns[0] = heuristic._o1;
 //		policy[0] = heuristic._o2;
 		
 		return new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(action);
+	}
+	
+	public void display(){
+		System.out.println("Value function leaves ");
+		System.out.println( Arrays.toString( _manager.countLeaves(value_fns) ) );
+		System.out.println("Policy leaves ");
+		System.out.println( Arrays.toString( _manager.countLeaves(policy) ) );
+	
+		System.out.println("Value function nodes ");
+		System.out.println( _manager.countNodes(value_fns) );
+		System.out.println("Policy nodes ");
+		System.out.println( _manager.countNodes(policy) ) ;
 	}
 
 	protected void do_sRTDP(
@@ -179,10 +193,15 @@ public class IDsRTDP extends RDDLOnlineActor {
 //		System.out.println("updating " +  effective_horizon );
 		for( int index = 1 ; index <= effective_horizon ; ++index ){
 			final NavigableMap<String, Boolean> this_state = trajectory_states.pop();
-			final ADDRNode this_vfn = value_fns[ index ] ;
-			final ADDRNode this_policy = policy[ index ];
 			
-			final ADDRNode this_gen_state = _dtr.generalize(this_vfn, this_state, _genRule);
+			final ADDRNode this_vfn_src = value_fns[ index-1 ] ;
+			final ADDRNode this_policy_src = policy[ index-1 ];
+			
+			final double this_error =  apricodd_epsilon/Math.pow(DISCOUNT, steps_lookahead-index);
+			
+			final ADDRNode this_gen_state = _dtr.generalize( value_fns[ index ], this_state, _genRule);
+			final ADDRNode this_gen_state_neg = _manager.BDDNegate(this_gen_state);
+			
 			final ADDRNode next_states = _dtr.BDDImage(this_gen_state, _actionVars, DDQuantify.EXISTENTIAL);
 			final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> one_backup 
 				= _dtr.backup(this_vfn, this_policy, next_states, this_gen_state, dp_type, 

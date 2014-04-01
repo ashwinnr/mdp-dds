@@ -1,6 +1,7 @@
 package mdp.generalize.trajectory.parameters;
 
 import java.util.NavigableMap;
+import java.util.Random;
 import java.util.Set;
 
 import dd.DDManager.APPROX_TYPE;
@@ -15,7 +16,6 @@ public class ValueGeneralizationParameters extends GeneralizationParameters<Valu
 	protected double[] epsilons_t = null;
 	protected ADDRNode[] value_fn = null;
 	protected APPROX_TYPE apricodd_type = null;
-	protected int num_states = -1;
 	
 	public ValueGeneralizationParameters set_genRule(GENERALIZE_PATH _genRule) {
 		this._genRule = _genRule;
@@ -26,15 +26,16 @@ public class ValueGeneralizationParameters extends GeneralizationParameters<Valu
 		return this;
 	}
 	
-	public GeneralizationParameters<ValueGeneralizationType> setNum_states(int num_states) {
-		this.num_states = num_states;
-		return this;
+	public ValueGeneralizationParameters(
+		ADDManager _manager,
+		mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
+		Random _rand, double[] epsilons_t, ADDRNode[] value_fn,
+		APPROX_TYPE apricodd_type) {
+	    super(_manager, _genRule, _rand);
+	    this.epsilons_t = epsilons_t;
+	    this.value_fn = value_fn;
+	    this.apricodd_type = apricodd_type;
 	}
-	
-	public int getNum_states() {
-		return num_states;
-	}
-	
 	public APPROX_TYPE getApricodd_type() {
 		return apricodd_type;
 	}
