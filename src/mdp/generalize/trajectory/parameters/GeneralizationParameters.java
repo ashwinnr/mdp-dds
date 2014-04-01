@@ -3,6 +3,7 @@ package mdp.generalize.trajectory.parameters;
 import java.util.Random;
 
 import add.ADDManager;
+import add.ADDRNode;
 
 import mdp.generalize.trajectory.type.GeneralizationType;
 
@@ -14,6 +15,24 @@ public abstract class GeneralizationParameters<T extends GeneralizationType> {
 	protected ADDManager _manager = null;
 	protected GENERALIZE_PATH _genRule = GENERALIZE_PATH.NONE;
 	protected Random _rand;
+	protected ADDRNode[] _valueDD;
+	protected ADDRNode[] _policyDD;
+	
+	public void set_policyDD(ADDRNode[] _policyDD) {
+		this._policyDD = _policyDD;
+	}
+	
+	public void set_valueDD(ADDRNode[] _valueDD) {
+		this._valueDD = _valueDD;
+	}
+	
+	public ADDRNode[] get_policyDD() {
+		return _policyDD;
+	}
+	
+	public ADDRNode[] get_valueDD() {
+		return _valueDD;
+	}
 	
 	public GeneralizationParameters(ADDManager _manager,
 		GENERALIZE_PATH _genRule, Random _rand) {

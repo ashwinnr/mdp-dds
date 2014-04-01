@@ -14,28 +14,23 @@ import mdp.generalize.trajectory.type.ValueGeneralizationType;
 
 public class ValueGeneralizationParameters extends GeneralizationParameters<ValueGeneralizationType> {
 	protected double[] epsilons_t = null;
-	protected ADDRNode[] value_fn = null;
 	protected APPROX_TYPE apricodd_type = null;
 	
 	public ValueGeneralizationParameters set_genRule(GENERALIZE_PATH _genRule) {
 		this._genRule = _genRule;
 		return this;
 	}
-	public ValueGeneralizationParameters set_manager(ADDManager _manager) {
-		this._manager = _manager;
-		return this;
-	}
-	
+
 	public ValueGeneralizationParameters(
-		ADDManager _manager,
-		mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
-		Random _rand, double[] epsilons_t, ADDRNode[] value_fn,
-		APPROX_TYPE apricodd_type) {
-	    super(_manager, _genRule, _rand);
-	    this.epsilons_t = epsilons_t;
-	    this.value_fn = value_fn;
-	    this.apricodd_type = apricodd_type;
+			ADDManager _manager,
+			mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
+			Random _rand, double[] epsilons_t, ADDRNode[] value_fn,
+			APPROX_TYPE apricodd_type, int num_states) {
+		super(_manager, _genRule, _rand);
+		this.epsilons_t = epsilons_t;
+		this.apricodd_type = apricodd_type;
 	}
+
 	public APPROX_TYPE getApricodd_type() {
 		return apricodd_type;
 	}
@@ -49,17 +44,8 @@ public class ValueGeneralizationParameters extends GeneralizationParameters<Valu
 		return this;
 	}
 	
-	public GeneralizationParameters<ValueGeneralizationType> setValue_fn(final ADDRNode[] value_fn) {
-		this.value_fn = value_fn;
-		return this;
-	}
-	
 	public double[] getEpsilons_t() {
 		return epsilons_t;
-	}
-	
-	public ADDRNode[] getValue_fn() {
-		return value_fn;
 	}
 	
 }

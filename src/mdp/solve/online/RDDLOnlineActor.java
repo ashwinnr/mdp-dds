@@ -5,6 +5,7 @@ import java.util.Random;
 import mdp.define.Action;
 import mdp.define.PolicyStatistics;
 
+import add.ADDManager;
 import add.ADDRNode;
 
 import rddl.mdp.RDDL2ADD;
@@ -40,7 +41,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 	protected RDDLFactoredTransition _transition;
 	protected RDDLFactoredReward _reward;
 	protected ADDDecisionTheoreticRegression _dtr;
-
+	protected ADDManager _manager;
+	
 	public RDDLOnlineActor(
 			final String domain, 
 			final String instance,
@@ -58,6 +60,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 		_cptTimer = new Timer();
 		_mdp = new RDDL2ADD(domain, instance, actionVars, debug, order, true, _rand.nextLong() );
 		_dtr = new ADDDecisionTheoreticRegression( this._mdp, _rand.nextLong() );
+		_manager = _mdp.getManager();
+		
 		_cptTimer.StopTimer();
 		System.out.println("CPT time: " + _cptTimer.GetTimeSoFarAndResetInMinutes() );
 		

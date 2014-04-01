@@ -78,7 +78,7 @@ public class RandomPolicy extends ADDPolicy {
 			}
 		}
 		
-		return (U) new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(ret);
+		return (U) new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( ).setFactoredAction( ret);
 	}
 
 }

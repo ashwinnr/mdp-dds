@@ -33,7 +33,7 @@ public class NoOpPolicy extends ADDPolicy {
 	U extends factored.mdp.define.FactoredAction<RDDLFactoredStateSpace,rddl.mdp.RDDLFactoredActionSpace>>
 		U getFactoredAction(T state) {
 		return (U) new FactoredAction<RDDLFactoredStateSpace, 
-				RDDLFactoredActionSpace>( _nullMap);
+				RDDLFactoredActionSpace>( ).setFactoredAction( _nullMap);
 	}
 
 }

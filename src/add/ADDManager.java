@@ -1580,10 +1580,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		_tempUnaryCache.put( in, ret );
 //	}
 	
-	//< thresh & strict ? 1: 0 
-	//<= thresh & !strict ? 1 : 0
-	//sets neg inf to 0 always
 	public ADDRNode threshold( final ADDRNode input, final double threshold, final boolean strict ){
+		//< thresh & strict ? 1: 0 
+		//<= thresh & !strict ? 1 : 0
+		//sets neg inf to 0 always
 //		Objects.requireNonNull( input );
 		Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 		= CacheBuilder.from( temp_unary_cache_spec ).build();

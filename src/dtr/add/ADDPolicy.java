@@ -117,12 +117,12 @@ public class ADDPolicy extends
 			}else{
 				int act = (((ADDLeaf)(ret.getNode())).getLeafValues()._o1).intValue();
 				return (U) new FactoredAction<RDDLFactoredStateSpace,
-						RDDLFactoredActionSpace>( leafMapping.get(act) );
+						RDDLFactoredActionSpace>( ).setFactoredAction( leafMapping.get(act) );
 			}
 		}else{
 			ADDRNode ret = _manager.restrict(_bddPolicy, state.getFactoredState());
 			NavigableMap<String, Boolean> act = _manager.findFirstOneLeafAction( ret );
-			return (U) new FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>(act);
+			return (U) new FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>(  ).setFactoredAction( act );
 		}
 		return null;
 	}

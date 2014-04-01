@@ -32,7 +32,7 @@ public class OptimalActionGeneralization extends Generalization<
 		}
 		
 		final NavigableMap<String, Boolean> action_assign = action.getFactoredAction();
-		final ADDRNode[] policies = parameters.getPolicies();
+		final ADDRNode[] policies = parameters.get_policyDD();
 
 		ADDRNode ret = manager.DD_ZERO;
 		
