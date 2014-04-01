@@ -739,11 +739,11 @@ public class ADDDecisionTheoreticRegression implements
 
 	//get transition relation
 	//convert CPTs to BDDs
-	private ADDRNode BDDImageFAR(final ADDRNode primed_reachable_states,
+	private ADDRNode BDDImageFAR(final ADDRNode unprimed_reachable_states,
 			final DDQuantify quantification, final boolean constrain_naively) {
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
-			&& _manager.hasVars( primed_reachable_states, _mdp.getFactoredActionSpace().getActionVariables() )
-			&& _manager.hasVars( primed_reachable_states, _mdp.getFactoredStateSpace().getNextStateVars() ) ){
+			&& _manager.hasVars( unprimed_reachable_states, _mdp.getFactoredActionSpace().getActionVariables() )
+			&& _manager.hasVars( unprimed_reachable_states, _mdp.getFactoredStateSpace().getNextStateVars() ) ){
 			try{
 				throw new Exception("Has action/next state vars in Image.");
 			}catch( Exception e ){
@@ -758,7 +758,7 @@ public class ADDDecisionTheoreticRegression implements
 		int lastSeen_index = 0;
 		final int lastSeen_size = lastSeen.size();
 		//this step removes only illegal states from reachable states
-		final int idx_reach = addStateConstraint(primed_reachable_states);
+		final int idx_reach = addStateConstraint(unprimed_reachable_states);
 		
 		ADDRNode ret = _manager.DD_ONE;
 		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );

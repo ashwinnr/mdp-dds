@@ -19,7 +19,6 @@ import util.UnorderedPair;
 import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
-import dtr.add.ADDDecisionTheoreticRegression.GENERALIZE_PATH;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;

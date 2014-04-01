@@ -3,8 +3,14 @@ package mdp.solve.online;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Stack;
+import java.util.TreeMap;
 
 import mdp.define.PolicyStatistics;
+import mdp.generalize.trajectory.Generalization;
+import mdp.generalize.trajectory.GenericTransitionGeneralization;
+import mdp.generalize.trajectory.parameters.GeneralizationParameters;
+import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
+import mdp.generalize.trajectory.type.GeneralizationType;
 import rddl.EvalException;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
@@ -22,29 +28,36 @@ import dd.DDManager.DDOper;
 import dd.DDManager.DDQuantify;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
-import dtr.add.ADDDecisionTheoreticRegression.GENERALIZE_PATH;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
 
-public class SymbolicRTDP extends RDDLOnlineActor {
+public class SymbolicRTDP< T extends GeneralizationType, P extends GeneralizationParameters<T> > extends RDDLOnlineActor {
 
 	private boolean CONSTRAIN_NAIVELY = false;
 	private double	EPSILON;
 	protected ADDManager _manager;
 	protected Timer _DPTimer = null;
+	
 	private APPROX_TYPE apricodd_type;
 	private double apricodd_epsilon;
 	private boolean do_apricodd;
 	private long MB;
 	private BACKUP_TYPE dp_type;
 	protected int nTrials;
-	private GENERALIZE_PATH _genRule;
 	private int steps_dp;
 	protected int steps_lookahead;
-	private ADDRNode _valueDD;
-	private ADDRNode _policyDD;
-	private ADDRNode base_line;
+	
+	private ADDRNode[] _valueDD;
+	private ADDRNode[] _policyDD;
+//	private ADDRNode base_line;
+	
+	private GenericTransitionGeneralization<T, P> _generalizer;
+	private GenericTransitionParameters<T, P, RDDLFactoredStateSpace, RDDLFactoredActionSpace> _genaralizeParameters;
+	private Exploration< RDDLFactoredStateSpace, RDDLFactoredActionSpace > exploration;  
+	private static FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action 
+		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( null );
+	
 
 	public SymbolicRTDP(
 			final String domain, 
@@ -68,15 +81,25 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 			final double init_state_prob,
 			final BACKUP_TYPE dp_type,
 			final int nTrials,
-			final GENERALIZE_PATH rule,
 			final int steps_dp,
-			final int steps_lookahead ) {
+			final int steps_lookahead ,
+			final Generalization< RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P > generalizer, 
+			final P generalize_parameters_wo_manager ,
+			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration ) {
+	    
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
 				init_state_prob );
+		this.exploration = exploration; 
+		
+		_generalizer = new GenericTransitionGeneralization<T, P>(_dtr);
+		_genaralizeParameters.setGeneralizer(generalizer);
+		_genaralizeParameters.set_manager( this._manager );
+		_genaralizeParameters.setParameters(generalize_parameters_wo_manager);
+		
 		EPSILON = epsilon;
 		this.steps_dp = steps_dp;
 		this.steps_lookahead = steps_lookahead;
-		_genRule = rule;
+
 		this.nTrials = nTrials;
 		_manager = _mdp.getManager();
 		CONSTRAIN_NAIVELY = constrain_naively;
@@ -88,23 +111,27 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 		final UnorderedPair<ADDRNode, ADDRNode> init 
 			= _dtr.computeLAOHeuristic( steps_heuristic, heuristic_type, CONSTRAIN_NAIVELY,
 				do_apricodd, apricodd_epsilon, apricodd_type, MB, time_heuristic_mins );
-		_valueDD = init._o1;
-		_policyDD = init._o2;//_dtr.getNoOpPolicy( _mdp.get_actionVars(), _manager );
-		if( _policyDD == null ){
-			try {
-				throw new Exception("policy is null");
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
+		
+		_valueDD = new ADDRNode[ steps_lookahead ];
+		_policyDD = new ADDRNode[ steps_lookahead ];
+		
+		_valueDD[ steps_lookahead-1 ] = init._o1;
+		_policyDD[ steps_lookahead-1 ] = init._o2;//_dtr.getNoOpPolicy( _mdp.get_actionVars(), _manager );
+
+		final ADDRNode RMAX = _mdp.getRMax();
+		
+		for( int depth = steps_lookahead-2; depth >= 0; --depth ){
+		    _valueDD[ depth ] = _manager.apply( RMAX, _valueDD[depth+1], DDOper.ARITH_PLUS );
+		    _policyDD[ depth ] = init._o2;
 		}
+		
 		_DPTimer = new Timer();
 		_DPTimer.PauseTimer();
-		try {
-			base_line = ADDDecisionTheoreticRegression.getRebootDeadPolicy(_manager, _dtr, _mdp.get_actionVars() );
-		} catch (EvalException e) {
-			e.printStackTrace();
-		}
+//		try {
+//			base_line = ADDDecisionTheoreticRegression.getRebootDeadPolicy(_manager, _dtr, _mdp.get_actionVars() );
+//		} catch (EvalException e) {
+//			e.printStackTrace();
+//		}
 	}
 
 	@Override
@@ -119,23 +146,18 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 			}
 		}
 		
-//		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> result 
-//				= do_sRTDP( _valueDD, _policyDD, state );
-//		_valueDD = result._o1;
-//		_policyDD = result._o2._o1;
-//		display( result );
+		do_sRTDP( state );
+		display( _valueDD, _policyDD );
 
 		final ADDRNode action_dd 
-			= _manager.restrict(//_policyDD
-					base_line
-					,  state.getFactoredState() );
+			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
 		final NavigableMap<String, Boolean> action 
 			= ADDManager.sampleOneLeaf(action_dd, _rand );
 		
 		_manager.flushCaches();
 		
-		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action 
-			= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( action );
+		cur_action.setFactoredAction(action);
+		
 		return cur_action;
 	}
 
@@ -148,33 +170,34 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 	}
 
-	protected UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> do_sRTDP(
-			final ADDRNode current_value_fn,
-			final ADDRNode current_policy,
-			final FactoredState<RDDLFactoredStateSpace> init_state ) {
-		ADDRNode value_fn = current_value_fn;
-		ADDRNode policy = current_policy;
-		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backed = null;
+	protected void do_sRTDP( final FactoredState<RDDLFactoredStateSpace> init_state ) {
+
 		int trials_to_go = nTrials;
 		_DPTimer.ResetTimer();
+		final FactoredState<RDDLFactoredStateSpace>[] trajectory_states = new FactoredState[ steps_lookahead ];
+		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] trajectory_actions 
+			= new FactoredAction[ steps_lookahead ];
+		for( int i = 0 ; i < steps_lookahead; ++i ){
+		    trajectory_actions[i] = new FactoredAction( );
+		    trajectory_states[i] = new FactoredState( );
+		}
 		
 		while( trials_to_go --> 0 ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action
-			= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>(null);
-			int steps_to_go = steps_lookahead;
+			int steps_to_go = 0;//steps_lookahead;
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
-			ADDRNode trajectory_states = _manager.DD_NEG_INF;
 			
-			while( steps_to_go --> 0 ){
-				final NavigableMap<String, Boolean> state_assign = cur_state.getFactoredState();
+			while( steps_to_go < steps_lookahead ){
 //				System.out.println( cur_state.toString() );
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
-				final ADDRNode this_state = _manager.getSumNegInfDDFromAssignment( state_assign );
-				trajectory_states = _manager.apply( trajectory_states, this_state, DDOper.ARITH_MAX );
-				
-				final ADDRNode action_dd = _manager.restrict(policy, cur_state.getFactoredState() );
+			    	final NavigableMap<String, Boolean> state_assign = cur_state.getFactoredState();
+			    	trajectory_states[ steps_to_go ].setFactoredState( state_assign );
+			    	
+				final ADDRNode action_dd = _manager.restrict( _policyDD[steps_to_go], state_assign );
 				final NavigableMap<String, Boolean> action = _manager.sampleOneLeaf(action_dd, _rand );
+				
+				trajectory_actions[ steps_to_go ].setFactoredAction( action );
+				
 				cur_action.setFactoredAction( action );
 				cur_state = _transition.sampleFactored(cur_state, cur_action);
 //				System.out.println( "Steps to go " + steps_to_go );
@@ -183,7 +206,7 @@ public class SymbolicRTDP extends RDDLOnlineActor {
 			}
 //			System.out.println("Updating : " + _manager.countPaths(trajectory_states) );
 			_DPTimer.ResumeTimer();			
-			backed = update_trajectory( trajectory_states, value_fn, policy );
+			final ADDRNode[] gen_trajectory = generalize_trajectory( trajectory_states, value_fn, policy );
 			_DPTimer.PauseTimer();
 			
 			value_fn = backed._o1;

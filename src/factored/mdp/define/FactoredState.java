@@ -1,8 +1,12 @@
 package factored.mdp.define;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+
+import com.google.common.collect.Maps;
 
 import rddl.mdp.RDDLFactoredStateSpace;
 
@@ -14,7 +18,7 @@ public class FactoredState<S extends FactoredStateSpace> extends State<S> {
 	protected NavigableMap<String, Boolean> factoredState = null;
 	
 	public NavigableMap<String, Boolean> getFactoredState( ){
-		return factoredState;
+		return Maps.unmodifiableNavigableMap( factoredState );
 	}
 
 	@Override
@@ -25,23 +29,18 @@ public class FactoredState<S extends FactoredStateSpace> extends State<S> {
 		return factoredState.values().hashCode();
 	}
 	
-	public void setStateVariablesOrder(String[] stateVariablesOrder) {
+	public FactoredState<S> setStateVariablesOrder(String[] stateVariablesOrder) {
 		FactoredState.stateVariablesOrder = stateVariablesOrder;
+		return this;
 	}
 	
 	public String[] getStateVariablesOrder() {
 		return stateVariablesOrder;
 	}
 
-	public void setStateVariable(String varName, boolean value) {
-		if( factoredState == null ){
-			factoredState = new TreeMap<String, Boolean>();
-		}
-		factoredState.put(varName, value);
-	}
-	
-	public void setFactoredState(NavigableMap<String, Boolean> factoredState) {
-		this.factoredState = factoredState;
+	public FactoredState<S> setFactoredState(NavigableMap<String, Boolean> factoredState) {
+		this.factoredState = Maps.newTreeMap( factoredState );
+		return this;
 	}
 	
 	@Override
@@ -55,8 +54,6 @@ public class FactoredState<S extends FactoredStateSpace> extends State<S> {
 	}
 
 	public FactoredState<S> copy() {
-		FactoredState<S> ret = new FactoredState<S>();
-		ret.setFactoredState( new TreeMap<String, Boolean>( factoredState ) );
-		return ret;
+		return new FactoredState<S>().setFactoredState( getFactoredState() );
 	}
 }

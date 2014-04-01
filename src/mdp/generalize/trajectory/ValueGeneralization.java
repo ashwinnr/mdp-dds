@@ -35,8 +35,7 @@ public class ValueGeneralization extends
 		
 		final ADDRNode ret = generalize( input , state_assign, parameters.get_genRule(),
 				parameters.get_manager() );
-		return parameters.getNum_states() == -1 ? ret : 
-			manager.sampleBDD(ret, parameters.get_rand(), parameters.getNum_states() );
+		return ret;
 				
 	}
 
@@ -63,14 +62,14 @@ public class ValueGeneralization extends
 		return parameters.get_manager().DD_ONE;
 	}
 
-	@Override
-	public ADDRNode generalize_next_state(
-			FactoredState<RDDLFactoredStateSpace> state,
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
-			FactoredState<RDDLFactoredStateSpace> next_state,
-			ValueGeneralizationParameters parameters, int depth) {
-		return null;
-	}
+//	@Override
+//	public ADDRNode generalize_next_state(
+//			FactoredState<RDDLFactoredStateSpace> state,
+//			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
+//			FactoredState<RDDLFactoredStateSpace> next_state,
+//			ValueGeneralizationParameters parameters, int depth) {
+//		return null;
+//	}
 	
 	
 }

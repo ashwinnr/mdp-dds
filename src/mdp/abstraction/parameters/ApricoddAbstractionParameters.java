@@ -8,16 +8,19 @@ public class ApricoddAbstractionParameters implements ADDAbstractionParameters< 
 
 	private double _apricodd_epsilon;
 	private APPROX_TYPE _approx_type;
-	private ADDManager _manager;
 	
-	public ApricoddAbstractionParameters(
-			final double _apricodd_epsilon,
-			final APPROX_TYPE _approx_type,
-			final ADDManager manager ) {
+	public ApricoddAbstractionParameters(double _apricodd_epsilon,
+			APPROX_TYPE _approx_type ) {
 		super();
-		this._manager = manager;
 		this._apricodd_epsilon = _apricodd_epsilon;
 		this._approx_type = _approx_type;
 	}
 	
+	public APPROX_TYPE get_approx_type() {
+		return this._approx_type;
+	}
+	
+	public double get_apricodd_epsilon() {
+		return this._apricodd_epsilon;
+	}
 }

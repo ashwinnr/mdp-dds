@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
 
+import com.google.common.collect.Maps;
+
 import mdp.define.Action;
 
 //this is where the problems lie
@@ -14,21 +16,18 @@ public class FactoredAction<S extends FactoredStateSpace, A extends FactoredActi
 	protected static String[] actionVarOrder = null;
 	protected NavigableMap<String, Boolean> factoredAction = null;
 	
-	public FactoredAction( NavigableMap<String, Boolean> facAction ) {
-		factoredAction = facAction;
-	}
-	
 	@Override
 	public boolean equals(Object obj) {
 		return factoredAction.equals( ((FactoredAction<S,A>)obj).getFactoredAction() );
 	}
 	
-	public void setFactoredAction(NavigableMap<String, Boolean> factoredAction) {
-		this.factoredAction = factoredAction;
+	public FactoredAction<S, A> setFactoredAction(NavigableMap<String, Boolean> factoredAction) {
+		this.factoredAction = Maps.newTreeMap( factoredAction );
+		return this;
 	}
 	
 	public NavigableMap<String, Boolean> getFactoredAction( ) {
-		return factoredAction;
+		return Maps.unmodifiableNavigableMap( factoredAction );
 	}
 
 	@Override

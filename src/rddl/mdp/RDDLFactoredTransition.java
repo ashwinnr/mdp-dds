@@ -46,8 +46,8 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	private EXPR[] _groundExpr;
 	private Random _rand;
 	private String[] _stateVars;
-	private FactoredState<RDDLFactoredStateSpace> _nextState = null;
 	private RDDLConstrainedMDP _constraint;
+	private NavigableMap< String, Boolean > _nextStateMap = new TreeMap<String, Boolean>();
 	
 	public RDDLFactoredTransition( rddl.State rddlState, 
 			RDDLFactoredStateSpace rddlStateSpace,
@@ -150,22 +150,16 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 					System.out.println("Subs :  " + subs );
 					System.out.println("Prob. true : " + prob_true );
 				}
-				setInNextState(_stateVars[i], prob_true );
+				final boolean value = _rand.nextDouble() < prob_true ? true : false;
+				_nextStateMap.put( _stateVars[i], value );
 			}
 		}catch( EvalException e ){
 			e.printStackTrace();
 			System.exit(1);
 		}
-		return _nextState.copy();
-	}
-
-	private void setInNextState( String varName,
-			double prob_true) {
-		if( _nextState == null ){
-			_nextState = new FactoredState<RDDLFactoredStateSpace>();
-		}
-		boolean value = _rand.nextDouble() < prob_true ? true : false;
-		_nextState.setStateVariable( varName, value );
+		final FactoredState<RDDLFactoredStateSpace> ret = new FactoredState<RDDLFactoredStateSpace>().setFactoredState( _nextStateMap );
+		_nextStateMap.clear();
+		return ret;
 	}
 
 	private void setStateAction(
@@ -235,12 +229,12 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			final ADDRNode initial_state_dist ) {
 		NavigableMap<String, Boolean> partial_state = 
 				ADDManager.sampleOneLeaf( initial_state_dist, _rand );
-		FactoredState<RDDLFactoredStateSpace> ret 
-			= new FactoredState<RDDLFactoredStateSpace>();
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
-			ret.setStateVariable(svar, val == null ? false : val );
+			if( val == null ){
+			    partial_state.put( svar, false );// : val );
+			}
 		}
-		return ret;
+		return new FactoredState<RDDLFactoredStateSpace>().setFactoredState(partial_state);
 	}
 }

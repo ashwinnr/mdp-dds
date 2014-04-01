@@ -15,6 +15,13 @@ public abstract class GeneralizationParameters<T extends GeneralizationType> {
 	protected GENERALIZE_PATH _genRule = GENERALIZE_PATH.NONE;
 	protected Random _rand;
 	
+	public GeneralizationParameters(ADDManager _manager,
+		GENERALIZE_PATH _genRule, Random _rand) {
+	    super();
+	    this._manager = _manager;
+	    this._genRule = _genRule;
+	    this._rand = _rand;
+	}
 	public Random get_rand() {
 		return _rand;
 	}
@@ -27,5 +34,8 @@ public abstract class GeneralizationParameters<T extends GeneralizationType> {
 	}
 	public ADDManager get_manager() {
 		return _manager;
+	}
+	public void set_manager(ADDManager _manager) {
+	    this._manager = _manager;
 	}
 }

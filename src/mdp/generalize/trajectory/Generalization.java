@@ -78,11 +78,11 @@ public abstract class Generalization<S extends FactoredStateSpace,
 			final FactoredState<S> next_state,
 			final U parameters ,
 			final int depth  );
-	public abstract ADDRNode generalize_next_state( final FactoredState<S> state,
-			final FactoredAction<S,A> action,
-			final FactoredState<S> next_state,
-			final U parameters ,
-			final int depth );
+//	public abstract ADDRNode generalize_next_state( final FactoredState<S> state,
+//			final FactoredAction<S,A> action,
+//			final FactoredState<S> next_state,
+//			final U parameters ,
+//			final int depth );
 	
 //	public ADDRNode[] generalize_transition( final FactoredState<S> state,
 //			final FactoredAction<S,A> action,
