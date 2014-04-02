@@ -43,6 +43,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 	protected ADDDecisionTheoreticRegression _dtr;
 	protected ADDManager _manager;
 	
+	public RDDLOnlineActor(){};
+	
 	public RDDLOnlineActor(
 			final String domain, 
 			final String instance,
