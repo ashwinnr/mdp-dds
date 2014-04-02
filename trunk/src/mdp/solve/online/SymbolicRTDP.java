@@ -133,20 +133,17 @@ public class SymbolicRTDP< T extends GeneralizationType, P extends Generalizatio
 		_valueDD[ steps_lookahead-1 ] = init._o1;
 		_policyDD[ steps_lookahead-1 ] = init._o2;//_dtr.getNoOpPolicy( _mdp.get_actionVars(), _manager );
 
-//		final ADDRNode RMAX = _mdp.getRMax();//why add RMAX? init is admissible
+		final ADDRNode RMAX = _mdp.getRMax();
+		//why add RMAX? init is admissible
 		//why not add R?
-		final ADDRNode reward_with_action = _mdp.getSumOfRewards();
-		final UnorderedPair<ADDRNode, ADDRNode> greedy_policy 
-			= _dtr.getGreedyPolicy( reward_with_action );
-		final ADDRNode reward = greedy_policy._o1;
+//		final ADDRNode reward_with_action = _mdp.getSumOfRewards();
+//		final UnorderedPair<ADDRNode, ADDRNode> greedy_policy 
+//			= _dtr.getGreedyPolicy( reward_with_action );
+//		final ADDRNode reward = greedy_policy._o1;
 		
 		for( int depth = steps_lookahead-2; depth >= 0; --depth ){
-			final double max_heuristic = _valueDD[depth+1].getMax();
-			final ADDRNode reward_added = _manager.apply(  reward, 
-		    		_manager.scalarMultiply( _manager.getLeaf(max_heuristic, max_heuristic), _mdp.getDiscount() ), 
-		    		DDOper.ARITH_PLUS ); 
-		    _valueDD[ depth ] = reward_added;
-		    _policyDD[ depth ] = greedy_policy._o2;
+		    _valueDD[ depth ] = _manager.apply( RMAX, _valueDD[ depth+1 ] , DDOper.ARITH_PLUS );
+		    _policyDD[ depth ] = init._o2;
 		}
 		
 		_DPTimer = new Timer();
@@ -156,6 +153,8 @@ public class SymbolicRTDP< T extends GeneralizationType, P extends Generalizatio
 //		} catch (EvalException e) {
 //			e.printStackTrace();
 //		}
+//		display(_valueDD, _policyDD);
+		
 	}
 
 	@Override
@@ -276,21 +275,27 @@ public class SymbolicRTDP< T extends GeneralizationType, P extends Generalizatio
 			final ADDRNode this_actions = trajectory[i--];
 			final ADDRNode this_states = trajectory[i];
 			
-			final ADDRNode update_val = _valueDD[ j ];
-			final ADDRNode update_pol = _policyDD[ j ];
+			final ADDRNode source_val = _valueDD[ j ];
+			final ADDRNode target_val = _valueDD[ j-1 ];
+			final ADDRNode target_policy = _policyDD[ j-1 ];
 			
 			final ADDRNode next_states = _dtr.BDDImageAction(this_states, DDQuantify.EXISTENTIAL,
 					this_actions, true, _actionVars );//WARNING : constant true
 			
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup  
-			= _dtr.backup(update_val, update_pol, next_states, this_states, dp_type, 
+			= _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
 			do_apricodd, apricodd_epsilon, apricodd_type, true, MB, CONSTRAIN_NAIVELY);
 			
 			_valueDD[ j-1 ] = backup._o1;
 			_policyDD[ j-1 ] = backup._o2._o1;
 			_manager.flushCaches();
+			
+//			System.out.println(j + " " + backup._o2._o2 );
 			--j;
+			
 		}
+//		display(_valueDD, _policyDD);
+//		System.out.println();
 		
 	}
 

@@ -179,8 +179,10 @@ public class ADDDecisionTheoreticRegression implements
 	}
 	
 	//from and to needs to be a BDD
-	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup( final ADDRNode current_value, 
+	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup(
+			final ADDRNode current_value, 
 			final ADDRNode cur_policy,//BDD
+			final ADDRNode source_value_fn, 
 			final ADDRNode from, 
 			final ADDRNode to, 
 			final BACKUP_TYPE backup_type, 
@@ -191,7 +193,7 @@ public class ADDDecisionTheoreticRegression implements
 			final long BIGDD ,
 			final boolean constrain_naively ){
 		
-		final ADDRNode unprimed = _manager.BDDIntersection(current_value, from);
+		final ADDRNode unprimed = _manager.BDDIntersection(source_value_fn, from);
 		final ADDRNode primed = 
 				_manager.remapVars( 
 						unprimed  ,
@@ -218,7 +220,7 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode saveV = _manager.BDDIntersection( current_value ,
 				_manager.BDDNegate(to) );
 		value_ret = _manager.apply( value_ret, saveV, DDOper.ARITH_PLUS );
-		final double residual = getBellmanError(value_ret, current_value);
+		final double residual = getBellmanError(value_ret, source_value_fn );
 		
 		ADDRNode policy_ret = null;
 		if( makePolicy ){

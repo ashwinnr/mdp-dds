@@ -4073,6 +4073,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	public ADDRNode sampleBDD( final ADDRNode input,
 			final Random rand , final int num_paths ){
+	    
+	    if ( num_paths <= 0 ){
+		try{
+		    throw new Exception("Invalid arguement num_paths" + num_paths );
+		}catch( Exception e ){
+		    e.printStackTrace();
+		    System.exit(1);
+		}
+	    }
+	    
 		ADDRNode ret = DD_ZERO;
 		
 		int i = 0;
