@@ -48,7 +48,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	
 	final Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P> generalizer = parameters.getGeneralizer();
 	final ADDRNode ret = generalizer.generalize_state(state, action, next_state, parameters.getParameters(), depth);
-	return parameters.get_manager().sampleBDD(ret, parameters.get_rand(), parameters.getNum_states() );
+	return parameters.getNum_states() == -1 ? ret : parameters.get_manager().sampleBDD(ret, parameters.get_rand(), parameters.getNum_states() );
     }
 
     @Override
@@ -65,7 +65,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	final ADDRNode ret = parameters.getGeneralizer().generalize_action(state, action, next_state, parameters.getParameters(), depth);
 	//pick only actions that are legal
 	    
-	return parameters.get_manager().sampleBDD( ret, parameters.get_rand(), parameters.getNum_actions() );
+	return parameters.getNum_actions() == -1 ? ret : parameters.get_manager().sampleBDD( ret, parameters.get_rand(), parameters.getNum_actions() );
     }
     
     @Override
