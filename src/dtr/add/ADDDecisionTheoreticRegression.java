@@ -193,6 +193,9 @@ public class ADDDecisionTheoreticRegression implements
 			final long BIGDD ,
 			final boolean constrain_naively ){
 		
+	    	System.out.println("Backup");
+	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
+	    	
 		final ADDRNode unprimed = _manager.BDDIntersection(source_value_fn, from);
 		final ADDRNode primed = 
 				_manager.remapVars( 
@@ -202,6 +205,7 @@ public class ADDDecisionTheoreticRegression implements
 		UnorderedPair<ADDValueFunction, ADDPolicy> backup = null;
 		switch( backup_type ){
 		case VI_FAR : 
+		    	System.out.println("Regressing all actions" );
 			backup = regressAllActions( primed, false, makePolicy, constrain_naively, null,
 					do_apricodd, apricodd_epsilon, apricodd_type );
 			break;//backup will have value and policy for things not in to, 
@@ -765,6 +769,8 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode ret = _manager.DD_ONE;
 		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
+		System.out.println("Image computation");
+		
 		for( final String nextState : sumOrder ){
 //			System.out.print("Image for variable ");
 //			System.out.print( nextState );

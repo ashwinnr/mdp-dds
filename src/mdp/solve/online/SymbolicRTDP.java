@@ -141,8 +141,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		_policyDD = new ADDRNode[ steps_lookahead ];
 		
-		_valueDD[ steps_lookahead-1 ] = init._o1;
-		_policyDD[ steps_lookahead-1 ] = init._o2;//_dtr.getNoOpPolicy( _mdp.get_actionVars(), _manager );
+		_valueDD[ steps_lookahead-1 ] = init._o1 == null ? _mdp.getVMax() : init._o1;
+		_policyDD[ steps_lookahead-1 ] = init._o2 == null ? 
+			ADDDecisionTheoreticRegression.getNoOpPolicy(_mdp.get_actionVars(), _manager)
+			: init._o2;//_dtr.getNoOpPolicy( _mdp.get_actionVars(), _manager );
 
 		final ADDRNode RMAX = _mdp.getRMax();
 		//why add RMAX? init is admissible
@@ -153,8 +155,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		final ADDRNode reward = greedy_policy._o1;
 		
 		for( int depth = steps_lookahead-2; depth >= 0; --depth ){
-		    _valueDD[ depth ] = _manager.apply( RMAX, _valueDD[ depth+1 ] , DDOper.ARITH_PLUS );
-		    _policyDD[ depth ] = init._o2;
+		    _valueDD[ depth ] = init._o1 == null ? _mdp.getVMax() :_manager.apply( RMAX, _valueDD[ depth+1 ] , DDOper.ARITH_PLUS );
+		    _policyDD[ depth ] = _policyDD[ depth+1 ];
 		}
 		
 		_DPTimer = new Timer();
@@ -231,7 +233,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				System.out.println( cur_state.toString() );
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
 			    
-//			    System.out.println( state_assign );
+			    System.out.println( state_assign );
 			    	
 				final ADDRNode action_dd = _manager.restrict( _policyDD[steps_to_go], state_assign );
 				final NavigableMap<String, Boolean> action = _manager.sampleOneLeaf(action_dd, _rand );
@@ -246,7 +248,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				trajectory_states[ steps_to_go ].setFactoredState( state_assign );
 
 				//				System.out.println( "Steps to go " + steps_to_go );
-//				System.out.println( cur_action.toString() );
+				System.out.println( cur_action.toString() );
 //				System.out.print("-");
 				
 			}
@@ -271,17 +273,21 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_genaralizeParameters.set_policyDD( _policyDD );
 		_genaralizeParameters.getParameters().set_valueDD(_valueDD);
 		_genaralizeParameters.getParameters().set_policyDD(_policyDD);
+		System.out.println( "Generalizing " );
 		
 		return _generalizer.generalize_trajectory(trajectory_states, trajectory_actions, _genaralizeParameters);
 	}
 	
 	protected void update_generalized_trajectory( final ADDRNode[] trajectory ){
 		
+	    
 		int i = trajectory.length-1;
 		int j = steps_lookahead-1;
 				
 		while( i >= 2 ){
-			
+		
+		    	System.out.println("Updating trajectories " + j );
+		    
 			final ADDRNode this_next_states = trajectory[i--];
 			final ADDRNode this_actions = trajectory[i--];
 			final ADDRNode this_states = trajectory[i];
@@ -292,6 +298,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			final ADDRNode next_states = _dtr.BDDImageAction(this_states, DDQuantify.EXISTENTIAL,
 					this_actions, true, _actionVars );//WARNING : constant true
+			
 			
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup  
 			= _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 

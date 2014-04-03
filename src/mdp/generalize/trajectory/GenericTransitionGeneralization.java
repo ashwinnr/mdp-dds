@@ -86,22 +86,32 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	final ADDManager manager = parameters.get_manager();
 	
 	ADDRNode prev_gen_state = null;
-	ADDRNode prev_gen_action = null;
+	ADDRNode prev_action = null;
 	int j = 0;
 	
 	for( int i = 0; i < states.length; ++i ){
+	    System.out.println("Generalizing state " + i );
+	    
 	    final ADDRNode cur_gen_state = generalize_state(states[i], 
 	    		i == states.length - 1 ? null : actions[i], 
 	    		i == states.length - 1 ? null : states[i+1], parameters, i);
+	    
+	    System.out.println("Generalizing action " + i );
+	    
 	    final ADDRNode cur_gen_action = 
 		i == states.length - 1 ? null : generalize_action( states[i], actions[i], states[i+1], parameters, i );
 	    
 	    if( prev_gen_state == null ){
 		ret[j++] = cur_gen_state;
+		prev_gen_state = cur_gen_state;
+		
 	    }else{
+		System.out.println("Consistency check " );
+		
 		//cur gen state must be a valid successor of prev gen state and prev gen action
 		prev_gen_state = manager.BDDIntersection(cur_gen_state, 
-				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, prev_gen_action, true) );
+				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
+					prev_action, true) );
 		ret[j++] = prev_gen_state;
 	    }
 	    
@@ -109,7 +119,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		ret[j++] = cur_gen_action;
 	    }
 	    
-	    prev_gen_action = cur_gen_action;
+	    prev_action = i == states.length-1 ? null : manager.getProductBDDFromAssignment( actions[i].getFactoredAction() );
 	}
 
 	return ret;
