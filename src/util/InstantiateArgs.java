@@ -49,6 +49,8 @@ public class InstantiateArgs {
 	ret.addOption("exploration", true, "exploration for trajectory - epsilon/off");
 	ret.addOption("generalizationRule", true, "rule for generalizing within an ADD - ALL_PATHS/SHARED_PATHS/NONE" );
 	ret.addOption("consistencyRule", true, "rule for generalizing trajectory - WEAK_ACTION/WEAK_POLICY/STRONG_X" );
+	ret.addOption("truncateTrials", true, "whether to truncate trial on new state" );
+	
 	return ret;
     }   
 

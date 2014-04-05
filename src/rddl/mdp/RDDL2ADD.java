@@ -1012,15 +1012,18 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	}
 	
 	public ADDRNode getVMax(){
-		return _manager.scalarMultiply( getRMax(), 1.0d/(1.0d-getDiscount()) );
+		return 
+				getDiscount() == 1 ? 
+						_manager.getLeaf( getRMax()*getHorizon() ) :
+						_manager.getLeaf( getRMax() * 1.0d/(1.0d-getDiscount()) );
 	}
 	
-	public ADDRNode getRMax(){
+	public double getRMax(){
 		double ret = 0;
 		for( final ADDRNode rewards : getRewards() ){
 			ret += rewards.getMax();
 		}
-		return _manager.getLeaf(ret, ret);
+		return ret;//_manager.getLeaf(ret, ret);
 	}
 	
 	private ArrayList<UnorderedPair<Integer, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>>>  
@@ -1588,6 +1591,15 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		 }
 		 
 		 return ret;
+	}
+
+	public double getRmin() {
+		double ret = 0;
+		for( final ADDRNode rewards : getRewards() ){
+			ret += rewards.getMin();
+		}
+		return ret;
+		
 	}
 
 }
