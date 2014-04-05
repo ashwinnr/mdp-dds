@@ -73,6 +73,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private ADDRNode[] _policyDD;
 //	private ADDRNode base_line;
 	
+	protected static final FactoredAction[] EMPTY_ACTION_ARRAY = {};
+	
 	private GenericTransitionGeneralization<T, P> _generalizer;
 	private GenericTransitionParameters<T, P, RDDLFactoredStateSpace, RDDLFactoredActionSpace> _genaralizeParameters;
 	private Exploration< RDDLFactoredStateSpace, RDDLFactoredActionSpace > exploration;  
@@ -80,6 +82,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( );
 	
 	private ADDRNode[] _visited; 
+	
+	private boolean truncateTrials;
 
 	public SymbolicRTDP(
 			final String domain, 
@@ -114,12 +118,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final int gen_num_actions, 
 			final GENERALIZE_PATH gen_rule,
 			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
-			final Consistency cons ) {
+			final Consistency cons,
+			final boolean  truncateTrials ) {
 	    
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
 				init_state_prob );
 		this.exploration = exploration; 
-		
+		this.truncateTrials = truncateTrials;
 		_generalizer = new GenericTransitionGeneralization<T, P>( _dtr, cons );
 		
 		_genaralizeParameters = new GenericTransitionParameters<T, P, 
@@ -156,7 +161,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_policyDD[ steps_lookahead-1 ] = greedy._o2;//_dtr.getGreedyPolicy( sum_rew );
 		    //HandCodedPolicies.get( domain , _dtr, _manager, _mdp.get_actionVars() );
 
-		final ADDRNode RMAX = _mdp.getRMax();
+		final ADDRNode RMAX = _manager.getLeaf( _mdp.getRMax() );
 		//why add RMAX? init is admissible
 		//why not add R?
 //		final ADDRNode reward_with_action = _mdp.getSumOfRewards();
@@ -170,9 +175,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}
 		
 		_visited = new ADDRNode[ steps_lookahead ];
-		for( int depth =  0; depth < steps_lookahead; ++depth ){
+		for( int depth =  0; depth < steps_lookahead-1; ++depth ){
 		    _visited[ depth ] = _manager.DD_ZERO;
 		}
+		_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
 		
 		_DPTimer = new Timer();
 		_DPTimer.PauseTimer();
@@ -239,41 +245,63 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		while( trials_to_go --> 0 ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
-			int steps_to_go = 0;//steps_lookahead;
+			int num_actions = 0;//steps_lookahead;
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			NavigableMap<String, Boolean> state_assign = cur_state.getFactoredState();
-			trajectory_states[ steps_to_go ].setFactoredState( state_assign );
-			while( steps_to_go < steps_lookahead-1 ){
+			trajectory_states[ num_actions ].setFactoredState( state_assign );
+			
+			while( num_actions < steps_lookahead-1 ){
 //				System.out.println( cur_state.toString() );
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
 			    
 			    System.out.println( state_assign );
+			    final boolean newState = _manager.evaluate( _visited[ num_actions ], 
+						state_assign ).equals( _manager.DD_ZERO );
+				_visited[ num_actions ] = _manager.BDDUnion(_visited[ num_actions ], 
+						_manager.getProductBDDFromAssignment(cur_state.getFactoredState()) );
+				if( newState && truncateTrials ){
+					System.out.println("Truncating trial : " + num_actions );
+//					System.out.println( state_assign );
+					break;
+				}
 			    	
-				final ADDRNode action_dd = _manager.restrict( _policyDD[steps_to_go], state_assign );
+				final ADDRNode action_dd = _manager.restrict( _policyDD[num_actions], state_assign );
 				final NavigableMap<String, Boolean> action = _manager.sampleOneLeaf(action_dd, _rand );
 				
-				trajectory_actions[ steps_to_go ].setFactoredAction( action );
+				trajectory_actions[ num_actions ].setFactoredAction( action );
 //				System.out.println( action );
 				cur_action.setFactoredAction( action );
+				System.out.println( cur_action.toString() );
 				
 				cur_state = _transition.sampleFactored(cur_state, cur_action);
 				state_assign = cur_state.getFactoredState();
-				++steps_to_go;
-				trajectory_states[ steps_to_go ].setFactoredState( state_assign );
-
+				
 				//				System.out.println( "Steps to go " + steps_to_go );
-				System.out.println( cur_action.toString() );
+				++num_actions;
+				trajectory_states[ num_actions ].setFactoredState( state_assign );
+				
 //				System.out.print("-");
 				
 			}
+			System.out.println( state_assign );
+			
 //			trajectory_states[ trajectory_states.length-1 ].setFactoredState( cur_state.getFactoredState() );
 			
 //			System.out.println("Updating : " + _manager.countPaths(trajectory_states) );
-			final ADDRNode[] gen_trajectory = generalize_trajectory( trajectory_states,
-					trajectory_actions );
+			final FactoredState<RDDLFactoredStateSpace>[] trajectory_states_non_null 
+				= truncateTrials ? Arrays.copyOfRange(trajectory_states, 0, num_actions+1)
+						: trajectory_states ;
+			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] 
+					trajectory_actions_non_null = truncateTrials ? 
+							( num_actions == 0 ? EMPTY_ACTION_ARRAY : Arrays.copyOfRange(trajectory_actions, 0, num_actions) ) 
+							: trajectory_actions;
+			
+			final ADDRNode[] gen_trajectory = generalize_trajectory( trajectory_states_non_null,
+					trajectory_actions_non_null );
 			_DPTimer.ResumeTimer();			
-			update_generalized_trajectory( gen_trajectory );
+			update_generalized_trajectory( trajectory_states_non_null, trajectory_actions_non_null, 
+					gen_trajectory , num_actions+1 );
 			_DPTimer.PauseTimer();
 			System.out.print("*");			
 //			System.out.println("Trials to go  " + trials_to_go );
@@ -293,23 +321,61 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		return _generalizer.generalize_trajectory(trajectory_states, trajectory_actions, _genaralizeParameters);
 	}
 	
-	protected void update_generalized_trajectory( final ADDRNode[] trajectory ){
+	protected void update_generalized_trajectory( 
+			final FactoredState<RDDLFactoredStateSpace>[] trajectory_states, 
+			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] trajectory_actions, 
+			final ADDRNode[] trajectory,
+			final int num_states ){
 		
 	    
-		int i = trajectory.length-1;
-		int j = steps_lookahead-1;
+		int i = (num_states-1)*2;//-1;
+		int j = num_states-1;
+		
+		if( num_states != steps_lookahead  && truncateTrials ){
+	    	//new state in last step
+	    	//dont update it rather get heuristic value for it
+	    	int idx = -1;
+	    	for( int searcher = j; searcher >= 0; --searcher ){
+	    		//search for previous visitation and update heuristic
+	    		//otherwise leave it alone
+	    		if( _manager.evaluate( _visited[ j ], trajectory_states[ j ].getFactoredState() ).equals( _manager.DD_ONE ) ){
+	    			idx = searcher;
+	    			break;
+	    		}
+	    	}
+	    	
+	    	if( idx != -1 ){
+	    		//update heuristic
+		    	//max rewards heuristic
+		    	//min rewards heuristic
+	    		final double old_val = _manager.evaluate( _valueDD[j],
+	    				trajectory_states[j].getFactoredState() ).getMax();
+	    		final double new_val =  _manager.evaluate( _valueDD[idx],
+	    				trajectory_states[j].getFactoredState() ).getMax()
+	    					- _mdp.getRmin();
+	    		System.out.println( "Delta = " + (old_val - new_val) );
+	    		
+	    		_valueDD[ j ] = _manager.assign( 
+	    				_valueDD[j],
+	    				trajectory_states[j].getFactoredState(), 
+	    				Math.min(old_val, new_val) );
+	    	}
+		}
 				
 		while( i >= 2 ){
 		
-		    	System.out.println("Updating trajectories " + j );
+	    	System.out.println("Updating trajectories " + j );
+	    	
+	    	ADDRNode this_next_states, this_states, this_actions;
+	    	ADDRNode source_val, target_val, target_policy;
+	    	
+	    	this_next_states = trajectory[i--];
+			this_actions = trajectory[i--];
+			this_states = trajectory[i];
 		    
-			final ADDRNode this_next_states = trajectory[i--];
-			final ADDRNode this_actions = trajectory[i--];
-			final ADDRNode this_states = trajectory[i];
-			
-			final ADDRNode source_val = _valueDD[ j ];
-			final ADDRNode target_val = _valueDD[ j-1 ];
-			final ADDRNode target_policy = _policyDD[ j-1 ];
+			source_val = _valueDD[ j ];
+			target_val = _valueDD[ j-1 ];
+			target_policy = _policyDD[ j-1 ];
 			
 			final ADDRNode next_states = _dtr.BDDImageAction(this_states, DDQuantify.EXISTENTIAL,
 					this_actions, true, _actionVars );//WARNING : constant true
@@ -619,7 +685,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedActions") ),
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
 				exploration,
-				Consistency.valueOf( cmd.getOptionValue("consistencyRule") ) );		
+				Consistency.valueOf( cmd.getOptionValue("consistencyRule") ) ,
+				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ) );		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
 			help.printHelp("symbolicRTDP", options);

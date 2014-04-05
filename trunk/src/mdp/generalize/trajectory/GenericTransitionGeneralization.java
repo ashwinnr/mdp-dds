@@ -96,7 +96,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	ADDRNode prev_action = null;
 	int j = 0;
 	
-	for( int i = 0; i < states.length; ++i ){
+	for( int i = 0; i < states.length && states[i].getFactoredState() != null ; ++i ){
 	    System.out.println("Generalizing state " + i );
 	    
 	    final ADDRNode cur_gen_state = generalize_state(states[i], 
@@ -137,7 +137,12 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		}
 		
 		if( prev_gen_state.equals(manager.DD_ZERO) ){
-		    System.out.println("WARNING consistent generalized state is zero");
+		    try{
+		    	throw new Exception("WARNING consistent generalized state is zero");
+		    }catch( Exception e ){
+		    	e.printStackTrace();
+		    	System.exit(1);
+		    }
 		}
 		
 		ret[j++] = prev_gen_state;
@@ -147,7 +152,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		ret[j++] = cur_gen_action;
 	    }
 	    
-	    prev_action = i == states.length-1 ? null : manager.getProductBDDFromAssignment( actions[i].getFactoredAction() );
+	    prev_action = i == states.length-1 || actions[i].getFactoredAction() == null 
+	    		? null : manager.getProductBDDFromAssignment( actions[i].getFactoredAction() );
 	}
 
 	return ret;
