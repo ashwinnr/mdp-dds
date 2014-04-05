@@ -19,6 +19,7 @@ import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 import mdp.define.PolicyStatistics;
 import mdp.generalize.trajectory.Generalization;
 import mdp.generalize.trajectory.GenericTransitionGeneralization;
+import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.OptimalActionGeneralization;
 import mdp.generalize.trajectory.ValueGeneralization;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
@@ -27,6 +28,7 @@ import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters;
 import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
 import mdp.generalize.trajectory.type.GeneralizationType;
+import mdp.solve.solver.HandCodedPolicies;
 import rddl.EvalException;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
@@ -35,7 +37,7 @@ import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredReward;
 import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDLFactoredTransition;
-import util.CommandLineOptionable;
+import util.InstantiateArgs;
 import util.Timer;
 import util.UnorderedPair;
 import add.ADDLeaf;
@@ -76,6 +78,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private Exploration< RDDLFactoredStateSpace, RDDLFactoredActionSpace > exploration;  
 	private static FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action 
 		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( );
+	
+	private ADDRNode[] _visited; 
 
 	public SymbolicRTDP(
 			final String domain, 
@@ -109,13 +113,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final int gen_num_states,
 			final int gen_num_actions, 
 			final GENERALIZE_PATH gen_rule,
-			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration ) {
+			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
+			final Consistency cons ) {
 	    
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
 				init_state_prob );
 		this.exploration = exploration; 
 		
-		_generalizer = new GenericTransitionGeneralization<T, P>(_dtr);
+		_generalizer = new GenericTransitionGeneralization<T, P>( _dtr, cons );
 		
 		_genaralizeParameters = new GenericTransitionParameters<T, P, 
 				RDDLFactoredStateSpace, RDDLFactoredActionSpace>(_manager, 
@@ -134,17 +139,22 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		this.apricodd_type = apricodd_type;
 		this.MB = MB;
 		this.dp_type = dp_type;
-		final UnorderedPair<ADDRNode, ADDRNode> init 
-			= _dtr.computeLAOHeuristic( steps_heuristic, heuristic_type, CONSTRAIN_NAIVELY,
-				false, 0.0d, apricodd_type, MB, time_heuristic_mins );
+		
+		//heuristic too bad anyways
+		//final UnorderedPair<ADDRNode, ADDRNode> init 
+		//	= _dtr.computeLAOHeuristic( steps_heuristic, heuristic_type, CONSTRAIN_NAIVELY,
+		//		false, 0.0d, apricodd_type, MB, time_heuristic_mins );
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		_policyDD = new ADDRNode[ steps_lookahead ];
 		
-		_valueDD[ steps_lookahead-1 ] = init._o1 == null ? _mdp.getVMax() : init._o1;
-		_policyDD[ steps_lookahead-1 ] = init._o2 == null ? 
-			ADDDecisionTheoreticRegression.getNoOpPolicy(_mdp.get_actionVars(), _manager)
-			: init._o2;//_dtr.getNoOpPolicy( _mdp.get_actionVars(), _manager );
+		final ADDRNode sum_rew = _mdp.getSumOfRewards();
+		final UnorderedPair<ADDRNode, ADDRNode> greedy = _dtr.getGreedyPolicy( sum_rew );
+		
+		_valueDD[ steps_lookahead-1 ] = greedy._o1;
+		
+		_policyDD[ steps_lookahead-1 ] = greedy._o2;//_dtr.getGreedyPolicy( sum_rew );
+		    //HandCodedPolicies.get( domain , _dtr, _manager, _mdp.get_actionVars() );
 
 		final ADDRNode RMAX = _mdp.getRMax();
 		//why add RMAX? init is admissible
@@ -155,8 +165,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		final ADDRNode reward = greedy_policy._o1;
 		
 		for( int depth = steps_lookahead-2; depth >= 0; --depth ){
-		    _valueDD[ depth ] = init._o1 == null ? _mdp.getVMax() :_manager.apply( RMAX, _valueDD[ depth+1 ] , DDOper.ARITH_PLUS );
+		    _valueDD[ depth ] = _manager.apply( RMAX, _valueDD[ depth+1 ] , DDOper.ARITH_PLUS );
 		    _policyDD[ depth ] = _policyDD[ depth+1 ];
+		}
+		
+		_visited = new ADDRNode[ steps_lookahead ];
+		for( int depth =  0; depth < steps_lookahead; ++depth ){
+		    _visited[ depth ] = _manager.DD_ZERO;
 		}
 		
 		_DPTimer = new Timer();
@@ -306,6 +321,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			_valueDD[ j-1 ] = backup._o1;
 			_policyDD[ j-1 ] = backup._o2._o1;
+			
 			_manager.flushCaches();
 			
 //			System.out.println(j + " " + backup._o2._o2 );
@@ -533,64 +549,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		t.join();
 	}
 
-	public static Options createOptions() {
-		Options ret = new Options();
-		ret.addOption("discounting", true, "use discounting in planning " +
-				"and testing - double in [0,1]" );
-		ret.addOption("testStates", true, "number of initial states to test policy on - integer" );
-		ret.addOption("testRounds", true, "number of rounds to test each initial state on - integer" );
-		ret.addOption("domain", true, "RDDL domain file name - string");
-		ret.addOption("instance", true, "RDDL instance file name - string" );
-		ret.addOption("seed", true, "random seed - long" );
-		ret.addOption("actionVars", true, "use action variables in ADDs" );
-		ret.addOption("constraintPruning", true, "use ADD pruning for constraints" );
-		ret.addOption("doApricodd", true, "enable APRICODD for value functions" );
-		ret.addOption("apricoddError", true, "error for ADD approximation - double" );
-		ret.addOption("apricoddType", true, "APRICODD type - UPPER/LOWER/AVERAGE/NONE/RANGE");
-		ret.addOption("apricoddGP", true, "geometric error progression with depth > 1" );
-		ret.addOption("heuristicType", true, "backups to use for computing heuristic " +
-				"- VI_FAR/VI_SPUDD/VI_MBFAR/VMAX" );
-		ret.addOption("heuristicMins",  true, "max. minutes to run heuristic computation - double" );
-		ret.addOption("heuristicSteps", true, "number of steps of VI for heuristic computation - int" );
-		ret.addOption("memoryBoundNodes", true, "memory bound for MBFAR - long" );
-		ret.addOption("initialStateConf", true, "IID initial state distribution " +
-				"- CONJUNCTIVE/BERNOULLI/UNIFORM" );
-		ret.addOption("initialStateProb", true, "IID parameter - double in [0,1]" );
-		ret.addOption("backupType", true, "backups for RTDP - VI_FAR/VI_SPUDD/VI_MBFAR" );
-		ret.addOption("numTrajectories", true, "number of trajectories to sample - int");
-		ret.addOption("stepsDP", true, "number of trajectory replays -int " );
-		ret.addOption("stepsLookahead", true, "number of states in trajectories - int");
-		ret.addOption("generalizeStates", true, "whether to generalize states in trajectory" );
-		ret.addOption("generalizeActions", true, "whether to generalize actions in trajectory" );
-		ret.addOption("limitGeneralizedStates", true, "sample size for number of " +
-				"states in generalized states - int" );
-		ret.addOption("limitGeneralizedActions", true, "sample size for number of " + 
-				"actions in generalized actions - int" );
-		ret.addOption("generalization", true, "type of generalization - value/action/off");
-		ret.addOption("exploration", true, "exploration for trajectory - epsilon/off");
-		ret.addOption("generalizationRule", true, "rule for generalizing within an ADD - ALL_PATHS/SHARED_PATHS/NONE" );
-		return ret;
-	}
-
-	public static CommandLine parseOptions(String[] args, Options opts) {
-		try {
-			return new GnuParser().parse(opts, args);
-		} catch (ParseException e) {
-			
-			HelpFormatter helper = new HelpFormatter();
-			helper.printHelp("symbolicRTDP", opts);
-			
-			e.printStackTrace();
-			
-			System.exit(1);
-		} 
-		return null;
-	}
 
 	public static SymbolicRTDP instantiateMe(String[] args) {
 		
-		final Options options = createOptions();
-		final CommandLine cmd = parseOptions(args, options);
+		final Options options = InstantiateArgs.createOptions();
+		final CommandLine cmd = InstantiateArgs.parseOptions(args, options);
 		try{
 		Generalization generalizer = null;
 		if( cmd.getOptionValue("generalization").equals("value") ){
@@ -655,7 +618,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedStates") ),
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedActions") ),
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-				exploration );		
+				exploration,
+				Consistency.valueOf( cmd.getOptionValue("consistencyRule") ) );		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
 			help.printHelp("symbolicRTDP", options);

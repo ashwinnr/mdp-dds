@@ -194,7 +194,20 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean constrain_naively ){
 		
 	    	System.out.println("Backup");
-	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
+//	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
+	    	if( from.equals(_manager.DD_ONE) ){
+	    	    System.out.println("WARNING : backing up from all states " );
+	    	}else if( from.equals(_manager.DD_ZERO) ){
+	    	    System.out.println("WARNING : backing up from no states " );
+	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
+	    	}
+	    	
+	    	if( to.equals(_manager.DD_ONE) ){
+	    	    System.out.println("WARNING : backing up value of all states " );
+	    	}else if( to.equals(_manager.DD_ZERO ) ){
+	    	    System.out.println("WARNING : backing up TO no states " );
+	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
+	    	}
 	    	
 		final ADDRNode unprimed = _manager.BDDIntersection(source_value_fn, from);
 		final ADDRNode primed = 
@@ -219,6 +232,8 @@ public class ADDDecisionTheoreticRegression implements
 					do_apricodd, apricodd_epsilon, apricodd_type);
 			break;
 		}
+		
+		System.out.println("Combining");
 		
 		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
 		ADDRNode saveV = _manager.BDDIntersection( current_value ,
@@ -1906,6 +1921,15 @@ public class ADDDecisionTheoreticRegression implements
 				mdp.getFactoredTransition(), mdp.getFactoredReward(), 42);
 		policy._bddPolicy = handCodedPolicy;
 		policy.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
+	}
+	
+	public static ADDRNode getRandomAction( 
+		final ADDManager manager,
+		final ADDDecisionTheoreticRegression dtr, 
+		final ADDRNode state, final Random rand ) throws EvalException {
+	    
+	    ADDRNode policy = dtr.applyMDPConstraints( state, null, manager.DD_ZERO, true, null );
+	    return manager.sampleBDD(policy, rand, 1);
 	}
 
 	public static ADDRNode getRebootDeadPolicy(ADDManager manager,

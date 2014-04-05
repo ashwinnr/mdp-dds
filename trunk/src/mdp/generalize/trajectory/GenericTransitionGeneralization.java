@@ -1,5 +1,6 @@
 package mdp.generalize.trajectory;
 
+import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
 import mdp.generalize.trajectory.type.GeneralizationType;
@@ -28,9 +29,15 @@ Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace,
 GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpace, RDDLFactoredActionSpace> >{
 
     protected ADDDecisionTheoreticRegression _dtr;
+    private Consistency _cons;
+    public enum Consistency{
+	STRONG_POLICY, WEAK_POLICY, STRONG_ACTION, WEAK_ACTION 
+    }
     
-    public GenericTransitionGeneralization( ADDDecisionTheoreticRegression dtr) {
+    public GenericTransitionGeneralization( final ADDDecisionTheoreticRegression dtr ,
+	    final Consistency cons ) {
 	_dtr = dtr;
+	_cons = cons;
     }
     
     @Override
@@ -96,6 +103,10 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    		i == states.length - 1 ? null : actions[i], 
 	    		i == states.length - 1 ? null : states[i+1], parameters, i);
 	    
+	    if( cur_gen_state.equals(manager.DD_ZERO) ){
+		System.out.println("WARNING generalized state is zero");
+	    }
+	    
 	    System.out.println("Generalizing action " + i );
 	    
 	    final ADDRNode cur_gen_action = 
@@ -106,12 +117,29 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		prev_gen_state = cur_gen_state;
 		
 	    }else{
-		System.out.println("Consistency check " );
-		
-		//cur gen state must be a valid successor of prev gen state and prev gen action
-		prev_gen_state = manager.BDDIntersection(cur_gen_state, 
+		System.out.println("Consistency check" + i );
+		switch( _cons ){
+		case WEAK_ACTION :
+		    prev_gen_state = manager.BDDIntersection(cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
 					prev_action, true) );
+		    break;
+		case WEAK_POLICY : 
+		    prev_gen_state = manager.BDDIntersection(cur_gen_state, 
+				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
+					parameters.get_policyDD()[i-1], true) );
+		    break;
+		case STRONG_ACTION : 
+		    //pick states in cur_gen_state such that transition from prev_gen_state w.p. 1
+//		    final ADDRNode image = _dtr.BDDImageAction(prev_gen_state, DDQuantify.EXISTENTIAL, prev_action, true, true);
+		case STRONG_POLICY :
+		    prev_gen_state = null;
+		}
+		
+		if( prev_gen_state.equals(manager.DD_ZERO) ){
+		    System.out.println("WARNING consistent generalized state is zero");
+		}
+		
 		ret[j++] = prev_gen_state;
 	    }
 	    
