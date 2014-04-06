@@ -29,13 +29,13 @@ Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace,
 GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpace, RDDLFactoredActionSpace> >{
 
     protected ADDDecisionTheoreticRegression _dtr;
-    private Consistency _cons;
+    private Consistency[] _cons;
     public enum Consistency{
-	STRONG_POLICY, WEAK_POLICY, STRONG_ACTION, WEAK_ACTION 
+	STRONG_POLICY, WEAK_POLICY, STRONG_ACTION, WEAK_ACTION, VISITED
     }
     
     public GenericTransitionGeneralization( final ADDDecisionTheoreticRegression dtr ,
-	    final Consistency cons ) {
+	    final Consistency[] cons ) {
 	_dtr = dtr;
 	_cons = cons;
     }
@@ -97,7 +97,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	int j = 0;
 	
 	for( int i = 0; i < states.length && states[i].getFactoredState() != null ; ++i ){
-	    System.out.println("Generalizing state " + i );
+//	    System.out.println("Generalizing state " + i );
 	    
 	    final ADDRNode cur_gen_state = generalize_state(states[i], 
 	    		i == states.length - 1 ? null : actions[i], 
@@ -107,7 +107,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		System.out.println("WARNING generalized state is zero");
 	    }
 	    
-	    System.out.println("Generalizing action " + i );
+//	    System.out.println("Generalizing action " + i );
 	    
 	    final ADDRNode cur_gen_action = 
 		i == states.length - 1 ? null : generalize_action( states[i], actions[i], states[i+1], parameters, i );
@@ -117,26 +117,41 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		prev_gen_state = cur_gen_state;
 		
 	    }else{
-		System.out.println("Consistency check" + i );
-		switch( _cons ){
-		case WEAK_ACTION :
-		    prev_gen_state = manager.BDDIntersection(cur_gen_state, 
+//		System.out.println("Consistency check" + i );
+		ADDRNode consistent_cur_gen_state = cur_gen_state;
+		for( final Consistency consistency : _cons ){
+		    switch( consistency ){
+		    case WEAK_ACTION :
+			consistent_cur_gen_state = manager.BDDIntersection(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
 					prev_action, true) );
-		    break;
-		case WEAK_POLICY : 
-		    prev_gen_state = manager.BDDIntersection(cur_gen_state, 
+			break;
+		    case WEAK_POLICY : 
+			consistent_cur_gen_state = manager.BDDIntersection(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
 					parameters.get_policyDD()[i-1], true) );
-		    break;
-		case STRONG_ACTION : 
-		    //pick states in cur_gen_state such that transition from prev_gen_state w.p. 1
-//		    final ADDRNode image = _dtr.BDDImageAction(prev_gen_state, DDQuantify.EXISTENTIAL, prev_action, true, true);
-		case STRONG_POLICY :
-		    prev_gen_state = null;
+			break;
+//		    case STRONG_ACTION : 
+//			//pick states in cur_gen_state such that transition from prev_gen_state w.p. 1
+//			final ADDRNode image = _dtr.BDDImageAction(prev_gen_state, 
+//				DDQuantify.EXISTENTIAL, prev_action, true, true);
+//			final ADDRNode preimage_image = _dtr.BDDPreImage(image,
+//				prev_action, true , DDQuantify.EXISTENTIAL, true );
+//			final ADDRNode image_not = manager.BDDNegate( image );
+//			final ADDRNode preimage_image_not = _dtr.BDDPreImage(image_not, prev_action, 
+//				true, DDQuantify.EXISTENTIAL, true );
+//			consistent_cur_gen_state = manager.BDDIntersection(input1, input2)
+//		    case STRONG_POLICY :
+//			consistent_cur_gen_state = null;
+//			break;
+		    case VISITED :
+			consistent_cur_gen_state = manager.BDDIntersection( consistent_cur_gen_state, 
+				parameters.get_visited()[i] );
+			break;
+		    }
 		}
 		
-		if( prev_gen_state.equals(manager.DD_ZERO) ){
+		if( consistent_cur_gen_state.equals(manager.DD_ZERO) ){
 		    try{
 		    	throw new Exception("WARNING consistent generalized state is zero");
 		    }catch( Exception e ){
@@ -145,7 +160,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		    }
 		}
 		
-		ret[j++] = prev_gen_state;
+		ret[j++] = consistent_cur_gen_state;
+		prev_gen_state = consistent_cur_gen_state;
 	    }
 	    
 	    if( cur_gen_action != null ){

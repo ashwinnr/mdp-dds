@@ -17,6 +17,15 @@ public abstract class GeneralizationParameters<T extends GeneralizationType> {
 	protected Random _rand;
 	protected ADDRNode[] _valueDD;
 	protected ADDRNode[] _policyDD;
+	protected ADDRNode[] _visited;//optional
+	
+	public void set_visited(ADDRNode[] _visited) {
+	    this._visited = _visited;
+	}
+	
+	public ADDRNode[] get_visited() {
+	    return this._visited;
+	}
 	
 	public void set_policyDD(ADDRNode[] _policyDD) {
 		this._policyDD = _policyDD;

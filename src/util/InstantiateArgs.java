@@ -3,6 +3,7 @@ package util;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
@@ -48,8 +49,10 @@ public class InstantiateArgs {
 	ret.addOption("generalization", true, "type of generalization - value/action/off");
 	ret.addOption("exploration", true, "exploration for trajectory - epsilon/off");
 	ret.addOption("generalizationRule", true, "rule for generalizing within an ADD - ALL_PATHS/SHARED_PATHS/NONE" );
-	ret.addOption("consistencyRule", true, "rule for generalizing trajectory - WEAK_ACTION/WEAK_POLICY/STRONG_X" );
 	ret.addOption("truncateTrials", true, "whether to truncate trial on new state" );
+	ret.addOption( OptionBuilder.withArgName("consistencyRule").withValueSeparator(',').hasArgs()
+		.withDescription("comma separated rules for generalizing trajectory - WEAK_ACTION/WEAK_POLICY/STRONG_X/VISITED")
+		.create("consistencyRule") );
 	
 	return ret;
     }   

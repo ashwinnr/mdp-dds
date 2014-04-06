@@ -193,17 +193,17 @@ public class ADDDecisionTheoreticRegression implements
 			final long BIGDD ,
 			final boolean constrain_naively ){
 		
-	    	System.out.println("Backup");
+//	    	System.out.println("Backup");
 //	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
 	    	if( from.equals(_manager.DD_ONE) ){
-	    	    System.out.println("WARNING : backing up from all states " );
+//	    	    System.out.println("WARNING : backing up from all states " );
 	    	}else if( from.equals(_manager.DD_ZERO) ){
 	    	    System.out.println("WARNING : backing up from no states " );
 	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
 	    	}
 	    	
 	    	if( to.equals(_manager.DD_ONE) ){
-	    	    System.out.println("WARNING : backing up value of all states " );
+//	    	    System.out.println("WARNING : backing up value of all states " );
 	    	}else if( to.equals(_manager.DD_ZERO ) ){
 	    	    System.out.println("WARNING : backing up TO no states " );
 	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
@@ -218,7 +218,7 @@ public class ADDDecisionTheoreticRegression implements
 		UnorderedPair<ADDValueFunction, ADDPolicy> backup = null;
 		switch( backup_type ){
 		case VI_FAR : 
-		    	System.out.println("Regressing all actions" );
+//		    	System.out.println("Regressing all actions" );
 			backup = regressAllActions( primed, false, makePolicy, constrain_naively, null,
 					do_apricodd, apricodd_epsilon, apricodd_type );
 			break;//backup will have value and policy for things not in to, 
@@ -233,7 +233,7 @@ public class ADDDecisionTheoreticRegression implements
 			break;
 		}
 		
-		System.out.println("Combining");
+//		System.out.println("Combining");
 		
 		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
 		ADDRNode saveV = _manager.BDDIntersection( current_value ,
@@ -784,7 +784,7 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode ret = _manager.DD_ONE;
 		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
-		System.out.println("Image computation");
+//		System.out.println("Image computation");
 		
 		for( final String nextState : sumOrder ){
 //			System.out.print("Image for variable ");
