@@ -118,7 +118,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final int gen_num_actions, 
 			final GENERALIZE_PATH gen_rule,
 			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
-			final Consistency cons,
+			final Consistency[] cons,
 			final boolean  truncateTrials ) {
 	    
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
@@ -255,7 +255,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				System.out.println( cur_state.toString() );
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
 			    
-			    System.out.println( state_assign );
+//			    System.out.println( state_assign );
 			    final boolean newState = _manager.evaluate( _visited[ num_actions ], 
 						state_assign ).equals( _manager.DD_ZERO );
 				_visited[ num_actions ] = _manager.BDDUnion(_visited[ num_actions ], 
@@ -272,7 +272,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				trajectory_actions[ num_actions ].setFactoredAction( action );
 //				System.out.println( action );
 				cur_action.setFactoredAction( action );
-				System.out.println( cur_action.toString() );
+//				System.out.println( cur_action.toString() );
 				
 				cur_state = _transition.sampleFactored(cur_state, cur_action);
 				state_assign = cur_state.getFactoredState();
@@ -284,7 +284,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				System.out.print("-");
 				
 			}
-			System.out.println( state_assign );
+//			System.out.println( state_assign );
 			
 //			trajectory_states[ trajectory_states.length-1 ].setFactoredState( cur_state.getFactoredState() );
 			
@@ -316,7 +316,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_genaralizeParameters.set_policyDD( _policyDD );
 		_genaralizeParameters.getParameters().set_valueDD(_valueDD);
 		_genaralizeParameters.getParameters().set_policyDD(_policyDD);
-		System.out.println( "Generalizing " );
+		_genaralizeParameters.set_visited(_visited);
+		_genaralizeParameters.getParameters().set_visited(_visited);
+//		System.out.println( "Generalizing " );
 		
 		return _generalizer.generalize_trajectory(trajectory_states, trajectory_actions, _genaralizeParameters);
 	}
@@ -353,7 +355,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	    		final double new_val =  _manager.evaluate( _valueDD[idx],
 	    				trajectory_states[j].getFactoredState() ).getMax()
 	    					- _mdp.getRmin();
-	    		System.out.println( "Delta = " + (old_val - new_val) );
+//	    		System.out.println( "Delta = " + (old_val - new_val) );
 	    		
 	    		_valueDD[ j ] = _manager.assign( 
 	    				_valueDD[j],
@@ -364,7 +366,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 		while( i >= 2 ){
 		
-	    	System.out.println("Updating trajectories " + j );
+//	    	System.out.println("Updating trajectories " + j );
 	    	
 	    	ADDRNode this_next_states, this_states, this_actions;
 	    	ADDRNode source_val, target_val, target_policy;
@@ -655,6 +657,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		Exploration exploration = null;
 		
+		final String[] const_options = ( cmd.getOptionValues("consistencyRule") );
+		final Consistency[] consistency = new Consistency[ const_options.length ];
+		for( int i = 0 ; i < const_options.length; ++i ){
+		    consistency[i] = Consistency.valueOf(const_options[i]);
+		}
+		 
+		
 		return new SymbolicRTDP(
 				cmd.getOptionValue("domain"), cmd.getOptionValue("instance"),
 				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, 
@@ -685,8 +694,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedActions") ),
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
 				exploration,
-				Consistency.valueOf( cmd.getOptionValue("consistencyRule") ) ,
-				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ) );		
+				consistency,
+				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ) );
+		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
 			help.printHelp("symbolicRTDP", options);
