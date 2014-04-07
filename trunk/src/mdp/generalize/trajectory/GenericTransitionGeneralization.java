@@ -31,7 +31,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     protected ADDDecisionTheoreticRegression _dtr;
     private Consistency[] _cons;
     public enum Consistency{
-	STRONG_POLICY, WEAK_POLICY, STRONG_ACTION, WEAK_ACTION, VISITED
+	WEAK_POLICY, WEAK_ACTION, VISITED, BACKWARDS_WEAK_POLICY, BACKWARDS_WEAK_ACTION
     }
     
     public GenericTransitionGeneralization( final ADDDecisionTheoreticRegression dtr ,
@@ -75,8 +75,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	return parameters.getNum_actions() == -1 ? ret : parameters.get_manager().sampleBDD( ret, parameters.get_rand(), parameters.getNum_actions() );
     }
     
-    @Override
-    public ADDRNode[] generalize_trajectory( 
+    public ADDRNode[] generalize_trajectory_forwards( 
     		final FactoredState<RDDLFactoredStateSpace>[] states, 
 	    final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] actions, 
 	    final GenericTransitionParameters<T,P,RDDLFactoredStateSpace,RDDLFactoredActionSpace> parameters) {
@@ -87,6 +86,14 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		e.printStackTrace();
 		System.exit(1);
 	    }
+	}
+	
+	if( containsBackwards( _cons ) ){
+		try {
+			throw new Exception("Forward consistency with backwards rule");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	final ADDRNode[] ret = new ADDRNode[ states.length + actions.length ];
@@ -122,33 +129,22 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		for( final Consistency consistency : _cons ){
 		    switch( consistency ){
 		    case WEAK_ACTION :
-			consistent_cur_gen_state = manager.BDDIntersection(consistent_cur_gen_state, 
+			consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					prev_action, true) );
+					prev_action, true) , manager.DD_ZERO );
 			break;
 		    case WEAK_POLICY : 
-			consistent_cur_gen_state = manager.BDDIntersection(consistent_cur_gen_state, 
+			consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					parameters.get_policyDD()[i-1], true) );
+					parameters.get_policyDD()[i-1], true) , manager.DD_ZERO );
 			break;
-//		    case STRONG_ACTION : 
-//			//pick states in cur_gen_state such that transition from prev_gen_state w.p. 1
-//			final ADDRNode image = _dtr.BDDImageAction(prev_gen_state, 
-//				DDQuantify.EXISTENTIAL, prev_action, true, true);
-//			final ADDRNode preimage_image = _dtr.BDDPreImage(image,
-//				prev_action, true , DDQuantify.EXISTENTIAL, true );
-//			final ADDRNode image_not = manager.BDDNegate( image );
-//			final ADDRNode preimage_image_not = _dtr.BDDPreImage(image_not, prev_action, 
-//				true, DDQuantify.EXISTENTIAL, true );
-//			consistent_cur_gen_state = manager.BDDIntersection(input1, input2)
-//		    case STRONG_POLICY :
-//			consistent_cur_gen_state = null;
-//			break;
+//		   
 		    case VISITED :
 			consistent_cur_gen_state = manager.BDDIntersection( consistent_cur_gen_state, 
 				parameters.get_visited()[i] );
 			break;
-		    }
+//
+			}
 		}
 		
 		if( consistent_cur_gen_state.equals(manager.DD_ZERO) ){
@@ -174,6 +170,142 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 
 	return ret;
     }
+
+    @Override
+    public ADDRNode[] generalize_trajectory(final FactoredState<RDDLFactoredStateSpace>[] states,
+    		final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] actions,
+    		final GenericTransitionParameters<T,P,RDDLFactoredStateSpace,RDDLFactoredActionSpace> parameters) {
+    	if( containsBackwards(_cons) ) {
+    		return generalize_trajectory_backwards(states, actions, parameters);
+    	}else{
+    		return generalize_trajectory_forwards(states, actions, parameters);
+    	}
+    }
+    
+    private boolean containsBackwards(Consistency[] cons) {
+    	for( final Consistency c : cons ){
+    		if( c.equals(Consistency.BACKWARDS_WEAK_ACTION) || c.equals(Consistency.BACKWARDS_WEAK_POLICY) ){
+    			return true;
+    		}
+    	}
+    	return false;
+	}
+
+	public ADDRNode[] generalize_trajectory_backwards( 
+    		final FactoredState<RDDLFactoredStateSpace>[] states, 
+	    final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] actions, 
+	    final GenericTransitionParameters<T,P,RDDLFactoredStateSpace,RDDLFactoredActionSpace> parameters) {
+	if( states.length != actions.length + 1 ){
+	    try{
+		throw new Exception("Improper trajectory");
+	    }catch( Exception e ){
+		e.printStackTrace();
+		System.exit(1);
+	    }
+	}
+	
+	if( containsForwards( _cons ) ){
+		try{
+			throw new Exception("backward consistency with forward rule");
+		}catch( Exception e ){
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+		
+	final ADDRNode[] ret = new ADDRNode[ states.length + actions.length ];
+	final ADDManager manager = parameters.get_manager();
+	
+	ADDRNode prev_gen_state = null;
+	ADDRNode prev_action = null;
+	int j = states.length + actions.length - 1; 
+	
+	for( int i = states.length-1; i >= 0; --i ){
+//	    System.out.println("Generalizing state " + i );
+	    if( states[i].getFactoredState() == null ) {
+	    	continue;
+	    }
+
+	    final ADDRNode cur_gen_state = generalize_state(states[i], 
+	    		i == 0 ? null : actions[i-1], 
+	    		i == 0 ? null : states[i-1], parameters, i);
+	    
+	    if( cur_gen_state.equals(manager.DD_ZERO) ){
+	    	try{
+	    		throw new Exception("WARNING generalized state is zero");
+	    	}catch(Exception e ){
+	    		e.printStackTrace();
+	    		System.exit(1);
+	    	}
+	    }
+	    
+//	    System.out.println("Generalizing action " + i );
+	    
+	    final ADDRNode cur_gen_action = 
+	    		i == 0 ? null : generalize_action( states[i], actions[i-1], states[i-1], parameters, i-1 );
+	    
+	    if( prev_gen_state == null ){
+	    	ret[j--] = cur_gen_state;
+	    	prev_gen_state = cur_gen_state;
+	    }else{
+//		System.out.println("Consistency check" + i );
+		ADDRNode consistent_cur_gen_state = cur_gen_state;
+		for( final Consistency consistency : _cons ){
+		    switch( consistency ){
+		    case VISITED :
+			consistent_cur_gen_state = manager.BDDIntersection( consistent_cur_gen_state, 
+				parameters.get_visited()[i] );
+			break;
+		    
+		    case BACKWARDS_WEAK_POLICY : 
+		    	final ADDRNode preimage = _dtr.BDDPreImage(prev_gen_state,
+		    			parameters.get_policyDD()[i], true, DDQuantify.EXISTENTIAL, 
+		    			false );
+		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
+		    			preimage, manager.DD_ZERO );
+		    	break;
+		    case BACKWARDS_WEAK_ACTION : 
+		    	final ADDRNode preimage_1 = _dtr.BDDPreImage(prev_gen_state,
+		    			prev_action, true, DDQuantify.EXISTENTIAL, 
+		    			false );
+		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
+		    			preimage_1, manager.DD_ZERO );
+		    	break;
+		    }
+		}
+		
+		if( consistent_cur_gen_state.equals(manager.DD_ZERO) ){
+		    try{
+		    	throw new Exception("WARNING consistent generalized state is zero");
+		    }catch( Exception e ){
+		    	e.printStackTrace();
+		    	System.exit(1);
+		    }
+		}
+		
+		ret[j--] = consistent_cur_gen_state;
+		prev_gen_state = consistent_cur_gen_state;
+	    }
+	    
+	    if( cur_gen_action != null ){
+		ret[j--] = cur_gen_action;
+	    }
+	    
+	    prev_action = i == 0  
+	    		? null : manager.getProductBDDFromAssignment( actions[i-1].getFactoredAction() );
+	}
+
+	return ret;
+    }
+
+	private boolean containsForwards(Consistency[] cons) {
+		for( final Consistency c : cons ){
+			if( c.equals(Consistency.WEAK_ACTION) || c.equals(Consistency.WEAK_POLICY) ){
+				return true;
+			}
+		}
+		return false;
+	}
 
 //    @Override
 //    public ADDRNode generalize_next_state(

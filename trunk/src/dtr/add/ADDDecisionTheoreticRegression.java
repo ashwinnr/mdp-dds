@@ -864,6 +864,11 @@ public class ADDDecisionTheoreticRegression implements
 					System.exit(1);
 				}
 			}
+		
+//		System.out.println("Preimage conputation" );
+		if( !_mdp.isTransitionRelationReady(withActionVars) ){
+			_mdp.makeTransitionRelation( withActionVars );
+		}
 
 			final NavigableMap<String, ADDRNode> transitionRelation = _mdp.getTransitionRelationFAR();
 			final ArrayList<String> sumOrder = _mdp.getSumOrder();
@@ -872,7 +877,7 @@ public class ADDDecisionTheoreticRegression implements
 			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
 			for( final String nextState : sumOrder ){
-				System.out.print("PreImage for variable ");
+//				System.out.println("PreImage for variable " + nextState );
 //				System.out.print( nextState );
 //				System.out.println();
 				final ADDRNode theRelation = transitionRelation.get(nextState);
@@ -884,7 +889,7 @@ public class ADDDecisionTheoreticRegression implements
 				ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 			}
 
-			if( !removeStateConstraint( idx_policy_constr ) ){
+			if( !removePolicyConstraint( idx_policy_constr ) ){
 				try{
 					throw new Exception("Could not remove policy constraint");
 				}catch( Exception e ){
