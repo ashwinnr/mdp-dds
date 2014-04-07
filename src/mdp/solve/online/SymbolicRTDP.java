@@ -226,14 +226,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			System.out.println("i = " + i );
 			System.out.println("Size of Value fn. " + _manager.countNodes(vfn) );
 			System.out.println("Size of policy " + _manager.countNodes( plcy ) );
-			System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );	
 		}
+		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 	}
 
 	protected void do_sRTDP( final FactoredState<RDDLFactoredStateSpace> init_state ) {
 
 		int trials_to_go = nTrials;
-		_DPTimer.ResetTimer();
+		
 		final FactoredState<RDDLFactoredStateSpace>[] trajectory_states = new FactoredState[ steps_lookahead ];
 		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] trajectory_actions 
 			= new FactoredAction[ steps_lookahead - 1 ];
@@ -299,10 +299,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			final ADDRNode[] gen_trajectory = generalize_trajectory( trajectory_states_non_null,
 					trajectory_actions_non_null );
-			_DPTimer.ResumeTimer();			
+//			_DPTimer.ResumeTimer();			
 			update_generalized_trajectory( trajectory_states_non_null, trajectory_actions_non_null, 
 					gen_trajectory , num_actions+1 );
-			_DPTimer.PauseTimer();
+//			_DPTimer.PauseTimer();
 			System.out.print("*");			
 //			System.out.println("Trials to go  " + trials_to_go );
 		}
@@ -382,10 +382,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final ADDRNode next_states = _dtr.BDDImageAction(this_states, DDQuantify.EXISTENTIAL,
 					this_actions, true, _actionVars );//WARNING : constant true
 			
-			
+			_DPTimer.ResumeTimer();
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup  
 			= _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
 			do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, CONSTRAIN_NAIVELY);
+			_DPTimer.PauseTimer();
 			
 			_valueDD[ j-1 ] = backup._o1;
 			_policyDD[ j-1 ] = backup._o2._o1;
