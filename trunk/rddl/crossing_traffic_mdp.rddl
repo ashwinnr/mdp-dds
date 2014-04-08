@@ -1,6 +1,6 @@
 domain crossing_traffic_mdp {
 	requirements = {
-//		constrained-state,
+		constrained-state,
 		reward-deterministic
 	};
 	
@@ -97,10 +97,10 @@ domain crossing_traffic_mdp {
 	// 0 reward for reaching goal, -1 in all other cases
 	reward = [sum_{?x : xpos, ?y : ypos} -(GOAL(?x,?y) ^ ~robot-at(?x,?y))]; 
 	
-//	state-action-constraints {
+	state-action-constraints {
 //	
 //		// Robot at exactly one position
-//		[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] <= 1;
+		[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] == 1;
 //		
 //		// EAST, WEST, NORTH, SOUTH defined properly (unique and symmetric)
 //		forall_{?x1 : xpos} [(sum_{?x2 : xpos} WEST(?x1,?x2)) <= 1];
@@ -117,6 +117,6 @@ domain crossing_traffic_mdp {
 //		[ sum_{?y : ypos} MAX-YPOS(?y) ] == 1;
 //		[ sum_{?x : xpos, ?y : ypos} GOAL(?x,?y) ] == 1;
 //		
-//	};
+	};
 	
 }

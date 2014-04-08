@@ -31,7 +31,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     protected ADDDecisionTheoreticRegression _dtr;
     private Consistency[] _cons;
     public enum Consistency{
-	WEAK_POLICY, WEAK_ACTION, VISITED, BACKWARDS_WEAK_POLICY, BACKWARDS_WEAK_ACTION
+	WEAK_POLICY, WEAK_ACTION, VISITED, BACKWARDS_WEAK_POLICY, BACKWARDS_WEAK_ACTION,
+	NONE
     }
     
     public GenericTransitionGeneralization( final ADDDecisionTheoreticRegression dtr ,
@@ -128,6 +129,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		ADDRNode consistent_cur_gen_state = cur_gen_state;
 		for( final Consistency consistency : _cons ){
 		    switch( consistency ){
+		    case NONE : 
+			break;
 		    case WEAK_ACTION :
 			consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
@@ -144,6 +147,10 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 				parameters.get_visited()[i] );
 			break;
 //
+		    case BACKWARDS_WEAK_ACTION:
+			break;
+		    case BACKWARDS_WEAK_POLICY:
+			break;
 			}
 		}
 		
@@ -252,6 +259,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		ADDRNode consistent_cur_gen_state = cur_gen_state;
 		for( final Consistency consistency : _cons ){
 		    switch( consistency ){
+		    case NONE :
+			break;
 		    case VISITED :
 			consistent_cur_gen_state = manager.BDDIntersection( consistent_cur_gen_state, 
 				parameters.get_visited()[i] );
@@ -271,6 +280,10 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
 		    			preimage_1, manager.DD_ZERO );
 		    	break;
+		    case WEAK_ACTION:
+			break;
+		    case WEAK_POLICY:
+			break;
 		    }
 		}
 		

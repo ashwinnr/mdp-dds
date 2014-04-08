@@ -209,7 +209,8 @@ public class ADDDecisionTheoreticRegression implements
 	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
 	    	}
 	    	
-		final ADDRNode unprimed = _manager.BDDIntersection(source_value_fn, from);
+		final ADDRNode unprimed = constrain_naively ? _manager.BDDIntersection(source_value_fn, from) : 
+		    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
 		final ADDRNode primed = 
 				_manager.remapVars( 
 						unprimed  ,

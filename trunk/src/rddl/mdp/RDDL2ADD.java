@@ -412,7 +412,10 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		ADDRNode sum = _manager.DD_ZERO;
 		
 		for( String a : _actionVars ){
-			sum = _manager.apply( sum, _manager.getIndicatorDiagram(a, true) , DDOper.ARITH_PLUS );
+		    if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println(a);
+		    }
+		    sum = _manager.apply( sum, _manager.getIndicatorDiagram(a, true) , DDOper.ARITH_PLUS );
 		}
 		
 		//threshold
