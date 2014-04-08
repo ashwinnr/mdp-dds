@@ -82,6 +82,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( );
 	
 	private ADDRNode[] _visited; 
+//	private ADDRNode[] _solved;
 	
 	private boolean truncateTrials;
 
@@ -179,6 +180,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		    _visited[ depth ] = _manager.DD_ZERO;
 		}
 		_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
+		
+//		_solved = new ADDRNode[ steps_lookahead ];
+//		for( int depth =  0; depth < steps_lookahead-1; ++depth ){
+//		    _solved[ depth ] = _manager.DD_ZERO;
+//		}
+//		_solved[ steps_lookahead-1 ] = _manager.DD_ONE;
 		
 		_DPTimer = new Timer();
 		_DPTimer.PauseTimer();
