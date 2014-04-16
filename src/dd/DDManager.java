@@ -37,7 +37,7 @@ import java.util.Set;
 
 public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 		DI extends DDINode<D,DR,? extends Collection<DR> >, 
-		DL extends DDLeaf<?> > {
+		DL extends DDLeaf<?> >   {
 	
 	public void createStore( final long NumDDs  );
 	

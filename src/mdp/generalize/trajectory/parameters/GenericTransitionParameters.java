@@ -25,8 +25,9 @@ public class GenericTransitionParameters< T extends GeneralizationType, P extend
 		mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
 		Random _rand, boolean fix_start_state, boolean fix_action,
 		int num_actions, int num_states,
-		Generalization<S, A, T, P> inner_generalizer, P inner_parameters) {
-	    super(_manager, _genRule, _rand);
+		Generalization<S, A, T, P> inner_generalizer, P inner_parameters,
+		final boolean constrain_naively ) {
+	    super(_manager, _genRule, _rand, constrain_naively);
 	    this.fix_start_state = fix_start_state;
 	    this.fix_action = fix_action;
 	    this.num_actions = num_actions;

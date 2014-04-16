@@ -7,10 +7,17 @@ import factored.mdp.define.FactoredStateSpace;
 
 public interface THTS<S extends FactoredStateSpace,A extends FactoredActionSpace<S>> {
     //generic trial based heuristic search
-    public <T extends Node<S,A>> boolean is_node_visited( T node );
-    public <T extends Node<S,A>> void initilialize_node( T node );
-    public <T extends Node<S,A>, X extends Node<S,A>> X pick_successor_node( T node );
-    public <T extends Node<S,A>> void update_node( T node );
-    public <T extends Node<S,A>> void visit_node( T node );
-    public <T extends Node<S,A>> boolean is_solved_node( T node );
+    public boolean is_node_visited( FactoredState<S> state , int depth );
+    public boolean is_node_solved( FactoredState<S> state , int depth );
+
+    public void initilialize_node( FactoredState<S> state , int depth );
+    
+    public FactoredState<S> pick_successor_node( FactoredState<S> state, 
+    		FactoredAction<S,A> action , int depth );
+    public FactoredAction<S,A> pick_successor_node( FactoredState<S> state , int depth );
+    
+//    public void update_node( FactoredState<S> state, int depth  );
+//    public void update_node( FactoredState<S> state, FactoredAction<S,A> action , int depth );
+    
+    public void visit_node( FactoredState<S> state , int depth );
 }

@@ -203,14 +203,43 @@ public class ADDDecisionTheoreticRegression implements
 	    	}
 	    	
 	    	if( to.equals(_manager.DD_ONE) ){
-//	    	    System.out.println("WARNING : backing up value of all states " );
+	    	    System.out.println("WARNING : backing up value of all states " );
 	    	}else if( to.equals(_manager.DD_ZERO ) ){
 	    	    System.out.println("WARNING : backing up TO no states " );
 	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
 	    	}
 	    	
-		final ADDRNode unprimed = constrain_naively ? _manager.BDDIntersection(source_value_fn, from) : 
-		    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
+	    	if( _manager.hasVars(from, _mdp.get_actionVars()) ){
+	    		try{
+	    			throw new Exception("From has action vars");
+	    		}catch( Exception e ){
+	    			e.printStackTrace();
+	    			System.exit(1);
+	    		}
+	    	}
+	    	
+	    	if( _manager.hasVars(source_value_fn, _mdp.get_actionVars()) ){
+	    		try{
+	    			throw new Exception("Source vfn has action vars");
+	    		}catch( Exception e ){
+	    			e.printStackTrace();
+	    			System.exit(1);
+	    		}
+	    	}
+	    	
+
+	    	if( _manager.hasVars(to, _mdp.get_actionVars()) ){
+	    		try{
+	    			throw new Exception("to has action vars");
+	    		}catch( Exception e ){
+	    			e.printStackTrace();
+	    			System.exit(1);
+	    		}
+	    	}
+	    	
+		final ADDRNode unprimed = _manager.BDDIntersection(source_value_fn, from) ;
+//		constrain_naively ?     _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
+
 		final ADDRNode primed = 
 				_manager.remapVars( 
 						unprimed  ,
@@ -233,8 +262,18 @@ public class ADDDecisionTheoreticRegression implements
 					do_apricodd, apricodd_epsilon, apricodd_type);
 			break;
 		}
+
+		if( _manager.hasVars(backup._o1.getValueFn(), _mdp.get_actionVars() ) ){
+			try{
+				throw new Exception("Backup has action vars");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		
 //		System.out.println("Combining");
+		removeStateConstraint(idx);
 		
 		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
 		ADDRNode saveV = _manager.BDDIntersection( current_value ,
@@ -253,7 +292,15 @@ public class ADDDecisionTheoreticRegression implements
 			policy_ret = _manager.BDDUnion( policy_ret, 
 					_manager.BDDIntersection( cur_policy, _manager.BDDNegate(to) ) );
 		}
-		removeStateConstraint(idx);
+
+		if( _manager.hasVars( value_ret, _mdp.get_actionVars() ) ){
+			try{
+				throw new Exception("Backup has action vars");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		
 		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double> >( 
 				value_ret, new UnorderedPair<ADDRNode, Double>( policy_ret , residual ) );
@@ -853,7 +900,7 @@ public class ADDDecisionTheoreticRegression implements
 			final ADDRNode policy, final boolean withActionVars, 
 			final DDQuantify quantification, final boolean constrain_naively ){
 		final ADDRNode next_states_primed = _manager.remapVars(next_states_unprimed, _mdp.getPrimeRemap());
-		final int idx_policy_constr = addPolicyConstraint( policy );
+		final int idx_policy_constr = policy == null ? -1 : addPolicyConstraint( policy );
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasVars( next_states_primed, _mdp.getFactoredActionSpace().getActionVariables() )
@@ -871,34 +918,38 @@ public class ADDDecisionTheoreticRegression implements
 			_mdp.makeTransitionRelation( withActionVars );
 		}
 
-			final NavigableMap<String, ADDRNode> transitionRelation = _mdp.getTransitionRelationFAR();
-			final ArrayList<String> sumOrder = _mdp.getSumOrder();
-			
-			ADDRNode ret = _manager.DD_ONE;
+		final NavigableMap<String, ADDRNode> transitionRelation = _mdp.getTransitionRelationFAR();
+		final ArrayList<String> sumOrder = _mdp.getSumOrder();
+
+		ADDRNode ret = next_states_primed;
+		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+
+		for( final String nextState : sumOrder ){
+			//				System.out.println("PreImage for variable " + nextState );
+			//				System.out.print( nextState );
+			//				System.out.println();
+			final ADDRNode theRelation = transitionRelation.get(nextState);
+			ret = _manager.apply( ret , theRelation, DDOper.ARITH_PROD );
+			//this is necessary to include action constraints
 			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
-			for( final String nextState : sumOrder ){
-//				System.out.println("PreImage for variable " + nextState );
-//				System.out.print( nextState );
-//				System.out.println();
-				final ADDRNode theRelation = transitionRelation.get(nextState);
-				ret = _manager.apply( ret , theRelation, DDOper.ARITH_PROD );
-				//this is necessary to include action constraints
-				ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
-				
-				ret = _manager.quantify( ret, nextState, quantification );
-				ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
-			}
+			ret = _manager.quantify( ret, nextState, quantification );
+//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+		}
 
-			if( !removePolicyConstraint( idx_policy_constr ) ){
-				try{
-					throw new Exception("Could not remove policy constraint");
-				}catch( Exception e ){
-					e.printStackTrace();
-					System.exit(1);
-				}
+		for( final String action_var : _mdp.getFactoredActionSpace().getActionVariables() ){
+			ret = _manager.quantify( ret, action_var, quantification);
+		}
+
+		if( policy != null && !removePolicyConstraint( idx_policy_constr ) ){
+			try{
+				throw new Exception("Could not remove policy constraint");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
 			}
-			return ret;
+		}
+		return ret;
 	}
 	
 	private UnorderedPair<ADDValueFunction, ADDPolicy> regressAllActions(final ADDRNode primed, 
@@ -1210,7 +1261,7 @@ public class ADDDecisionTheoreticRegression implements
 		final ADDRNode ret = _manager.apply( input, constraint, DDOper.ARITH_PLUS );
 		return ret;
 	}
-
+	
 	private ArrayList<ADDRNode> convertToNegInfDD(final ArrayList<ADDRNode> input) {
 		final ArrayList<ADDRNode>  ret = new ArrayList<ADDRNode>(input.size());
 		for( final ADDRNode in : input ){
@@ -1224,8 +1275,10 @@ public class ADDDecisionTheoreticRegression implements
 		final ADDRNode[]  ret = new ADDRNode[input.length];
 		int i = 0;
 		for( final ADDRNode in : input ){
-			final ADDRNode inter = _manager.remapLeaf(in, _manager.DD_ZERO, _manager.DD_NEG_INF );
-			ret[i++] = ( _manager.remapLeaf( inter, _manager.DD_ONE, _manager.DD_ZERO) );
+			final ADDRNode inter = _manager.BDDNegate(in);
+			ret[i++] = _manager.apply( inter, _manager.DD_NEG_INF, DDOper.ARITH_PROD );
+//			remapLeaf(in, _manager.DD_ZERO, _manager.DD_NEG_INF );
+//			ret[i++] = ( _manager.remapLeaf( inter, _manager.DD_ONE, _manager.DD_ZERO) );
 		}
 		return ret;
 	}
@@ -1568,7 +1621,7 @@ public class ADDDecisionTheoreticRegression implements
 			size_change.addAll( _manager.countNodes( input, mult, 
 					summed, summed_constrained) );
 		}
-		_manager.flushCaches(  );
+//		_manager.flushCaches(  );
 		return ret;
 	}
 
@@ -1699,7 +1752,7 @@ public class ADDDecisionTheoreticRegression implements
 		
 //		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 //		}
-		_manager.flushCaches( );
+//		_manager.flushCaches( );
 		return ret;
 	}
 
