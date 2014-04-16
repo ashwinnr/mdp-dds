@@ -53,6 +53,8 @@ public class InstantiateArgs {
 	ret.addOption( OptionBuilder.withArgName("consistencyRule").withValueSeparator(',').hasArgs()
 		.withDescription("comma separated rules for generalizing trajectory - WEAK_ACTION/WEAK_POLICY/STRONG_X/VISITED")
 		.create("consistencyRule") );
+	ret.addOption("enableLabelling", true, "enable labelling states as solved" );
+	ret.addOption("convergenceTest", true, "convergence test for labelling nodes - double" );
 	
 	return ret;
     }   

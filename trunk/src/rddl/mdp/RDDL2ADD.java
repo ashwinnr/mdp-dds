@@ -51,8 +51,8 @@ import factored.mdp.define.FactoredStateSpace;
 
 public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
-	private static final long  MANAGER_STORE_INIT_SIZE = (long) 1e5;
-	private static final long  MANAGER_STORE_INCR_SIZE = (long) 1e5;
+	private static final long  MANAGER_STORE_INIT_SIZE = (long) 1e2;
+	private static final long  MANAGER_STORE_INCR_SIZE = (long) 1e2;
 	
 	protected ADDManager _manager;
 	private boolean _bCPFDeterministic;
@@ -1603,6 +1603,15 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		}
 		return ret;
 		
+	}
+
+	public double getReward(final NavigableMap<String, Boolean> assign) {
+		//returns a lazy max if assign is a partial one
+		double ret = 0;
+		for( final ADDRNode rew : getRewards() ){
+			ret += _manager.restrict(rew, assign).getMax();
+		}
+		return ret;
 	}
 
 }

@@ -18,6 +18,7 @@ public abstract class GeneralizationParameters<T extends GeneralizationType> {
 	protected ADDRNode[] _valueDD;
 	protected ADDRNode[] _policyDD;
 	protected ADDRNode[] _visited;//optional
+	protected boolean constrain_naively;
 	
 	public void set_visited(ADDRNode[] _visited) {
 	    this._visited = _visited;
@@ -44,12 +45,18 @@ public abstract class GeneralizationParameters<T extends GeneralizationType> {
 	}
 	
 	public GeneralizationParameters(ADDManager _manager,
-		GENERALIZE_PATH _genRule, Random _rand) {
+		GENERALIZE_PATH _genRule, Random _rand, final boolean constrain_naively) {
 	    super();
 	    this._manager = _manager;
 	    this._genRule = _genRule;
 	    this._rand = _rand;
+	    this.constrain_naively = constrain_naively;
 	}
+	
+	public boolean get_constrain_naively(){
+		return constrain_naively;
+	}
+	
 	public Random get_rand() {
 		return _rand;
 	}

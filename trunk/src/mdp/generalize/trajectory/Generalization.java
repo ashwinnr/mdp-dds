@@ -24,16 +24,20 @@ public abstract class Generalization<S extends FactoredStateSpace,
 	T extends GeneralizationType, U extends GeneralizationParameters<T> > {
 	
 	public ADDRNode generalize( final ADDRNode input, 
-			final NavigableMap<String, Boolean> path ,
 			final GENERALIZE_PATH rule ,
-			final ADDManager manager ){
+			final ADDManager manager,
+			final NavigableMap<String, Boolean>... paths ){
 		switch( rule ){
 		case ALL_PATHS :
-			ADDRNode eval = manager.evaluate(input, path);
+			ADDRNode eval = input;
+			for( final NavigableMap<String, Boolean> path : paths ){
+				eval = manager.evaluate( eval, path );
+			}
+			
 			ADDLeaf leaf = (ADDLeaf)eval.getNode();
 			return manager.all_paths_to_leaf(input, leaf); 
 		case NONE :
-			return manager.getProductBDDFromAssignment( path );
+			return manager.getProductBDDFromAssignment( paths );
 		}
 		return null;
 	}
@@ -49,7 +53,7 @@ public abstract class Generalization<S extends FactoredStateSpace,
 			Set<NavigableMap<String, Boolean>> non_neginf_paths  
 				= manager.enumeratePaths( good_paths, false, true, manager.DD_NEG_INF, true );
 			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
-				ret = manager.BDDUnion(ret, generalize( input, one_path, rule , manager ) );
+				ret = manager.BDDUnion(ret, generalize( input, rule , manager, one_path ) );
 			}
 			return ret;
 			
