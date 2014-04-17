@@ -19,6 +19,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
+
 import rddl.EvalException;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
@@ -41,6 +43,7 @@ import dtr.SymbolicPolicy;
 import dtr.SymbolicRegression;
 import dtr.SymbolicValueFunction;
 import factored.mdp.define.FactoredAction;
+import factored.mdp.define.FactoredState;
 
 public class ADDDecisionTheoreticRegression implements
 		SymbolicRegression<ADDNode, ADDRNode, ADDINode, ADDLeaf, RDDLFactoredStateSpace, 
@@ -2212,6 +2215,68 @@ public class ADDDecisionTheoreticRegression implements
 		return new UnorderedPair<ADDRNode, ADDRNode>( max, greedyPolicy );
 	}
 
+	public List<ADDRNode> maxActionVariables(List<ADDRNode> rewards,
+			ArrayList<String> elimOrder, List<Long> size_change,
+			boolean do_apricodd, double apricodd_epsilon,
+			APPROX_TYPE apricodd_type) {
+		final List<ADDRNode> ret = new ArrayList<ADDRNode>();
+		for( final ADDRNode rew : rewards ){
+			ret.add( maxActionVariables(rew, elimOrder, size_change, do_apricodd,
+					apricodd_epsilon, apricodd_type));
+		}
+		return Collections.unmodifiableList(ret);
+	}
+
+	public double get_prob_transition(
+			final FactoredState<RDDLFactoredStateSpace> cur_state,
+			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action,
+			final FactoredState<RDDLFactoredStateSpace> next_state) {
+		return get_prob_transition( cur_state.getFactoredState(), 
+				cur_action.getFactoredAction(), next_state.getFactoredState() );
+	}
+
+	public double get_prob_transition(
+			final NavigableMap<String, Boolean> factoredState,
+			final NavigableMap<String, Boolean> factoredAction,
+			final NavigableMap<String, Boolean> factoredNextState) {
+		final Map<String, ADDRNode> cpts = _mdp.getCpts();
+		double prob_transition = 1.0d;
+
+		for( final String ns : _mdp.getSumOrder() ){
+			final ADDRNode cpt_add = cpts.get( ns );
+			ADDRNode cur = cpt_add;
+			while( cur.getNode() instanceof ADDINode ){
+				final String testVar = cur.getTestVariable();
+				Boolean val = null;
+				if( _mdp.isActionVariable(testVar) ){
+					val = factoredAction.get( testVar );
+				}else if( _mdp.isNextStateVariable(testVar) ){
+					val = factoredNextState.get( testVar.subSequence(0, testVar.length()-1 ) );
+				}else{
+					val = factoredState.get( testVar );
+				}
+				val = val == null ? false : val ;
+				cur = val ? cur.getTrueChild() : cur.getFalseChild();
+			}
+			final double val = ((ADDLeaf)cur.getNode()).getMax();
+			if( val == 0.0d ){
+				try{
+					throw new Exception("Prob of transition is zero");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			prob_transition *= val;
+		}
+		
+//		System.out.println( factoredState.toString() );
+//		System.out.println( factoredAction.toString() );
+//		System.out.println( factoredNextState.toString() );
+//		System.out.println( "Prob = " + prob_transition );
+		
+		return prob_transition;
+	}
 //	TODO
 //	public void checkModel( final NavigableMap<String, Boolean> action ){
 //		
