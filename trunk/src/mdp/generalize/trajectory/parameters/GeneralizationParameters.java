@@ -10,7 +10,7 @@ import mdp.generalize.trajectory.type.GeneralizationType;
 public abstract class GeneralizationParameters<T extends GeneralizationType> {
 
 	public static enum GENERALIZE_PATH{
-		ALL_PATHS, NONE
+		ALL_PATHS, NONE, PATH
 	}
 	protected ADDManager _manager = null;
 	protected GENERALIZE_PATH _genRule = GENERALIZE_PATH.NONE;

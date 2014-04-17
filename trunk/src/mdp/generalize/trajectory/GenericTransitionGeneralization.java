@@ -108,8 +108,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //	    System.out.println("Generalizing state " + i );
 	    
 	    final ADDRNode cur_gen_state = generalize_state(states[i], 
-	    		i == states.length - 1 ? null : actions[i], 
-	    		i == states.length - 1 ? null : states[i+1], parameters, i);
+	    		i >= actions.length ? null : actions[i], 
+	    		i+1 >= states.length ? null : states[i+1], parameters, i);
 	    
 	    if( cur_gen_state.equals(manager.DD_ZERO) ){
 		System.out.println("WARNING generalized state is zero");
@@ -283,7 +283,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			break;
 		    
 		    case BACKWARDS_WEAK_POLICY : 
-		    	final ADDRNode preimage = _dtr.BDDPreImage(prev_gen_state,
+		    	final ADDRNode preimage = _dtr.BDDPreImage( prev_gen_state,
 		    			parameters.get_policyDD()[i], true, DDQuantify.EXISTENTIAL, 
 		    			false );
 		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 

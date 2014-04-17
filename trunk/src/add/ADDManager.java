@@ -2494,7 +2494,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public void flushCaches( ){// final ADDRNode save ) {
+	public synchronized void flushCaches( ){// final ADDRNode save ) {
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
 //		this._tempCache.clear();
@@ -4247,6 +4247,37 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final ADDRNode ret = apply( scalarMultiply(bdd, new_val),
 				apply( bdd_not, input, DDOper.ARITH_PROD ),
 				DDOper.ARITH_PLUS );
+		return ret;
+	}
+
+	public ADDRNode get_path(final ADDRNode input,
+			final NavigableMap<String, Boolean>... paths) {
+		ADDRNode ret = DD_ZERO;
+		for( final NavigableMap<String, Boolean> path : paths ){
+			if( path != null ){
+				ret = BDDUnion( ret, get_path_int( input, paths ) );
+			}
+		}
+		return ret;
+	}
+
+	private ADDRNode get_path_int(
+			final ADDRNode input, final NavigableMap<String, Boolean>... paths) {
+		ADDRNode ret = DD_ZERO, cur = input;
+		while( cur.getNode() instanceof ADDINode ){
+			final String var = input.getTestVariable();
+			Boolean val = null;
+			for( int i = 0 ; i < paths.length && val == null; ++i ){
+				val = paths[i].get(var);
+			}
+			final ADDRNode cur_node = getIndicatorDiagram(var, val);
+			ret = BDDUnion(ret, cur_node);
+			if( val ){
+				cur = cur.getTrueChild();
+			}else{
+				cur = cur.getFalseChild();
+			}
+		}
 		return ret;
 	}
 

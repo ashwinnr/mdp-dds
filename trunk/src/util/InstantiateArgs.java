@@ -1,11 +1,19 @@
 package util;
 
+import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
+import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
+import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
+import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+
+import dd.DDManager;
+import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 
 public class InstantiateArgs {
     //the purpose of this class is to provide
@@ -26,17 +34,17 @@ public class InstantiateArgs {
 	ret.addOption("constraintPruning", true, "use ADD pruning for constraints" );
 	ret.addOption("doApricodd", true, "enable APRICODD for value functions" );
 	ret.addOption("apricoddError", true, "error for ADD approximation - double" );
-	ret.addOption("apricoddType", true, "APRICODD type - UPPER/LOWER/AVERAGE/NONE/RANGE");
+	ret.addOption("apricoddType", true, "APRICODD type - " + DDManager.APPROX_TYPE.values().toString() );
 	ret.addOption("apricoddGP", true, "geometric error progression with depth > 1" );
 	ret.addOption("heuristicType", true, "backups to use for computing heuristic " +
-	"- VI_FAR/VI_SPUDD/VI_MBFAR/VMAX" );
+	"- " + BACKUP_TYPE.values().toString() );
 	ret.addOption("heuristicMins",  true, "max. minutes to run heuristic computation - double" );
 	ret.addOption("heuristicSteps", true, "number of steps of VI for heuristic computation - int" );
 	ret.addOption("memoryBoundNodes", true, "memory bound for MBFAR - long" );
 	ret.addOption("initialStateConf", true, "IID initial state distribution " +
 	"- CONJUNCTIVE/BERNOULLI/UNIFORM" );
 	ret.addOption("initialStateProb", true, "IID parameter - double in [0,1]" );
-	ret.addOption("backupType", true, "backups for RTDP - VI_FAR/VI_SPUDD/VI_MBFAR" );
+	ret.addOption("backupType", true, "backups for RTDP " +  BACKUP_TYPE.values().toString() );
 	ret.addOption("numTrajectories", true, "number of trajectories to sample - int");
 	ret.addOption("stepsDP", true, "number of trajectory replays -int " );
 	ret.addOption("stepsLookahead", true, "number of states in trajectories - int");
@@ -46,15 +54,19 @@ public class InstantiateArgs {
 	"states in generalized states - int" );
 	ret.addOption("limitGeneralizedActions", true, "sample size for number of " + 
 	"actions in generalized actions - int" );
-	ret.addOption("generalization", true, "type of generalization - value/action/off");
+	ret.addOption("generalization", true, "type of generalization - value/action/reward/EBL/off");
 	ret.addOption("exploration", true, "exploration for trajectory - epsilon/off");
-	ret.addOption("generalizationRule", true, "rule for generalizing within an ADD - ALL_PATHS/SHARED_PATHS/NONE" );
+	ret.addOption("generalizationRule", true, "rule for generalizing within an ADD - " + 
+			GENERALIZE_PATH.values().toString() );
 	ret.addOption("truncateTrials", true, "whether to truncate trial on new state" );
 	ret.addOption( OptionBuilder.withArgName("consistencyRule").withValueSeparator(',').hasArgs()
-		.withDescription("comma separated rules for generalizing trajectory - WEAK_ACTION/WEAK_POLICY/STRONG_X/VISITED")
+		.withDescription("comma separated rules for generalizing trajectory - " +
+				Consistency.values().toString() )
 		.create("consistencyRule") );
 	ret.addOption("enableLabelling", true, "enable labelling states as solved" );
 	ret.addOption("convergenceTest", true, "convergence test for labelling nodes - double" );
+	ret.addOption("actionAllDepth", true, "whether to aggrate over level as well - boolean" );
+	ret.addOption("actionType", true, "type of aggregate - " + UTYPE.values().toString() );
 	
 	return ret;
     }   

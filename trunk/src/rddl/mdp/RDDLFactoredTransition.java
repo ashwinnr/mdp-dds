@@ -237,4 +237,6 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 		}
 		return new FactoredState<RDDLFactoredStateSpace>().setFactoredState(partial_state);
 	}
+	
+	
 }

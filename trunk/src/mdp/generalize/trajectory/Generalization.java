@@ -5,6 +5,8 @@ import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
+
 import dd.DDManager.DDOper;
 
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
@@ -31,44 +33,46 @@ public abstract class Generalization<S extends FactoredStateSpace,
 		case ALL_PATHS :
 			ADDRNode eval = input;
 			for( final NavigableMap<String, Boolean> path : paths ){
-				eval = manager.evaluate( eval, path );
+				eval = manager.restrict( eval, path );
 			}
 			
 			ADDLeaf leaf = (ADDLeaf)eval.getNode();
 			return manager.all_paths_to_leaf(input, leaf); 
 		case NONE :
-			return manager.getProductBDDFromAssignment( paths );
+			return manager.getProductBDDFromAssignment(paths);
+		case PATH :
+			return manager.get_path( input, paths );
 		}
 		return null;
 	}
 	
-	public ADDRNode generalize( final ADDRNode input, 
-			final ADDRNode paths,//0 -infty BDD
-			final GENERALIZE_PATH rule ,
-			final ADDManager manager ){
-		switch( rule ){
-		case ALL_PATHS :
-			ADDRNode ret = manager.DD_ZERO;
-			ADDRNode good_paths = manager.apply( input, paths, DDOper.ARITH_PLUS );
-			Set<NavigableMap<String, Boolean>> non_neginf_paths  
-				= manager.enumeratePaths( good_paths, false, true, manager.DD_NEG_INF, true );
-			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
-				ret = manager.BDDUnion(ret, generalize( input, rule , manager, one_path ) );
-			}
-			return ret;
-			
-		case NONE :
-			ret = manager.DD_ZERO;
-			good_paths = manager.apply( input, paths, DDOper.ARITH_PLUS );
-			non_neginf_paths  
-				= manager.enumeratePaths( good_paths, false, true, manager.DD_NEG_INF, true );
-			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
-				ret = manager.BDDUnion(ret, manager.getProductBDDFromAssignment(one_path) );
-			}
-			return ret;
-		}
-		return null;
-	}
+//	public ADDRNode generalize( final ADDRNode input, 
+//			final ADDRNode paths,//0 -infty BDD
+//			final GENERALIZE_PATH rule ,
+//			final ADDManager manager ){
+//		switch( rule ){
+//		case ALL_PATHS :
+//			ADDRNode ret = manager.DD_ZERO;
+//			ADDRNode good_paths = manager.apply( input, paths, DDOper.ARITH_PLUS );
+//			Set<NavigableMap<String, Boolean>> non_neginf_paths  
+//				= manager.enumeratePaths( good_paths, false, true, manager.DD_NEG_INF, true );
+//			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
+//				ret = manager.BDDUnion(ret, generalize( input, rule , manager, one_path ) );
+//			}
+//			return ret;
+//			
+//		case NONE :
+//			ret = manager.DD_ZERO;
+//			good_paths = manager.apply( input, paths, DDOper.ARITH_PLUS );
+//			non_neginf_paths  
+//				= manager.enumeratePaths( good_paths, false, true, manager.DD_NEG_INF, true );
+//			for( final NavigableMap<String, Boolean> one_path : non_neginf_paths ){
+//				ret = manager.BDDUnion(ret, manager.getProductBDDFromAssignment(one_path) );
+//			}
+//			return ret;
+//		}
+//		return null;
+//	}
 	
 	public abstract ADDRNode generalize_state( final FactoredState<S> state,
 			final FactoredAction<S,A> action,

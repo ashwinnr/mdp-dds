@@ -33,7 +33,7 @@ public class ValueGeneralization extends
 		final ADDRNode ret = generalize( (parameters.get_valueDD())[ depth ] , 
 				parameters.get_genRule(),
 				parameters.get_manager(),
-				state_assign, action == null ? null : action.getFactoredAction() );
+				state_assign );//, action == null ? null : action.getFactoredAction() );
 		return ret;
 				
 	}
