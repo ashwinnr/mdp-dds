@@ -43,7 +43,7 @@ RewardGeneralizationType, RewardGeneralizationParameters>{
 			final ADDRNode gen_path = 
 					generalize( rew, parameters.get_genRule(), manager, state_assign, 
 							action_assign );
-			ret = manager.BDDIntersection(gen_path, ret);
+			ret = manager.BDDUnion(gen_path, ret);
 		}
 		
 		return ret;//generalize(sum, parameters.get_genRule(), manager, state_assign, action_assign );

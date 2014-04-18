@@ -22,6 +22,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.collections4.map.ReferenceMap;
+
 import util.Pair;
 
 import com.google.common.cache.Cache;
@@ -65,7 +67,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	private static final CacheBuilderSpec  made_leaf_cache_spec = 
 		CacheBuilderSpec
-			.parse("softValues" );
+			.parse("concurrencyLevel=1,softValues" );
 	private static final CacheBuilderSpec  made_inode_cache_spec = 
 			CacheBuilderSpec
 				.parse("concurrencyLevel=1,softValues");
@@ -936,13 +938,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		System.out.println(inod3);
 
-		man.memorySummary();
+//		man.memorySummary();
 
 		ADDRNode aleaf = man.getINode("X", leaf, leaf);
 
 		System.out.println(aleaf);
 
-		man.memorySummary();
+//		man.memorySummary();
 
 		ADDRNode inod4 = man.getINode("X", leaf3, leaf);
 
@@ -952,7 +954,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 		System.out.println( leaf_copy );
 
-		man.memorySummary();
+//		man.memorySummary();
 
 		man.showGraph(leaf, leaf_copy );
 		man.showGraph(inod1_copy, inod1, inod3, inod4);
@@ -1138,23 +1140,23 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public static ADDRNode DD_ONE;
 	public static ADDRNode DD_NEG_INF;
 
-	protected ConcurrentHashMap< String,
-	Cache< ADDINode, ADDRNode > > 
-		madeINodes = new ConcurrentHashMap< String, 
-		Cache< ADDINode, ADDRNode> >();
+	protected Map< String, ReferenceMap< ADDINode, ADDRNode > > 
+		madeINodes = new TreeMap< String, 
+		ReferenceMap< ADDINode, ADDRNode> >();
 
-	protected Cache< ADDLeaf, ADDRNode > madeLeaf
-	= CacheBuilder.from( made_leaf_cache_spec ).recordStats().
-			removalListener( new RemovalListener<ADDLeaf, ADDRNode>( ) {
-				@Override
-				public void onRemoval(
-						RemovalNotification<ADDLeaf, ADDRNode> arg) {
-					if( arg != null ){
-						ADDLeaf leaf = arg.getKey();
-						leaf = null;
-					}
-				}
-			}).build();
+	protected ReferenceMap< ADDLeaf, ADDRNode > madeLeaf
+		= new ReferenceMap<ADDLeaf, ADDRNode>();
+//	= CacheBuilder.from( made_leaf_cache_spec ).recordStats().
+//			removalListener( new RemovalListener<ADDLeaf, ADDRNode>( ) {
+//				@Override
+//				public void onRemoval(
+//						RemovalNotification<ADDLeaf, ADDRNode> arg) {
+//					if( arg != null ){
+//						ADDLeaf leaf = arg.getKey();
+//						leaf = null;
+//					}
+//				}
+//			}).build();
 	
 	//never deleted
 //	protected Set< ADDRNode > permenantNodes = Collections.newSetFromMap( 
@@ -1172,6 +1174,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	protected Multiset< ADDRNode > permanentNodes 
 		= HashMultiset.create();
 //	private Random _rand;
+	private ADDLeaf _temp_null_leaf;
+	private ADDINode _temp_null_inode ;
 	
 	public ADDManager( final long managerStoreInitSize, final long managerStoreIncrSize, 
 			final ArrayList<String> ordering, final long seed ){
@@ -1184,6 +1188,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		DD_NEG_INF = getLeaf(getNegativeInfValue(), getNegativeInfValue());
 		_ordering = ordering;
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
+		_temp_null_leaf = (ADDLeaf) getOneNullDD(true);
+		 _temp_null_inode = (ADDINode) getOneNullDD(false);
 //		_rand = new Random(seed);
 	}
 
@@ -2494,21 +2500,21 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	@Override
-	public synchronized void flushCaches( ){// final ADDRNode save ) {
+	public void flushCaches( ){// final ADDRNode save ) {
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
 //		this._tempCache.clear();
-		final double mem_percent = getMemoryPercent();
+//		final double mem_percent = getMemoryPercent();
 //		throwAwayApplyCache();
-		if( mem_percent > 0.9d ){
-			invalidateApplyCache();
+//		if( mem_percent > 0.9d ){
+//			invalidateApplyCache();
 //			throwAwayApplyCache();
-			madeLeaf.cleanUp();
-			for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
-				inner.cleanUp();
-			}
-			System.gc();
-		}
+//			madeLeaf.cleanUp();
+//			for( final Cache< ADDINode, ADDRNode > inner : madeINodes.values() ){
+//				inner.cleanUp();
+//			}
+//			System.gc();
+//		}
 //			cacheSummary();
 ////			_tempUnaryCache.invalidateAll();
 //			madeLeaf.cleanUp();
@@ -2540,9 +2546,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private void throwAwayApplyCache() {
-		for( final Table<ADDRNode, ADDRNode, ADDRNode> t  : applyCache.values()) {
-			t.clear();
-		}
+	    	applyCache = new EnumMap< 
+		DDOper, Table< ADDRNode, ADDRNode , ADDRNode > >( DDOper.class );
+	    	
+//		for( final Table<ADDRNode, ADDRNode, ADDRNode> t  : applyCache.values()) {
+//			t.clear();
+//		}
 	}
 
 	//testaddPair
@@ -2627,9 +2636,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			//			man.showGraph(res);
 		}
 
-		if( LOGGING_ON ){
-			memorySummary();	
-		}
+//		if( LOGGING_ON ){
+//			memorySummary();	
+//		}
 		
 
 		//		man.showGraph(res);
@@ -2698,7 +2707,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		if( trueBranch.equals(falseBranch) ){
 			return trueBranch;
 		}
-
+		
+		_temp_null_in
+		
 		final ADDNode trueNode = trueBranch.getNode() ;
 		final ADDNode falseNode = falseBranch.getNode();
 		ADDRNode ret = null;
@@ -2785,21 +2796,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//plugs in
 	//getRNode
 	public ADDRNode getLeaf( final Double low, final Double high ){
-//		Objects.requireNonNull( low );
-//		Objects.requireNonNull( high );
-		//getLeaf assumes create=true
-		//for getRNode
-		//if you want just lookup, us getRNode and get the getNode()
-		final ADDLeaf leaf = (ADDLeaf) getOneNullDD(true);
-//		Objects.requireNonNull( leaf );
-		ADDLeaf ret = null;
-		try{
-			ret = leaf.plugIn( new Pair<Double, Double>(
-					low, high) );
-		}catch(NullPointerException e){
-			ret = null;
-		}
-		return getRNode( ret, true );
+		_temp_null_leaf.plugIn( low, high );
+//		ADDLeaf ret = null;
+//		try{
+//			ret = leaf.plugIn( new Pair<Double, Double>(
+//					low, high) );
+//		}catch(NullPointerException e){
+//			ret = null;
+//		}
+		return getRNode( _temp_null_leaf, true );
 	}
 
 	@Override
@@ -2889,13 +2894,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		getNodesInt( input.getFalseChild(), nodes, leaves);
 	}
 
-	private int getNumINodes() {
-		int tot  = 0;
-		for( Cache< ADDINode, ADDRNode> maps : madeINodes.values() ){
-			tot += maps.size();
-		}
-		return tot;
-	}
+//	private int getNumINodes() {
+//		int tot  = 0;
+//		for( Cache< ADDINode, ADDRNode> maps : madeINodes.values() ){
+//			tot += maps.size();
+//		}
+//		return tot;
+//	}
 
 	@Override
 	public synchronized ADDNode getOneNullDD( final boolean leaf ) {
@@ -2909,9 +2914,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				//try adding 
 				try{
 //					LOGGER.fine("store has no more leaves. Adding " + STORE_INCREMENT + " leaves ");
-					if( LOGGING_ON ){
-						memorySummary();
-					}
+//					if( LOGGING_ON ){
+//						memorySummary();
+//					}
 					addToStore(STORE_INCREMENT, true, false);
 					aLeaf = getFirstRealOne(storeLeaf);
 //					Objects.requireNonNull( aLeaf );
@@ -2938,9 +2943,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					inode = getFirstRealOne(storeINodes);
 //					Objects.requireNonNull( inode );
 					ret = inode;
-					if( LOGGING_ON ){
-						memorySummary();
-					}
+//					if( LOGGING_ON ){
+//						memorySummary();
+//					}
 				}catch( OutOfMemoryError e ){
 					ret = null;
 					System.err.println("cant create more inodes");
@@ -2965,27 +2970,31 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		if( obj instanceof ADDINode ){
 			final ADDINode inode = (ADDINode)obj;
 			final String testvar = inode.getTestVariable();
-			Cache<ADDINode, ADDRNode> look_in_cache = madeINodes.get(testvar);
+			ReferenceMap<ADDINode, ADDRNode> look_in_cache = madeINodes.get(testvar);
 
 			if( look_in_cache == null ){
-				look_in_cache = CacheBuilder.from( made_inode_cache_spec ).recordStats().
-							removalListener( 
-									new RemovalListener<ADDINode, ADDRNode>() {
-								@Override
-								public void onRemoval( final RemovalNotification<ADDINode, ADDRNode> arg ) {
-//									System.err.println( "removed Inode " + arg.toString() );
-									ADDINode node = arg.getKey();
-									node = null;
-								}
-							}).build();
+				look_in_cache = new ReferenceMap<ADDINode, ADDRNode>(); 
+//				    CacheBuilder.from( made_inode_cache_spec ).recordStats().
+//							removalListener( 
+//									new RemovalListener<ADDINode, ADDRNode>() {
+//								@Override
+//								public void onRemoval( final RemovalNotification<ADDINode, ADDRNode> arg ) {
+////									System.err.println( "removed Inode " + arg.toString() );
+//									ADDINode node = arg.getKey();
+//									node = null;
+//								}
+//							}).build();
 				madeINodes.put(testvar, look_in_cache);
 			}
 			
-			final ADDRNode looked = look_in_cache.getIfPresent( inode );
+			final ADDRNode looked = look_in_cache.get( inode );
 			if( looked == null ){
-
-				final ADDINode negNode = inode.getNegatedNode( ((ADDINode)getOneNullDD(false)) );
-				final ADDRNode looked_neg = look_in_cache.getIfPresent( negNode );
+			    	//new nulldd is needed strictly if not found
+			    //maintain global nullDD and use plugin
+			    //if needed to insert only mthen make a copy and add to made
+			    //
+				final ADDINode negNode = inode.getNegatedNode( _nullDD ((ADDINode)getOneNullDD(false)) );
+				final ADDRNode looked_neg = look_in_cache.get( negNode );
 				
 				if( looked_neg == null && create ){
 					ret = new ADDRNode(inode);
@@ -3024,7 +3033,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}else if( obj instanceof ADDLeaf ){
 
 			final ADDLeaf leaf = (ADDLeaf)obj;
-			ret = madeLeaf.getIfPresent( leaf );
+			ret = madeLeaf.get( leaf );
 			if( ret == null ){
 //				System.out.println("Creating new " + leaf.toString() + " " + leaf.hashCode() );
 //				leaf.printHash();
@@ -3436,15 +3445,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return null;
 	}
 
-	public void memorySummary(){
-
-		System.out.println( getNumINodes() + " Inodes " );
-		System.out.println( madeLeaf.size() + " leaves" );
-
-		System.out.println("memory : " + getMemoryPercent() );
-		System.out.println( getMemoryMBs() );
-//		cacheSummary();
-	}
+//	public void memorySummary(){
+//
+//		System.out.println( getNumINodes() + " Inodes " );
+//		System.out.println( madeLeaf.size() + " leaves" );
+//
+//		System.out.println("memory : " + getMemoryPercent() );
+//		System.out.println( getMemoryMBs() );
+////		cacheSummary();
+//	}
 
 //	private boolean nullify(ADDRNode rnode) {
 //
