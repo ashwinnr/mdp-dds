@@ -9,6 +9,8 @@ import dd.DDLeaf;
 
 public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, Comparable<ADDLeaf> {
 
+    	public final static double PRECISION = 1e-9;
+    
 	@Override
 	public ADDLeaf getNullDD() {
 		this.leafValues = new Pair<Double, Double>(Double.NaN, Double.NaN);
@@ -86,6 +88,36 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 		
 //		System.out.println( "Leaf hashcode : " + this + " " + ret );
 		return ret;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+//	    System.out.println("====");
+//	    System.out.println(this.toString() );
+//	    System.out.println( obj.toString() );
+	    
+	    final ADDLeaf leaf = (ADDLeaf) obj;
+	    if( (leaf.getMax() == Double.NEGATIVE_INFINITY && this.getMax()!=  Double.NEGATIVE_INFINITY) 
+		    || (leaf.getMax() != Double.NEGATIVE_INFINITY && this.getMax() == Double.NEGATIVE_INFINITY ) ){
+		return false;
+	    }else if( leaf.getMax() == Double.NEGATIVE_INFINITY && this.getMax() == Double.NEGATIVE_INFINITY ){
+		return true;
+	    }
+	   
+	    return super.equals(obj);
+	}
+
+	public void plugIn(Double low, Double high) {
+	    if( high < low ){
+		try{
+		    throw new Exception("invalid leaf " + low + high );
+		}catch( Exception e ){
+		    e.printStackTrace();
+		    System.exit(1);
+		}
+	    }
+	    leafValues._o1 = low;
+	    leafValues._o2 = high;
 	}
 
 }

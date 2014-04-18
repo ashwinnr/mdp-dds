@@ -133,34 +133,36 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			break;
 		    case WEAK_ACTION :
 			consistent_cur_gen_state = 
-				parameters.get_constrain_naively() ?
+//				parameters.get_constrain_naively() ?
 						manager.BDDIntersection(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					prev_action, true)   ) : 
-						manager.constrain(consistent_cur_gen_state, 
-								_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-									prev_action, true ), 
-									manager.DD_ZERO ) ;
+					prev_action, true)   ) ;
+//					: 
+//						manager.constrain(consistent_cur_gen_state, 
+//								_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
+//									prev_action, true ), 
+//									manager.DD_ZERO ) ;
 			break;
 		    case WEAK_POLICY : 
 			consistent_cur_gen_state = 
-				parameters.get_constrain_naively() ? 
+//				parameters.get_constrain_naively() ? 
 						manager.BDDIntersection(consistent_cur_gen_state, 
 				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					parameters.get_policyDD()[i-1], true)  )
-					: manager.constrain(consistent_cur_gen_state, 
-							_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-									parameters.get_policyDD()[i-1], true) ,
-									manager.DD_ZERO );
+					parameters.get_policyDD()[i-1], true)  );
+//					: manager.constrain(consistent_cur_gen_state, 
+//							_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
+//									parameters.get_policyDD()[i-1], true) ,
+//									manager.DD_ZERO );
 			break;
 //		   
 		    case VISITED :
 			consistent_cur_gen_state = 
-			parameters.get_constrain_naively()  ?
+//			    
+//			parameters.get_constrain_naively()  ?
 					manager.BDDIntersection( consistent_cur_gen_state, 
-				parameters.get_visited()[i] )
-				: manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
-						manager.DD_ZERO );
+				parameters.get_visited()[i] );
+//				: manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
+//						manager.DD_ZERO );
 			break;
 //
 		    case BACKWARDS_WEAK_ACTION:
