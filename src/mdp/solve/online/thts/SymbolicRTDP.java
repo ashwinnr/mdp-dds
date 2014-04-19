@@ -45,6 +45,8 @@ import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredReward;
 import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDLFactoredTransition;
+import rddl.viz.CrossingTrafficDisplay;
+import rddl.viz.SysAdminScreenDisplay;
 import util.InstantiateArgs;
 import util.Timer;
 import util.UnorderedPair;
@@ -108,7 +110,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				MB, init_state_conf, init_state_prob, dp_type, nTrials, steps_dp,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
-				gen_rule, exploration, cons, truncateTrials, enableLabelling);
+				gen_rule, exploration, cons, truncateTrials, enableLabelling,
+				domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
+				domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null );
 		trajectory_states = new FactoredState[ steps_lookahead ];
 		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
 		for( int i = 0 ; i < steps_lookahead-1; ++i ){

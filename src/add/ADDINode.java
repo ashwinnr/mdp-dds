@@ -42,16 +42,28 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 			final ADDRNode false_child ) throws Exception {
 
 		if( true_child.equals( false_child ) ){
-			throw new Exception("attempt to construct INode with identical children. Not reduced!");
+			try{
+				throw new Exception("attempt to construct INode with identical children. Not reduced!");
+			}catch(Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
 		}
 		this.testVariable = testVar;//.intern();
 		children._o1 = true_child;
 		children._o2 = false_child;
+		this._nMax = Double.NaN;
+		this._nMin = Double.NaN;
 //		this._nHashCode = hashCode();
 		return this;
 	
 	}
 
+	@Override
+	public String toString() {
+		return this.testVariable + " " + this.children._o1.getID() + " " + this.children._o2.getID();
+	}
+	
 	@Override
 	public String toGraph(Graph g) {
 
@@ -180,21 +192,21 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 		return this.children._o2;
 	}
 
-	public boolean negatedEquals(ADDINode other) {
-		return this.testVariable == other.testVariable && 
-				this.children._o1.equals( other.children._o2 )
-				&& this.children._o2.equals( other.children._o1 );
-	}
-
-	public ADDINode getNegatedNode( final ADDINode null_inode ) {
-//		Objects.requireNonNull( null_inode );
-		try {
-			null_inode.plugIn(testVariable, children._o2, children._o1 );
-			return null_inode;
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
-		return null;
-	}
+//	public boolean negatedEquals(ADDINode other) {
+//		return this.testVariable == other.testVariable && 
+//				this.children._o1.equals( other.children._o2 )
+//				&& this.children._o2.equals( other.children._o1 );
+//	}
+//
+//	public ADDINode getNegatedNode( final ADDINode null_inode ) {
+////		Objects.requireNonNull( null_inode );
+//		try {
+//			null_inode.plugIn(testVariable, children._o2, children._o1 );
+//			return null_inode;
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			System.exit(1);
+//		}
+//		return null;
+//	}
 }

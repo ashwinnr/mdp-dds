@@ -15,6 +15,7 @@ import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredReward;
 import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDLFactoredTransition;
+import rddl.viz.StateViz;
 import util.Timer;
 import util.UnorderedPair;
 import dd.DDManager.APPROX_TYPE;
@@ -42,6 +43,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 	protected RDDLFactoredReward _reward;
 	protected ADDDecisionTheoreticRegression _dtr;
 	protected ADDManager _manager;
+	private StateViz _viz;
 	
 	public RDDLOnlineActor(
 			final String domain, 
@@ -53,8 +55,10 @@ public abstract class RDDLOnlineActor implements Runnable {
 			final int numStates,
 			final int numRounds,
 			final INITIAL_STATE_CONF init_state_conf ,
-			final double init_state_prob ) {
+			final double init_state_prob,
+			final StateViz visualizer ) {
 		_rand = new Random( seed );
+		_viz = visualizer;
 		_actionVars = actionVars;
 		
 		_cptTimer = new Timer();
@@ -102,7 +106,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 				double round_reward = 0;
 				double cur_disc = 1;
 				Timer roundTimer = new Timer();
-
+				
+				
 				while( horizon_to_go --> 0 ){
 					final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
 						action = act( cur_state );
@@ -116,10 +121,12 @@ public abstract class RDDLOnlineActor implements Runnable {
 						System.out.println("Next state " + next_state.toString() );
 					}
 					
+					_transition.displayState( _viz, cur_state, action, horizon_to_go );
 					cur_state = next_state;
 //					System.out.print( horizon_to_go );
 					cur_disc = ( _useDiscounting ) ? cur_disc * DISCOUNT : cur_disc;
 				}
+				_transition.displayState( _viz, cur_state, null, horizon_to_go);
 				System.out.println();
 				System.out.println("Rounds to go " + rounds_to_go );
 				System.out.println("Round time : " + roundTimer.GetTimeSoFarAndResetInMinutes() );

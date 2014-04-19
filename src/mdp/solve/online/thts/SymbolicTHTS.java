@@ -11,6 +11,7 @@ import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
+import rddl.viz.StateViz;
 import util.Timer;
 import util.UnorderedPair;
 import dd.DDManager.APPROX_TYPE;
@@ -116,9 +117,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			final Consistency[] cons,
 			final boolean  truncateTrials,
-			final boolean enableLabeling ) {
+			final boolean enableLabeling,
+			final StateViz viz ) {
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
-				init_state_prob );
+				init_state_prob, viz );
 		this.exploration = exploration; 
 		
 		this.truncateTrials = truncateTrials;
@@ -318,5 +320,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			int depth) {
 		_visited[depth] = _manager.BDDUnion(_visited[depth], 
 				_manager.getProductBDDFromAssignment( state.getFactoredState() ) );
+		if( _manager.restrict( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){
+			try {
+				throw new Exception("visted not marked as visited");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 	}
 }
