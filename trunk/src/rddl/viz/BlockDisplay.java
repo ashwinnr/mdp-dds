@@ -102,13 +102,13 @@ public class BlockDisplay extends JPanel implements ActionListener {
     }
 
     public static class Cell {
-	Color     _color;
+		Color     _color;
         String    _text;
-
-	public Cell(Color col /* null = empty */, String text /* null for rect */) {
-	    _color = col;
-	    _text  = text;
-	}
+	
+		public Cell(Color col /* null = empty */, String text /* null for rect */) {
+		    _color = col;
+		    _text  = text;
+		}
     }
 
     public static class Line {

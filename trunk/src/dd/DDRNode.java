@@ -25,7 +25,7 @@ public abstract class DDRNode<D extends DDNode>{
 //
 //	private static final int HASH_INIT = 51;
 
-	protected  boolean negated = false;
+//	protected  boolean negated = false;
 	
 	protected D theNode = null;
 	
@@ -78,31 +78,32 @@ public abstract class DDRNode<D extends DDNode>{
 		//put circle on edge in to it
 		
 		String root = this.theNode.toGraph(g);
-		
-		String circleNode = ( negated ) ? "not circle to " : "circle to ";
-		circleNode = circleNode + root;
-		
-		g.addNode(circleNode);
+//		String circleNode = root;
+//		String circleNode;// = ( negated ) ? "not circle to " : "circle to ";
+//		circleNode = circleNode + root;
+//		
+//		g.addNode(circleNode);
 //		, NOT_SIZE);
 		
-		if( negated ){
-			g.addNodeLabel(circleNode, "!");
+//		if( negated ){
+//			g.addNodeLabel(circleNode, "!");
 //			g.addNodeStyle(circleNode, "diamond");
 //			g.addNodeColor(circleNode, "plum");
 			
-		}else{
-			g.addNodeLabel(circleNode, "");
-		}
+//		}else{
+//			g.addNodeLabel(circleNode, "");
+//		}
 		
-		g.addUniLink(circleNode, root, "black", "solid", "");
+//		g.addUniLink(circleNode, root, "black", "solid", "");
 		
-		return circleNode;
+		return root;
 		
 	}
 
 	@Override
 	public String toString() {
-		return ( negated ? "! " : "" ) + theNode.toString();
+		return // ( negated ? "! " : "" ) + 
+				theNode.toString();
 	}
 
 //	public int getNegatedHashCode(){
@@ -122,7 +123,7 @@ public abstract class DDRNode<D extends DDNode>{
 			
 			DDRNode<D> thing = (DDRNode<D>)obj;
 			
-			return this.negated == (this.negated) && this.theNode.equals(thing.theNode);
+			return this.theNode.equals(thing.theNode);//this.negated == (this.negated) && 
 			
 		}
 		
@@ -136,29 +137,29 @@ public abstract class DDRNode<D extends DDNode>{
 	}
 	
 	public DDRNode<D> plugin(final D aNode) {
-		negated = false;
+//		negated = false;
 		this.theNode = aNode;
 		return this;
 	}
 	
-	public void negate(){
+//	public void negate(){
+//
+//		
+//		if( theNode instanceof ADDLeaf ){
+//			System.err.println("warning : negating a leaf.");
+//		}
+//		
+//		this.negated = !this.negated;
+//		
+//	}
 
-		
-		if( theNode instanceof ADDLeaf ){
-			System.err.println("warning : negating a leaf.");
-		}
-		
-		this.negated = !this.negated;
-		
-	}
-
-	public boolean isNegated() {
-		return negated;
-	}
-
-	public void setNegated(boolean negated) {
-		this.negated = negated;
-	}
+//	public boolean isNegated() {
+//		return negated;
+//	}
+//
+//	public void setNegated(boolean negated) {
+//		this.negated = negated;
+//	}
 
 	public void nullify() {
 		this.theNode = null;

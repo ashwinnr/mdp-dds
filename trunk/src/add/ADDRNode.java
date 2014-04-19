@@ -26,14 +26,14 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		}
 		this.GLOBAL_ID = GLOBAL_ID_COUNTER++;
 		this.theNode = theNode;
-		this.negated = false;
+//		this.negated = false;
 	}
 
 	@Override
 	public int compareTo(ADDRNode o) {
 
-		if( o.negated == this.negated ){
-			return ((Long)GLOBAL_ID).compareTo(o.getID());
+//		if( o.negated == this.negated ){
+		return ((Long)GLOBAL_ID).compareTo(o.getID());
 //			if( o.theNode instanceof ADDLeaf && this.theNode instanceof ADDLeaf ){
 //				
 //				return ((ADDLeaf)o.theNode).compareTo( (ADDLeaf) this.theNode );
@@ -47,9 +47,9 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 //				
 //			}
 			
-		}else{
-			return 1;
-		}
+//		}else{
+//			return 1;
+//		}
 		
 //		if( this.negated == true ){
 //			return 1;
@@ -97,7 +97,7 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 	
 	@Override
 	public String toString() {
-		return ( negated ? "! " : "" ) + GLOBAL_ID;
+		return String.valueOf(GLOBAL_ID) + "\n" + theNode.toString() + "\n";//( negated ? "! " : "" ) + 
 	}
 	
 	@Override
@@ -110,27 +110,27 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 			if( this.theNode instanceof ADDLeaf && o.theNode instanceof ADDLeaf ){
 				return ((ADDLeaf)this.theNode).equals( (ADDLeaf)o.theNode );
 			}else if( this.theNode instanceof ADDINode && o.theNode instanceof ADDINode ){
-				final boolean negated_equals = this.negated == o.negated; 
-				if( negated_equals ){
-					final boolean node_equals = this.theNode.equals( o.theNode );
+//				final boolean negated_equals = this.negated == o.negated; 
+//				if( negated_equals ){
+				final boolean node_equals = this.theNode.equals( o.theNode );
 //					System.out.println("node equals " + node_equals );
-					final boolean id_equals = getID() == o.getID();
-					if( node_equals && !id_equals ){
-						try{
-							throw new Exception( "duplicate RNodes!");
-						}catch( Exception e  ){
-							e.printStackTrace();
-							System.exit(1);	
-						}
+				final boolean id_equals = getID() == o.getID();
+				if( node_equals && !id_equals ){
+					try{
+						throw new Exception( "duplicate RNodes!");
+					}catch( Exception e  ){
+						e.printStackTrace();
+						System.exit(1);	
 					}
-					return node_equals;
-				}else{
-					final boolean negated_node_equals 
-						= (( ADDINode )this.theNode).negatedEquals( (ADDINode) o.theNode );
+				}
+				return node_equals;
+//				}else{
+//					final boolean negated_node_equals 
+//						= (( ADDINode )this.theNode).negatedEquals( (ADDINode) o.theNode );
 //					System.out.println("node equals " + node_equals );
 //					final boolean id_equals = getID() == o.getID();
-					return negated_node_equals;
-				}
+//					return negated_node_equals;
+//				}
 //				System.out.println("negated equals " + negated_equals );
 				
 //				return negated_equals && node_equals;
@@ -203,14 +203,14 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 ////		
 //	}
 
-	public ADDRNode getNegatedNode() {
-		
-		ADDRNode ret = new ADDRNode(this.theNode);
-		ret.negated = !this.negated;
-		
-		return ret;
-		
-	}
+//	public ADDRNode getNegatedNode() {
+//		
+//		ADDRNode ret = new ADDRNode(this.theNode);
+//		ret.negated = !this.negated;
+//		
+//		return ret;
+//		
+//	}
 
 //	@Override
 //	public void nullify() {
@@ -231,7 +231,7 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		
 		ADDINode inode = (ADDINode)theNode;
 		
-		return ( negated ? inode.getTrueChild() : inode.getFalseChild() );
+		return  inode.getFalseChild() ; //( negated ? inode.getTrueChild() :
 		
 	}
 	
@@ -247,7 +247,7 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 		
 		ADDINode inode = (ADDINode)theNode;
 		
-		return ( negated ? inode.getFalseChild() : inode.getTrueChild() );
+		return inode.getTrueChild(); //( negated ? inode.getFalseChild() : );
 	}
 
 }

@@ -111,8 +111,17 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    		i >= actions.length ? null : actions[i], 
 	    		i+1 >= states.length ? null : states[i+1], parameters, i);
 	    
-	    if( cur_gen_state.equals(manager.DD_ZERO) ){
-		System.out.println("WARNING generalized state is zero");
+	    try{
+	    	if( cur_gen_state.equals(manager.DD_ZERO) ){
+	    		throw new Exception("WARNING generalized state is zero");
+	    	}else if( 
+	    			manager.restrict( cur_gen_state, states[i].getFactoredState() ).equals( 
+	    					manager.DD_ZERO ) ){
+	    		throw new Exception("WARNING generalized state does not contain state" );
+	    	}
+	    }catch( Exception e ){
+	    	e.printStackTrace();
+	    	System.exit(1);
 	    }
 	    
 //	    System.out.println("Generalizing action " + i );
@@ -127,6 +136,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    }else{
 //		System.out.println("Consistency check" + i );
 		ADDRNode consistent_cur_gen_state = cur_gen_state;
+		
 		for( final Consistency consistency : _cons ){
 		    switch( consistency ){
 		    case NONE : 
@@ -156,6 +166,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			break;
 //		   
 		    case VISITED :
+		    	
 			consistent_cur_gen_state = 
 //			    
 //			parameters.get_constrain_naively()  ?
