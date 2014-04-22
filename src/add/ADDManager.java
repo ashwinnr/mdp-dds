@@ -4515,4 +4515,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
+	public void clearNodes() {
+		madeLeaf = new ReferenceMap<>();
+		madeINodes = new TreeMap<>();
+	}
+
 }

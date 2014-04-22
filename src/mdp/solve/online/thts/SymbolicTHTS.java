@@ -360,6 +360,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		_visited = new ADDRNode[ steps_lookahead ];
 		Arrays.fill( _visited, _manager.DD_ZERO );
 		
+		_manager.clearNodes();
+		
+		System.gc();
+		
 	}
 
 	protected void display(
