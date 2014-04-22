@@ -53,14 +53,11 @@ domain crossing_traffic_mdp {
 		collision-y'(?y) = KronDelta( collision-y(?y) | ( robot-at-y(?y) ^ exists_{?x:xpos}[ robot-at-x(?x) ^ obstacle-at(?x,?y) ] ) );
 		
 		robot-at-x'(?x) =
-			if ( collision-x(?x)  )
-			then
-				KronDelta( robot-at-x(?x) )//collided robot cannot move this step
-			else if ( ~robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ^ delta-x-1 ^ ~delta-x-2 ^ robot-at-x(?x2) ^ ~collision-x(?x2) ] 
+			if ( ~robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ^ delta-x-1 ^ ~delta-x-2 ^ robot-at-x(?x2) ^ ~collision-x(?x2) ] 
 				| exists_{?x2:xpos}[ WEST(?x,?x2) ^ ~delta-x-1 ^ delta-x-2 ^ robot-at-x(?x2) ^ ~collision-x(?x2) ] ) )
 			then 
 				KronDelta(true)//arriving from other x
-			else if ( robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ] ^ ~delta-x-1 ^ delta-x-2 
+			else if ( ~collision-x(?x) ^ robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ] ^ ~delta-x-1 ^ delta-x-2 
 				|  exists_{?x2:xpos}[ WEST(?x,?x2) ] ^ delta-x-1 ^ ~delta-x-2 ) )
 			then
 				KronDelta(false)//vacate this x
@@ -68,14 +65,11 @@ domain crossing_traffic_mdp {
 				KronDelta( robot-at-x(?x) ); //noop//(delta-x-1 == delta-x-2
 					
 		robot-at-y'(?y) = 
-			if ( collision-y(?y) )
-			then
-				KronDelta( robot-at-y(?y) )
-			else if ( ~robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ^ delta-y-1 ^ ~delta-y-2 ^ robot-at-y(?y2) ^ ~collision-y(?y2) ] 
+			if ( ~robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ^ delta-y-1 ^ ~delta-y-2 ^ robot-at-y(?y2) ^ ~collision-y(?y2) ] 
 				| exists_{?y2:ypos}[ SOUTH(?y,?y2) ^ ~delta-y-1 ^ delta-y-2 ^ robot-at-y(?y2) ^ ~collision-y(?y2) ] ) )
 			then 
 				KronDelta(true)//arriving from other y
-			else if ( robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ] ^ ~delta-y-1 ^ delta-y-2 
+			else if ( ~collision-y(?y) ^ robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ] ^ ~delta-y-1 ^ delta-y-2 
 				|  exists_{?y2:ypos}[ SOUTH(?y,?y2) ] ^ delta-y-1 ^ ~delta-y-2 ) )
 			then
 				KronDelta(false)//vacate this y
