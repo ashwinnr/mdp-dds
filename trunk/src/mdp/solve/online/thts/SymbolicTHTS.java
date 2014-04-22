@@ -6,12 +6,16 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Random;
 
+import com.google.common.collect.Maps;
+
 import add.ADDRNode;
 import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredStateSpace;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
+import rddl.viz.CrossingTrafficDisplay;
 import rddl.viz.StateViz;
+import rddl.viz.SysAdminScreenDisplay;
 import util.Timer;
 import util.UnorderedPair;
 import dd.DDManager.APPROX_TYPE;
@@ -33,6 +37,7 @@ import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_
 import mdp.generalize.trajectory.type.GeneralizationType;
 import mdp.solve.online.Exploration;
 import mdp.solve.online.RDDLOnlineActor;
+import mdp.solve.solver.HandCodedPolicies;
 
 public abstract class SymbolicTHTS< T extends GeneralizationType, 
 P extends GeneralizationParameters<T> > extends RDDLOnlineActor 
@@ -117,10 +122,16 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			final Consistency[] cons,
 			final boolean  truncateTrials,
-			final boolean enableLabeling,
-			final StateViz viz ) {
+			final boolean enableLabeling  ) {
+		
+		
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
-				init_state_prob, viz );
+				init_state_prob, 
+				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
+					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
+
+		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
+
 		this.exploration = exploration; 
 		
 		this.truncateTrials = truncateTrials;
@@ -150,27 +161,14 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		//	= _dtr.computeLAOHeuristic( steps_heuristic, heuristic_type, CONSTRAIN_NAIVELY,
 		//		false, 0.0d, apricodd_type, MB, time_heuristic_mins );
 
-		_valueDD = new ADDRNode[ steps_lookahead ];
+		
 		_policyDD = new ADDRNode[ steps_lookahead ];
-
-//		final ADDRNode sum_rew = _mdp.getSumOfRewards();
-//		final UnorderedPair<ADDRNode, ADDRNode> greedy = _dtr.getGreedyPolicy( sum_rew );
-//
-//		_valueDD[ steps_lookahead-1 ] = greedy._o1;
-//
-//		_policyDD[ steps_lookahead-1 ] = greedy._o2;//_dtr.getGreedyPolicy( sum_rew );
-		//HandCodedPolicies.get( domain , _dtr, _manager, _mdp.get_actionVars() );
+		Arrays.fill( _policyDD, _baseLinePolicy );
 
 		_RMAX = _mdp.getRMax();
-		//why add RMAX? init is admissible
-		//why not add R?
-		//final ADDRNode reward_with_action = _mdp.getSumOfRewards();
-		//final UnorderedPair<ADDRNode, ADDRNode> greedy_policy 
-		//	= _dtr.getGreedyPolicy( reward_with_action );
-		//final ADDRNode reward = greedy_policy._o1;
-//
+
+		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int depth = 0; depth < steps_lookahead; ++depth ){
-			_policyDD[ depth ] = _manager.DD_ONE;
 			_valueDD[ depth ] = _manager.DD_ZERO;
 		}
 
@@ -301,18 +299,36 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	@Override
 	public FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> pick_successor_node(
 			FactoredState<RDDLFactoredStateSpace> state, int depth) {
-		if( is_node_solved(state, depth) ){
-			return null;
-		}
+//		if( is_node_solved(state, depth) ){
+//			return null;
+//		}
 		return get_policy_action( state, depth );
 	}
 
 	private FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> get_policy_action(
 			final FactoredState<RDDLFactoredStateSpace> state, 
 			final int depth) {
-		return cur_action.setFactoredAction( _manager.sampleOneLeaf( _manager.restrict(
-				_policyDD[depth], state.getFactoredState() ),
+		final NavigableMap<String, Boolean> partial_path = 
+				Maps.newTreeMap( _manager.sampleOneLeaf( _manager.restrict(
+				_policyDD[depth], state.getFactoredState() ) ,
 				_rand ) );
+//		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> partial_action 
+//		= cur_action.setFactoredAction( path );
+		for( final String actvar : _mdp.get_actionVars() ){
+			if( !partial_path.containsKey(actvar) ){
+				partial_path.put( actvar, false );
+			}
+		}
+		if( partial_path.size() != _mdp.get_actionVars().size() ){
+			try{
+				throw new Exception("partial action simulated");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
+		return cur_action.setFactoredAction( partial_path );
 	}
 	
 	@Override
@@ -328,5 +344,35 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				System.exit(1);
 			}
 		}
+	}
+	
+	protected void throwAwayEverything() {
+		_policyDD = new ADDRNode[ steps_lookahead ];
+		Arrays.fill(_policyDD, _baseLinePolicy );
+		
+		_valueDD = new ADDRNode[ steps_lookahead ];
+		Arrays.fill( _valueDD, _manager.DD_ZERO );
+		
+		_solved = new ADDRNode[ steps_lookahead ];
+		Arrays.fill( _solved, _manager.DD_ZERO );
+		_solved[ _solved.length-1 ] = _manager.DD_ONE;
+		
+		_visited = new ADDRNode[ steps_lookahead ];
+		Arrays.fill( _visited, _manager.DD_ZERO );
+		
+	}
+
+	protected void display(
+			final ADDRNode[] values, final ADDRNode[] policies ) {
+		for( int i = 0 ; i < values.length; ++i ){
+			ADDRNode vfn = values[i];
+			ADDRNode plcy = policies[i];
+			System.out.println("i = " + i );
+			System.out.println("Size of Value fn. " + _manager.countNodes(vfn) );
+			System.out.println("Size of policy " + _manager.countNodes( plcy ) );
+			System.out.println("Size of visited " + _manager.countNodes( _visited[i] ) );
+			System.out.println("Size of solved " + _manager.countNodes( _solved[i] ) );
+		}
+		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 	}
 }

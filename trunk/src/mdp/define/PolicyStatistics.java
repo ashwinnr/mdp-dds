@@ -21,10 +21,10 @@ public class PolicyStatistics {
 			mean_rewards[currentState] /= _numRounds;
 			if( _numRounds == 1 ){
 				try{
-					throw new Exception("creating NaN here");
+					throw new Exception("WARNING : creating NaN here - variance");
 				}catch( Exception e ){
 					e.printStackTrace();
-					System.exit(1);
+//					System.exit(1);
 				}
 			}
 			std_errors[currentState] = Math.sqrt( ( std_errors[currentState] - 

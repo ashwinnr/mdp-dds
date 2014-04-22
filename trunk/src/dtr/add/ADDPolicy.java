@@ -115,7 +115,7 @@ public class ADDPolicy extends
 					e.printStackTrace();
 				}
 			}else{
-				int act = (((ADDLeaf)(ret.getNode())).getLeafValues()._o1).intValue();
+				int act = ((ADDLeaf)(ret.getNode())).getLeafValues().intValue();
 				return (U) new FactoredAction<RDDLFactoredStateSpace,
 						RDDLFactoredActionSpace>( ).setFactoredAction( leafMapping.get(act) );
 			}

@@ -64,7 +64,7 @@ public interface DDManager<D extends DDNode, DR extends DDRNode<D>,
 	};
 	
 	public enum APPROX_TYPE{
-		LOWER, UPPER, AVERAGE, RANGE, NONE
+		LOWER, UPPER, AVERAGE , NONE//RANGE
 	};
 	
 	public enum DDQuantify{

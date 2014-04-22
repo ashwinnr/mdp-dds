@@ -33,6 +33,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
@@ -189,13 +190,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		switch( apricodd_type ){
 		case LOWER : return mapped_set.first();
 		case UPPER : return mapped_set.last();
-		case RANGE : return (ADDLeaf) getLeaf( mapped_set.first().getMin(), mapped_set.last().getMax() ).getNode();
+//		case RANGE : return (ADDLeaf) getLeaf( mapped_set.first().getMin(), mapped_set.last().getMax() ).getNode();
 		case AVERAGE : ADDLeaf avg = (ADDLeaf) DD_ZERO.getNode();
 			for( final ADDLeaf in : mapped_set ){
 				avg = (ADDLeaf) applyLeafOp( avg, in, DDOper.ARITH_PLUS ).getNode();
 			}
-			avg = (ADDLeaf) applyLeafOp(avg, (ADDLeaf) getLeaf((double)mapped_set.size(), 
-					(double)mapped_set.size()).getNode(), DDOper.ARITH_DIV ).getNode();
+			avg = (ADDLeaf) applyLeafOp(avg, (ADDLeaf) 
+					getLeaf((double)mapped_set.size()).getNode(), DDOper.ARITH_DIV ).getNode();
 			return avg;
 		}
 		return null;
@@ -306,10 +307,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final double min = Math.min( leaf1.getMin(), leaf2.getMin() );
 		final double max = Math.max( leaf1.getMax(), leaf2.getMax() );
 		switch( apricodd_type ){
-			case RANGE : return (ADDLeaf) getLeaf(min, max ).getNode();
-			case AVERAGE : return (ADDLeaf) getLeaf( 0.5d*(min+max), 0.5d*(min+max) ).getNode();
-			case LOWER : return (ADDLeaf) getLeaf( min, min ).getNode();
-			case UPPER : return (ADDLeaf) getLeaf(max, max).getNode();
+//			case RANGE : return (ADDLeaf) getLeaf(min, max ).getNode();
+			case AVERAGE : return (ADDLeaf) getLeaf( 0.5d*(min+max) ).getNode();
+			case LOWER : return (ADDLeaf) getLeaf( min ).getNode();
+			case UPPER : return (ADDLeaf) getLeaf( max ).getNode();
 			default : try{
 				throw new Exception("Bad apricodd type ");
 			}catch( Exception e ){
@@ -365,11 +366,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( Math.abs(max-min) <= apricodd_epsilon ){
 				ADDRNode merged = null;
 				switch( apricodd_type ){
-				case RANGE : merged = getLeaf(min, max); break;
-				case AVERAGE : merged = getLeaf(0.5d*(min+max), 0.5d*(min+max) );
+//				case RANGE : merged = getLeaf(min, max); break;
+				case AVERAGE : merged = getLeaf(0.5d*(min+max) );
 				break;
-				case LOWER : merged = getLeaf(min, min); break;
-				case UPPER : merged = getLeaf(max, max); break;
+				case LOWER : merged = getLeaf(min); break;
+				case UPPER : merged = getLeaf(max); break;
 				default : try{
 								throw new Exception("bad apricodd type");
 						  }catch(Exception e ){
@@ -397,8 +398,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		ord.add("D");
 
 		final ADDManager man = new ADDManager(100, 100, ord, 42);
-		final ADDRNode inodeA = man.getINode("A",  man.getLeaf(1d, 1d), man.getLeaf(1.2d, 1.2d) );
-		final ADDRNode inodeB = man.getINode("B",  man.getLeaf(3d, 3d), man.getLeaf(3.4d, 3.4d) );
+		final ADDRNode inodeA = man.getINode("A",  man.getLeaf(1d), man.getLeaf(1.2d) );
+		final ADDRNode inodeB = man.getINode("B",  man.getLeaf(3d), man.getLeaf(3.4d) );
 		
 		final ADDRNode inodeC = man.getINode("C", inodeA, inodeB);
 	
@@ -436,10 +437,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		testBreakTies();
 		//		testGraph();
 		//		testClearDeadNodes((int)1e5);
-		testApply();
+//		testApply();
 //		testConstrain();
 		//		testRestrict();
-//		testEnumeratePaths();
+		testEnumeratePaths();
 //		testPathsToLeaf();
 		//		testEvaluate();
 //				testApplyCache();
@@ -491,9 +492,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(3d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(6d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -526,9 +527,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDRNode ind1 = man.getIndicatorDiagram("A", true);
 
-		ADDRNode inodeA = man.getINode("A",  man.getLeaf(1d, 1d), man.getLeaf(2d, 2d) );
+		ADDRNode inodeA = man.getINode("A",  man.getLeaf( 1d), man.getLeaf(2d) );
 
-		ADDRNode inodeB = man.getINode("B",  man.getLeaf(3d, 3d), man.getLeaf(4d, 4d) );
+		ADDRNode inodeB = man.getINode("B",  man.getLeaf( 3d), man.getLeaf(4d) );
 		//
 		//		ADDRNode inodeC = man.getINode("C",  man.getLeaf(9d, 10d), man.getLeaf(11d, 12d) );
 		//		
@@ -561,9 +562,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord , 42);
 
-		ADDRNode leaf1 = man.getLeaf(2d, 5d);
+		ADDRNode leaf1 = man.getLeaf(2d);
 
-		ADDRNode leaf2 = man.getLeaf(4d, 3d);
+		ADDRNode leaf2 = man.getLeaf(4d);
 
 		ADDRNode add = man.applyLeafOp( leaf1, 
 				leaf2, DDOper.ARITH_PLUS);
@@ -734,9 +735,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5, 5.5), man.getLeaf(4.3, 4.3) );
+		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5), man.getLeaf(4.3) );
 
-		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d,2d), man.getLeaf(7d, 7d) );
+		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d), man.getLeaf(7d) );
 
 		//		man.showGraph(inodeB);
 
@@ -770,9 +771,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(10100, 10000, ord, 42);
 
-		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5, 5.5), man.getLeaf(4.3, 4.3) );
+		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5), man.getLeaf(4.3) );
 
-		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d,2d), man.getLeaf(7d, 7d) );
+		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d), man.getLeaf(7d) );
 
 		//		man.showGraph(inodeB);
 
@@ -796,9 +797,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(5d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(6d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -820,9 +821,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5, 5.5), man.getLeaf(4.3, 4.3) );
+		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5), man.getLeaf(4.3) );
 
-		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d,2d), man.getLeaf(7d, 7d) );
+		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d), man.getLeaf(7d) );
 
 		//		man.showGraph(inodeB);
 
@@ -845,9 +846,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(2d, 5d);
+		ADDRNode leaf1 = man.getLeaf(2d);
 
-		ADDRNode leaf2 = man.getLeaf(4d, 3d);
+		ADDRNode leaf2 = man.getLeaf(3d);
 
 		ADDRNode inode1 = man.getINode("X", leaf1 , leaf2);
 
@@ -897,9 +898,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(2d, 2d);
+		ADDRNode leaf1 = man.getLeaf(2d);
 
-		ADDRNode leaf2 = man.getLeaf(7d, 7d);
+		ADDRNode leaf2 = man.getLeaf(7d);
 
 		man.showGraph(leaf1, leaf2);
 
@@ -915,9 +916,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf = man.getLeaf(1.32, 5.34);
+		ADDRNode leaf = man.getLeaf(5.34);
 
-		ADDRNode leaf2 = man.getLeaf( 4.3, 4.3 );
+		ADDRNode leaf2 = man.getLeaf( 4.3 );
 
 		System.out.println(leaf);
 
@@ -935,7 +936,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		System.out.println( inod1_copy_2 );
 		
-		ADDRNode leaf3 = man.getLeaf( 4.3, 6.5 );
+		ADDRNode leaf3 = man.getLeaf( 6.5 );
 
 		System.out.println(leaf3);
 
@@ -955,7 +956,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		System.out.println(inod4);
 		
-		ADDRNode leaf_copy = man.getLeaf(1.32, 5.34);
+		ADDRNode leaf_copy = man.getLeaf(1.32);
 		
 		System.out.println( leaf_copy );
 		
@@ -999,11 +1000,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//have to test this again with ordering
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf = man.getLeaf(1.32, 5.34);
+		ADDRNode leaf = man.getLeaf(5.34);
 
 		//		man.showGraph(leaf);
 
-		ADDRNode leaf2 = man.getLeaf( 4.3, 6.5 );
+		ADDRNode leaf2 = man.getLeaf( 6.5 );
 
 		//		man.showGraph(leaf2);
 
@@ -1118,13 +1119,13 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf = man.getLeaf(1.32, 5.34);
+		ADDRNode leaf = man.getLeaf( 5.34);
 
-		ADDRNode leaf2 = man.getLeaf( 4.3, 4.3 );
+		ADDRNode leaf2 = man.getLeaf( 4.3 );
 
 		ADDRNode inod1 = man.getINode("X", leaf, leaf2);
 
-		ADDRNode leaf3 = man.getLeaf( 4.3, 6.5 );
+		ADDRNode leaf3 = man.getLeaf( 6.5 );
 
 		ADDRNode inod3 = man.getINode("X", leaf, leaf3);
 
@@ -1200,9 +1201,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		_temp_null_leaf = (ADDLeaf) getOneNullDD(true);
 		_temp_null_inode = (ADDINode) getOneNullDD(false);
 		 
-		DD_ZERO = getLeaf(0.0d, 0.0d);
-		DD_ONE = getLeaf(1.0d, 1.0d);
-		DD_NEG_INF = getLeaf(getNegativeInfValue(), getNegativeInfValue());
+		DD_ZERO = getLeaf(0.0d);
+		DD_ONE = getLeaf(1.0d);
+		DD_NEG_INF = getLeaf( getNegativeInfValue());
 		_ordering = ordering;
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
 		
@@ -1238,9 +1239,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(5d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(2d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -1634,10 +1635,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		if( node instanceof ADDLeaf ){
 			final ADDLeaf leaf = (ADDLeaf)node;
-			final Pair<Double, Double> value = leaf.getLeafValues(); 
-			final double val1 = thresholdDouble( value._o1, threshold, strict );
-			final double val2 = thresholdDouble( value._o2, threshold, strict );
-			return getLeaf( val1, val2 );
+			final Double value = leaf.getLeafValues(); 
+			final double val1 = thresholdDouble( value , threshold, strict );
+//			final double val2 = thresholdDouble( value._o2, threshold, strict );
+			return getLeaf( val1 );
 		}else{
 			ADDRNode ret = _tempUnaryCache.get( input );
 			if( ret == null ){
@@ -1864,51 +1865,42 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	public ADDRNode applyLeafOp(final ADDLeaf node1, final ADDLeaf node2, 
 			final DDOper op) {
-		final Pair<Double, Double> leaf1 = node1.getLeafValues();
-		final Pair<Double, Double> leaf2 = node2.getLeafValues();
-		double result_1 = Double.NaN, result_2 = Double.NaN;
+		final Double leaf1 = node1.getLeafValues();
+		final Double leaf2 = node2.getLeafValues();
+		double result = Double.NaN;//, result_2 = Double.NaN;
 		ADDRNode ret = null;
 
 		switch( op ){
 
 		case ARITH_PLUS : 
-			result_1 = (leaf1._o1 + leaf2._o1);
-			result_2 = (leaf1._o2 + leaf2._o2);
+			result = (leaf1 + leaf2);
 			break;
 
 		case ARITH_MINUS : 
-			result_1 = (leaf1._o1 - leaf2._o1);
-			result_2 = (leaf1._o2 - leaf2._o2);
+			result = (leaf1 - leaf2);
 			break;
 
 		case ARITH_PROD : 
-			final double prod1 = leaf1._o1*leaf2._o1;
-			final double prod2 = leaf1._o1*leaf2._o2;
-			final double prod3 = leaf1._o2*leaf2._o1;
-			final double prod4 = leaf1._o2*leaf2._o2;
-			
-			result_1 = Math.min( 
-					Math.min( prod1, prod2), 
-					Math.min( prod3, prod4) );
-			
-			result_2 = Math.max( 
-					Math.max( prod1, prod2 ),
-					Math.max(prod3, prod4 ) );
+			result = leaf1*leaf2;
+//			
+//			result_2 = Math.max( 
+//					Math.max( prod1, prod2 ),
+//					Math.max(prod3, prod4 ) );
 			break;
 
 		case ARITH_DIV:
 			try{
-				if( leaf2._o1 < 0 && leaf2._o2 > 0 ){
-					throw new ArithmeticException("interval contains zero in division.");
-				}
+//				if( leaf2 < 0 && leaf2 > 0 ){
+//					throw new ArithmeticException("interval contains zero in division.");
+//				}
+//				
+//				final double div1 = leaf1/leaf2;
+//				final double div2 = leaf1/leaf2;
+//				final double div3 = leaf1/leaf2;
+//				final double div4 = leaf1/leaf2;
 				
-				final double div1 = leaf1._o1/leaf2._o1;
-				final double div2 = leaf1._o1/leaf2._o2;
-				final double div3 = leaf1._o2/leaf2._o1;
-				final double div4 = leaf1._o2/leaf2._o2;
-				
-				result_1 = Math.min( Math.min(div1,  div2), Math.min(div3, div4) );
-				result_2 = Math.max( Math.max(div1, div2), Math.max(div3, div4) );
+				result = leaf1/leaf2;//Math.min( Math.min(div1,  div2), Math.min(div3, div4) );
+//				result_2 = Math.max( Math.max(div1, div2), Math.max(div3, div4) );
 			}catch( ArithmeticException e ){
 				e.printStackTrace();
 				System.exit(1);
@@ -1916,16 +1908,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			break;
 
 		case ARITH_MAX :
-			result_2 = Math.max(leaf1._o2, leaf2._o2);
-			result_1 = 
-					Math.max(leaf1._o1, leaf2._o1);
+//			result_2 = Math.max(leaf1, leaf2);
+			result = 
+					Math.max(leaf1, leaf2);
 //					( result_2 == leaf1._o2) ? leaf1._o1 : leaf2._o1;
 			break;
 
 		case ARITH_MIN :
-			result_2 = Math.min(leaf1._o2, leaf2._o2);
-			result_1 = 
-					Math.min(leaf1._o1, leaf2._o1);
+//			result_2 = Math.min(leaf1, leaf2);
+			result = 
+					Math.min(leaf1, leaf2);
 //					( result_2 == leaf1._o2) ? leaf1._o1 : leaf2._o1;
 			break;
 
@@ -1934,7 +1926,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			System.exit(1);
 		}
 
-		if( result_1 == Double.NaN || result_2 == Double.NaN ){
+		if( result == Double.NaN ){//|| result_2 == Double.NaN ){
 			try{
 				throw new Exception("NaN's prduced");
 			}catch( Exception e ){
@@ -1942,7 +1934,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				System.exit(1);
 			}
 		}
-		ret = getLeaf( result_1, result_2 );
+		ret = getLeaf( result );
 //		System.out.println( rnode1 + " " + rnode2 + " " + op + " " + ret); 
 		return ret;
 	}
@@ -2342,12 +2334,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	public ADDRNode all_paths_to_leaf( 
 			final ADDRNode input, 
-			final Pair<Double,Double> leafVal ) {
+			final Double leafVal ) {
 		ADDRNode ret = DD_ZERO;
 		Set<NavigableMap<String, Boolean>> assigns = enumeratePaths(input, false, true, leafVal, false );
+		if( assigns.isEmpty() ){
+			return DD_ONE;
+		}
 		for( final NavigableMap<String, Boolean> path : assigns ){
 			final ADDRNode this_path_dd = getProductBDDFromAssignment( path );
-			ret = apply( this_path_dd, ret, DDOper.ARITH_MAX);
+			ret = BDDUnion( this_path_dd, ret );
 		}
 		return ret;
 	}
@@ -2372,15 +2367,25 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public Set<NavigableMap<String,Boolean>> enumeratePaths(
 			final ADDRNode input, 
 			final boolean include_leaves, final boolean specified_leaves_only, 
-			final Pair<Double, Double> leafVal, final boolean invert ) {
+			final Double leafVal, final boolean invert ) {
+		
+		//NOTE : when input is a leaf node
+		//output will be empty set
+		//do not iterate over result
+		
 //		Objects.requireNonNull( input );
 //		final Cache< ADDRNode, Set<NavigableMap<String,Boolean>> > _tempUnaryCache 
 //		= CacheBuilder.from( temp_unary_cache_spec ).build();
-		final Set<NavigableMap<String, Boolean>> ret 
-			= enumeratePathsInt( input, null, include_leaves, specified_leaves_only, leafVal , invert );
+	
+		Map< ADDRNode, Set<NavigableMap<String, Boolean>> > _tempUnaryCache 
+		= new HashMap<ADDRNode, Set<NavigableMap<String, Boolean>>>();;//= CacheBuilder.from( temp_unary_cache_spec ).build();
+		final Set<NavigableMap<String, Boolean>> paths = new HashSet<NavigableMap<String,Boolean>>();
+		
+		enumeratePathsInt( input, include_leaves, specified_leaves_only, 
+					leafVal , invert , _tempUnaryCache , paths );
 //		_tempUnaryCache.invalidateAll();
-//		_tempUnaryCache = null;
-		return Collections.unmodifiableSet( ret );
+		_tempUnaryCache = null;
+		return Collections.unmodifiableSet( paths );
 	}
 
 	public static void testEnumeratePaths( ){
@@ -2393,19 +2398,25 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(0d, 0d);
+		ADDRNode leaf1 = man.getLeaf(0d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(6d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
 		ADDRNode inode2 = man.getINode("Y", inode, man.DD_ZERO);
 
-		man.showGraph(inode2);
+//		man.showGraph(inode2);
 
 		System.out.println( man.enumeratePaths(inode2, false, false, ((ADDLeaf)leaf1.getNode()) , false) );
 
 		System.out.println( man.enumeratePaths(inode2, false, true, ((ADDLeaf)leaf1.getNode()) ,false) );
+		
+		System.out.println( man.enumeratePaths(inode2, true, false, ((ADDLeaf)leaf1.getNode()) ,false) );
+		
+		System.out.println( man.enumeratePaths(inode2, true, true, ((ADDLeaf)leaf1.getNode()) ,false) );
+		
+		System.out.println( man.enumeratePaths(inode2, true, true, ((ADDLeaf)leaf1.getNode()) ,true) );
 		
 	}
 	
@@ -2420,9 +2431,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(0d, 0d);
+		ADDRNode leaf1 = man.getLeaf(0d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(6d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -2435,11 +2446,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 	}
 
-	private Set<NavigableMap<String, Boolean>> enumeratePathsInt(final ADDRNode input,
-			NavigableMap<String,Boolean> current, 
+	private int enumeratePathsInt(final ADDRNode input,
 			final boolean include_leaves, 
 			final boolean specified_leaves_only, 
-			final Pair<Double, Double> leafVal , final boolean invert ){
+			final Double leafVal , final boolean invert ,
+			final Map<ADDRNode, Set<NavigableMap<String, Boolean>> > cache,
+			final Set<NavigableMap<String, Boolean>> paths ){
 //			final Cache<ADDRNode , Set<NavigableMap<String,Boolean> > > cache ){
 //			final Cache<ADDRNode, Set<NavigableMap<String, Boolean>>> cache ) {
 
@@ -2448,49 +2460,90 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			return lookup;
 //		}
 		
-		if( current == null ){
-			//root node
-			current = new TreeMap<String, Boolean>();
-		}
-
-		Set<NavigableMap<String, Boolean>> ret = new HashSet<NavigableMap<String, Boolean>>();
 		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
 			
-			if( include_leaves ){
-				current.put( node.toString(), false) ;
-			}
-			
-			if( !specified_leaves_only ){
-				ret.add( current );
-			}else if( specified_leaves_only ){
-				if( invert ){
-					if( !(((ADDLeaf)node).getLeafValues().equals(leafVal)) ){
-						ret.add( current );
-					}
+			boolean add = true;
+			if( specified_leaves_only ){
+				if( ( invert && !(((ADDLeaf)node).getLeafValues().equals(leafVal)) )  || 
+					( ( !invert &&((ADDLeaf)node).getLeafValues().equals(leafVal) ) ) ){
+					add = true;
 				}else{
-					if( ((ADDLeaf)node).getLeafValues().equals(leafVal) ){
-						ret.add( current );
-					}
+					add = false;
 				}
 			}
+			
+			if( add ){
+				if( include_leaves ){
+					NavigableMap<String, Boolean> tm = new TreeMap<String, Boolean>();
+					tm.put( node.toString(), false) ;
+					paths.add( Maps.unmodifiableNavigableMap( tm ) );
+				}
+			}else{
+				return -1;//nly case when path must not be added if it fails the condition
+				//caller must ensure it is not added
+				//ie X=t/f is not added when paths is empty
+			}
+			//no need to add anyhting 
 		
+		}else if( cache.containsKey(input) ){
+			final Set<NavigableMap<String, Boolean>> cached = cache.get( input );
+			paths.addAll(cached);
 		}else{
-			final TreeMap<String, Boolean> truth = new TreeMap<String, Boolean>(current);
+//			final TreeMap<String, Boolean> truth = new TreeMap<String, Boolean>(current);
 			final String testVar = input.getTestVariable();
-			truth.put( testVar, true );
-			final Set<NavigableMap<String, Boolean>> ret_truth = enumeratePathsInt(input.getTrueChild(), truth, include_leaves, 
-					specified_leaves_only, leafVal , invert );// , cache );
+			final Set<NavigableMap<String, Boolean>> this_node_paths = 
+					new HashSet<NavigableMap<String,Boolean>>();
+			
+			final Set<NavigableMap<String, Boolean>> true_paths
+			= new HashSet<NavigableMap<String, Boolean> >();
+			
+			final int ret_true = enumeratePathsInt(input.getTrueChild(), include_leaves, 
+					specified_leaves_only, leafVal , invert, cache , true_paths );//, cache );
+			//for each path in true_paths do union with true and put in this node paths
+			//do union with current in addition and put in paths
+			
+			if( true_paths.isEmpty() && ret_true != -1 ){
+				NavigableMap<String, Boolean> this_true_path = new TreeMap<String, Boolean>(  );
+				this_true_path.put( testVar, true );
+				this_node_paths.add(this_true_path);
+			}else{
+				for( final NavigableMap<String, Boolean> true_path : true_paths ){
+					NavigableMap<String, Boolean> this_true_path = new TreeMap<String, Boolean>( true_path );
+					this_true_path.put( testVar, true );
+					this_node_paths.add( Maps.unmodifiableNavigableMap( this_true_path ) );
+				}	
+			}
+			
+			
+			final Set<NavigableMap<String, Boolean>> false_paths
+			= new HashSet<NavigableMap<String, Boolean> >();
 
-			final TreeMap<String, Boolean> falseth = new TreeMap<String, Boolean>(current);
-			falseth.put( testVar, false );
-			Set<NavigableMap<String, Boolean>> ret_false = enumeratePathsInt( input.getFalseChild(), falseth, include_leaves, 
-					specified_leaves_only, leafVal, invert );//, cache );
-			ret.addAll( ret_false );
-			ret.addAll( ret_truth );
-//			cache.put( input, ret );
+			final int ret_false = enumeratePathsInt( input.getFalseChild(), include_leaves, 
+					specified_leaves_only, leafVal, invert, cache, false_paths );
+			if( false_paths.isEmpty() && ret_false != -1  ){
+				NavigableMap<String, Boolean> this_false_path = new TreeMap<String, Boolean>( );
+				this_false_path.put( testVar, false );
+				this_node_paths.add(  Maps.unmodifiableNavigableMap( this_false_path ) );
+			}else{
+				for( final NavigableMap<String, Boolean> false_path : false_paths ){
+					NavigableMap<String, Boolean> this_false_path = new TreeMap<String, Boolean>( false_path );
+					this_false_path.put( testVar, false );
+					this_node_paths.add(  Maps.unmodifiableNavigableMap( this_false_path ) );
+				}
+			}
+			
+			final Set<NavigableMap<String, Boolean>> ret 
+				= Collections.unmodifiableSet( this_node_paths );
+			cache.put( input, ret );
+			paths.addAll(ret);
+			
+			//dont have to add to paths - as it will be added at each leaf
+			//at INOde keep track of paths from each child
+//			ret.addAll( ret_false );
+//			ret.addAll( ret_truth );
 		}
-		return ret;
+		return 0;
 	}
 
 	@Override
@@ -2515,9 +2568,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(5d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(2d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -2538,17 +2591,17 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		System.out.println( "Flushing : " + applyHit );
 //		applyHit = 0;
 //		this._tempCache.clear();
-		final double mem_percent = getMemoryPercent();
+//		final double mem_percent = getMemoryPercent();
 //		throwAwayApplyCache();
-		if( mem_percent > 0.9d ){
-//			invalidateApplyCache();
-//			throwAwayApplyCache();
-			madeLeaf.clear();
-			for( final ReferenceMap<ADDINode, ADDRNode> inner : madeINodes.values() ){
-				inner.clear();
-			}
-//			System.gc();
-		}
+//		if( mem_percent > 0.99d ){
+////			invalidateApplyCache();
+////			throwAwayApplyCache();
+//			madeLeaf.clear();
+//			for( final ReferenceMap<ADDINode, ADDRNode> inner : madeINodes.values() ){
+//				inner.clear();
+//			}
+////			System.gc();
+//		}
 //			cacheSummary();
 ////			_tempUnaryCache.invalidateAll();
 //			madeLeaf.cleanUp();
@@ -2659,7 +2712,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		List<ADDRNode> Pis = new ArrayList<ADDRNode>();
 
 		for( int i = 0 ; i < num_vars; ++i ){
-			ADDRNode thisOne = getINode("X"+i, getLeaf(prob, prob), getLeaf(1-prob, 1-prob) );
+			ADDRNode thisOne = getINode("X"+i, getLeaf(prob), getLeaf(1-prob) );
 			Pis.add( thisOne );
 		}
 
@@ -2834,17 +2887,18 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//creates new null leaf
 	//plugs in
 	//getRNode
-	public ADDRNode getLeaf( final Double low, final Double high ){
-		_temp_null_leaf.plugIn( low, high );
-//		ADDLeaf ret = null;
-//		try{
-//			ret = leaf.plugIn( new Pair<Double, Double>(
-//					low, high) );
-//		}catch(NullPointerException e){
-//			ret = null;
-//		}
-		return getRNode( ADDLeaf.class, true );
-	}
+//	public ADDRNode getLeaf( final Double low, final Double high ){
+//		_temp_null_leaf.plugIn( low, high );
+//		return getRNode( ADDLeaf.class, true );
+////		ADDLeaf ret = null;
+////		try{
+////			ret = leaf.plugIn( new Pair<Double, Double>(
+////					low, high) );
+////		}catch(NullPointerException e){
+////			ret = null;
+////		}
+//		return getRNode( ADDLeaf.class, true );
+//	}
 
 	@Override
 	public SortedSet<ADDLeaf> getLeaves(final ADDRNode input) {
@@ -2864,9 +2918,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(5d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(2d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -3455,9 +3509,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(3d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(2d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -3680,9 +3734,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		
 		ADDManager man = new ADDManager(100, 100, ord, 42);
 
-		ADDRNode leaf1 = man.getLeaf(3d, 5d);
+		ADDRNode leaf1 = man.getLeaf(3d);
 
-		ADDRNode leaf2 = man.getLeaf(6d, 2d);
+		ADDRNode leaf2 = man.getLeaf(6d);
 
 		ADDRNode inode = man.getINode("X", leaf1, leaf2);
 
@@ -3704,7 +3758,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	@Override
 	public ADDRNode scalarMultiply(final ADDRNode input, double scalar) {
-		return apply( input, getLeaf(scalar, scalar), DDOper.ARITH_PROD );
+		return apply( input, getLeaf(scalar), DDOper.ARITH_PROD );
 	}
 
 	@Override
@@ -4345,7 +4399,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				curNode = val ? cur_true_child : cur_false_child;
 			}
 		}
-		return ret;
+		return Maps.unmodifiableNavigableMap( ret );
 	}
 
 	public ADDRNode getSumNegInfDDFromAssignment(
@@ -4414,7 +4468,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public ADDRNode getLeaf(double d) {
-		return getLeaf( d, d  );
+		_temp_null_leaf.plugIn( d );
+		return getRNode( ADDLeaf.class, true );
 	}
 
 	public ADDRNode assign(final ADDRNode input,
@@ -4442,7 +4497,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	private ADDRNode get_path_int(
 			final ADDRNode input, final NavigableMap<String, Boolean>... paths) {
-		ADDRNode ret = DD_ZERO, cur = input;
+		ADDRNode ret = DD_ONE, cur = input;
 		while( cur.getNode() instanceof ADDINode ){
 			final String var = input.getTestVariable();
 			Boolean val = null;
@@ -4450,7 +4505,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				val = paths[i].get(var);
 			}
 			final ADDRNode cur_node = getIndicatorDiagram(var, val);
-			ret = BDDUnion(ret, cur_node);
+			ret = BDDIntersection(ret, cur_node);
 			if( val ){
 				cur = cur.getTrueChild();
 			}else{

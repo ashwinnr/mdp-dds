@@ -65,4 +65,8 @@ public class FactoredAction<S extends FactoredStateSpace, A extends FactoredActi
 		}
 		return 0;
 	}
+
+	public void set_action_var(String actvar, boolean val) {
+		factoredAction.put( actvar, val );
+	}
 }

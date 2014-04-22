@@ -68,7 +68,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 	private FactoredState[] trajectory_states;
 	private FactoredAction[] trajectory_actions;
-	private ADDRNode _baseline;
+	
+	public final static boolean  DISPLAY_TRAJECTORY = false;
+	
 
 	public SymbolicRTDP(
 			String domain,
@@ -110,9 +112,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				MB, init_state_conf, init_state_prob, dp_type, nTrials, steps_dp,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
-				gen_rule, exploration, cons, truncateTrials, enableLabelling,
-				domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
-				domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null );
+				gen_rule, exploration, cons, truncateTrials, enableLabelling );
 		trajectory_states = new FactoredState[ steps_lookahead ];
 		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
 		for( int i = 0 ; i < steps_lookahead-1; ++i ){
@@ -121,8 +121,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}
 		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
 		
-		_baseline = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
-		Arrays.fill( _policyDD, _baseline );
 	}
 
 	@Override
@@ -137,7 +135,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		final ADDRNode action_dd 
 			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
 		final NavigableMap<String, Boolean> action 
-			= ADDManager.sampleOneLeaf(action_dd, _rand );
+			= pick_successor_node(state, 0).getFactoredAction();//ADDManager.sampleOneLeaf(action_dd, _rand );
 		
 		_manager.flushCaches();
 		
@@ -148,36 +146,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		return cur_action;
 	}
 	
-
-	private void throwAwayEverything() {
-		_policyDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill(_policyDD, _baseline );
-		
-		_valueDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _valueDD, _manager.DD_ZERO );
-		
-		_solved = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _solved, _manager.DD_ZERO );
-		_solved[ _solved.length-1 ] = _manager.DD_ONE;
-		
-		_visited = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _visited, _manager.DD_ZERO );
-		
-	}
-
-	private void display(
-			final ADDRNode[] values, final ADDRNode[] policies ) {
-		for( int i = 0 ; i < values.length; ++i ){
-			ADDRNode vfn = values[i];
-			ADDRNode plcy = policies[i];
-			System.out.println("i = " + i );
-			System.out.println("Size of Value fn. " + _manager.countNodes(vfn) );
-			System.out.println("Size of policy " + _manager.countNodes( plcy ) );
-			System.out.println("Size of visited " + _manager.countNodes( _visited[i] ) );
-			System.out.println("Size of solved " + _manager.countNodes( _solved[i] ) );
-		}
-		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
-	}
 
 	protected void do_sRTDP( final FactoredState<RDDLFactoredStateSpace> init_state ) {
 
@@ -202,9 +170,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			double prob_traj = 1.0d;
 			
 			while( num_actions < steps_lookahead-1 ){
-//				System.out.println( cur_state.toString() );
+				if( DISPLAY_TRAJECTORY ){
+					System.out.println( cur_state.toString() );	
+				}
+				
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
-//			    System.out.println( cur_state.toString() );
+			    
+//				System.out.println( cur_state.toString() );
 
 				if( enableLabelling && is_node_solved(cur_state, num_actions) ){
 					break;
@@ -213,9 +185,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				trajectory_actions[ num_actions ].setFactoredAction( 
 						pick_successor_node(cur_state, num_actions).getFactoredAction() );
 
-//				System.out.println( cur_action.toString() );
+				if( DISPLAY_TRAJECTORY ){
+					System.out.println( cur_action.toString() );	
+				}
 
-				final FactoredState<RDDLFactoredStateSpace> next_state = pick_successor_node(cur_state, cur_action, num_actions);
+				final FactoredState<RDDLFactoredStateSpace> next_state 
+				= pick_successor_node(cur_state, cur_action, num_actions);
 				prob_traj *= _dtr.get_prob_transition( cur_state, cur_action, next_state );
 				cur_state = next_state;
 				//				System.out.println( "Steps to go " + steps_to_go );
@@ -333,14 +308,26 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				//for state s, thresh = 1 ^ solved = 1 for image(s)
 				final Set<NavigableMap<String, Boolean>> small_error_paths 
 				= _manager.enumeratePaths(threshed, false, true, _manager.DD_ONE, false);
-				for( final NavigableMap<String, Boolean> path : small_error_paths ){
-					final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
+				if( small_error_paths.isEmpty() ){
+					final NavigableMap<String, Boolean> state_path = trajectory_states[j-1].getFactoredState();
+					final ADDRNode this_path 
+					= _manager.getProductBDDFromAssignment(state_path);
 					final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
 					final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
 					if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-						mark_node_solved(path, j-1);
+						mark_node_solved(state_path, j-1);
 					}
+				}else{
+					for( final NavigableMap<String, Boolean> path : small_error_paths ){
+						final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
+						final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
+						final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
+						if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
+							mark_node_solved(path, j-1);
+						}
+					}	
 				}
+				
 			}
 			
 			_valueDD[ j-1 ] = backup._o1;
@@ -413,7 +400,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 	public static void main(String[] args) throws InterruptedException {
 
-		System.out.println(args);
+		System.out.println( Arrays.toString(args) );
 //		boolean useDiscount = true, actionVars = false, constraint_pruning = false, do_apricodd = false,
 //				gen_states = false, gen_actions = false;
 //		int num_states = 0, num_rounds = 0, heuristic_steps = -1, 

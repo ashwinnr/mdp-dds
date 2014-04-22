@@ -26,57 +26,61 @@ domain crossing_traffic_mdp {
 		GOAL(xpos,ypos) : {non-fluent, bool, default = false};
 		
 		// Fluents
-		robot-at(xpos, ypos)    : {state-fluent, bool, default = false};
+		robot-at-x(xpos)    : {state-fluent, bool, default = false};
+		robot-at-y(ypos)	: {state-fluent, bool, default = false};
+		
 		obstacle-at(xpos, ypos) : {state-fluent, bool, default = false};
 		
-		// Actions
-		move-north : {action-fluent, bool, default = false};
-		move-south : {action-fluent, bool, default = false};
-		move-east  : {action-fluent, bool, default = false};
-		move-west  : {action-fluent, bool, default = false};
+		collision-x(xpos) : {state-fluent, bool, default = false};
+		collision-y(ypos) : {state-fluent, bool, default = false};
+		
+		//actions - for x and y
+		//00 - noop
+		//10 - move -1 x/y
+		//01 - move +1 x/y
+		//11 - noop
+		delta-x-1 : {action-fluent, bool, default = false };
+		delta-x-2 : {action-fluent, bool, default = false };
+		delta-y-1 : {action-fluent, bool, default = false };
+		delta-y-2 : {action-fluent, bool, default = false };
+		
+		
 	};
 	
 	cpfs {
 	
-		robot-at'(?x,?y) =
+		collision-x'(?x) = KronDelta( collision-x(?x) | ( robot-at-x(?x) ^ exists_{?y:ypos}[ robot-at-y(?y) ^ obstacle-at(?x,?y) ] ) );
+		collision-y'(?y) = KronDelta( collision-y(?y) | ( robot-at-y(?y) ^ exists_{?x:xpos}[ robot-at-x(?x) ^ obstacle-at(?x,?y) ] ) );
 		
-			// Goal is absorbing so robot stays put 
-			if ( GOAL(?x,?y) ^ robot-at(?x,?y)  )
+		robot-at-x'(?x) =
+			if ( collision-x(?x)  )
+			then
+				KronDelta( robot-at-x(?x) )//collided robot cannot move this step
+			else if ( ~robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ^ delta-x-1 ^ ~delta-x-2 ^ robot-at-x(?x2) ] 
+				| exists_{?x2:xpos}[ WEST(?x,?x2) ^ ~delta-x-1 ^ delta-x-2 ^ robot-at-x(?x2) ] ) )
 			then 
-				KronDelta(true)
-			else if ( exists_{?x2 : xpos, ?y2 : ypos} [ GOAL(?x2,?y2) ^ robot-at(?x2,?y2)  ] )
-			then 
-				KronDelta(false) // because of fall-through we know (?x,y) != (?x2,?y2)
-				
-			// Check for legal robot movement (robot disappears if at an obstacle)
-			else if ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y2,?y) ^ robot-at(?x,?y2) ^ ~obstacle-at(?x,?y2) ] )
-			then 
-				KronDelta(true) // robot moves to this location
-			else if ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y,?y2) ^ robot-at(?x,?y) ] )
-			then 
-				KronDelta(false) // robot leaves this location
-			else if ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y2,?y) ^ robot-at(?x,?y2) ^ ~obstacle-at(?x,?y2) ] )
-			then 
-				KronDelta(true) // robot moves to this location
-			else if ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y,?y2) ^ robot-at(?x,?y) ] )
-			then 
-				KronDelta(false) // robot leaves this location
-			else if ( move-east ^ exists_{?x2 : xpos} [ EAST(?x2,?x) ^ robot-at(?x2,?y) ^ ~obstacle-at(?x2,?y) ] )
-			then 
-				KronDelta(true) // robot moves to this location
-			else if ( move-east ^ exists_{?x2 : xpos} [ EAST(?x,?x2) ^ robot-at(?x,?y) ] )
-			then 
-				KronDelta(false) // robot leaves this location
-			else if ( move-west ^ exists_{?x2 : xpos} [ WEST(?x2,?x) ^ robot-at(?x2,?y) ^ ~obstacle-at(?x2,?y) ] )
-			then 
-				KronDelta(true) // robot moves to this location
-			else if ( move-west ^ exists_{?x2 : xpos} [ WEST(?x,?x2) ^ robot-at(?x,?y) ] )
-			then 
-				KronDelta(false) // robot leaves this location
-				
-			// A noop or illegal movement, so state unchanged
+				KronDelta(true)//arriving from other x
+			else if ( robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ] ^ ~delta-x-1 ^ delta-x-2 
+				|  exists_{?x2:xpos}[ WEST(?x,?x2) ] ^ delta-x-1 ^ ~delta-x-2 ) )
+			then
+				KronDelta(false)//vacate this x
 			else 
-				KronDelta( robot-at(?x,?y) ^ ~obstacle-at(?x,?y) );
+				KronDelta( robot-at-x(?x) ); //noop//(delta-x-1 == delta-x-2
+					
+		robot-at-y'(?y) = 
+			if ( collision-y(?y) )
+			then
+				KronDelta( robot-at-y(?y) )
+			else if ( ~robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ^ delta-y-1 ^ ~delta-y-2 ^ robot-at-y(?y2) ] 
+				| exists_{?y2:ypos}[ SOUTH(?y,?y2) ^ ~delta-y-1 ^ delta-y-2 ^ robot-at-y(?y2) ] ) )
+			then 
+				KronDelta(true)//arriving from other y
+			else if ( robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ] ^ ~delta-y-1 ^ delta-y-2 
+				|  exists_{?y2:ypos}[ SOUTH(?y,?y2) ] ^ delta-y-1 ^ ~delta-y-2 ) )
+			then
+				KronDelta(false)//vacate this y
+			else 
+				KronDelta( robot-at-y(?y) );//^ (delta-y-1 == delta-y-2) ) );
 			
 		obstacle-at'(?x, ?y) =
 		
@@ -90,17 +94,20 @@ domain crossing_traffic_mdp {
 			
 			// Not a top or bottom row and not a border input cell -- inherits obstacle to east
 			else
-				KronDelta( exists_{?x2 : xpos} [EAST(?x,?x2) ^ obstacle-at(?x2,?y)] );
+				KronDelta( exists_{?x2 : xpos} [EAST(?x,?x2) ^ obstacle-at(?x2,?y)] );//arrive from other x
+			
 				
+		
 	};
 	
 	// 0 reward for reaching goal, -1 in all other cases
-	reward = [sum_{?x : xpos, ?y : ypos} -(GOAL(?x,?y) ^ ~robot-at(?x,?y))]; 
+	reward = sum_{?x : xpos, ?y : ypos}[ GOAL(?x,?y) * robot-at-x(?x) * robot-at-y(?y) ];
 	
 	state-action-constraints {
 //	
 //		// Robot at exactly one position
-		[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] == 1;
+		[sum_{?x : xpos} robot-at-x(?x)] == 1;
+		[sum_{?y : ypos} robot-at-y(?y)] == 1;
 //		
 //		// EAST, WEST, NORTH, SOUTH defined properly (unique and symmetric)
 //		forall_{?x1 : xpos} [(sum_{?x2 : xpos} WEST(?x1,?x2)) <= 1];

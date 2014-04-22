@@ -57,7 +57,7 @@ public class ADDValueFunction
 
 	@Override
 	public <T extends FactoredState<RDDLFactoredStateSpace>> 
-		Pair<Double, Double> getFactoredStateValue(T state){
+		Double getFactoredStateValue(T state){
 		NavigableMap<String, Boolean> factored_state = state.getFactoredState();
 		ADDRNode leaf = _manager.evaluate(get_valueFn(), factored_state);
 		if( leaf.getNode() instanceof ADDINode ){
@@ -73,7 +73,7 @@ public class ADDValueFunction
 	@Override
 	public <T extends FactoredState<RDDLFactoredStateSpace>, U extends 
 		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>> 
-			Pair<Double, Double> getFactoredStateActionValue(T state, U action){
+			Double getFactoredStateActionValue(T state, U action){
 	
 		NavigableMap<String, Boolean> state_assign = state.getFactoredState();
 		NavigableMap<String, Boolean> action_assign = action.getFactoredAction();
@@ -96,7 +96,7 @@ public class ADDValueFunction
 	}
 
 	@Override
-	public <T extends State<RDDLFactoredStateSpace>> Pair<Double, Double> 
+	public <T extends State<RDDLFactoredStateSpace>> Double  
 		getStateValue( T state) {
 		return getFactoredStateValue((FactoredState<RDDLFactoredStateSpace>)state);
 	}
@@ -104,7 +104,7 @@ public class ADDValueFunction
 	@Override
 	public <T extends State<RDDLFactoredStateSpace>, U extends 
 		Action<RDDLFactoredStateSpace, RDDLFactoredActionSpace>> 
-			Pair<Double, Double> getStateActionValue(T state, U action) {
+			Double getStateActionValue(T state, U action) {
 		return getFactoredStateActionValue( (FactoredState<RDDLFactoredStateSpace>)state, 
 				(FactoredAction<RDDLFactoredStateSpace,
 						RDDLFactoredActionSpace>)action );

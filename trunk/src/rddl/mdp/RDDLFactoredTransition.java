@@ -9,6 +9,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.google.common.collect.Maps;
+
 import add.ADDManager;
 import add.ADDRNode;
 
@@ -214,11 +216,13 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			FactoredState<RDDLFactoredStateSpace> current_state,
 			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act,
 			final int time ){
-		System.out.println( "STATE : " + current_state );
-		System.out.println( "ACTION : " + act );
+//		System.out.println( "STATE : " + current_state );
+//		System.out.println( "ACTION : " + act );
 		
 		setStateAction(current_state, act);
-		visualizer.display(_state, time);
+		if( visualizer != null ){
+			visualizer.display(_state, time);
+		}
 	}
 	//this class must build
 	//atom sfor each state var then 
@@ -228,7 +232,7 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	public FactoredState<RDDLFactoredStateSpace> sampleState(
 			final ADDRNode initial_state_dist ) {
 		NavigableMap<String, Boolean> partial_state = 
-				ADDManager.sampleOneLeaf( initial_state_dist, _rand );
+				Maps.newTreeMap( ADDManager.sampleOneLeaf( initial_state_dist, _rand ) );
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
 			if( val == null ){

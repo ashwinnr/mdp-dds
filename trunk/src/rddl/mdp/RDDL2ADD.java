@@ -183,7 +183,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 //			System.out.println(prob_true);
 			
 			// Now build CPT for action variables
-			return _manager.getLeaf(prob_true, prob_true);
+			return _manager.getLeaf(prob_true);
 	
 		} 
 		
@@ -606,7 +606,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	public ADDRNode getIIDUniformDistribution( final String... vars ){
 		final double total_mass = Math.pow( 0.5, vars.length );
-		return _manager.getLeaf(total_mass, total_mass);
+		return _manager.getLeaf(total_mass);
 	}
 
 	public ADDRNode getIIDBernoulliDistribution( final double prob_true,
@@ -615,8 +615,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		for( final String var : vars ){
 			ret = _manager.apply( ret, 
 					_manager.getINode(var, 
-							_manager.getLeaf(prob_true, prob_true),
-							_manager.getLeaf(1-prob_true, 1-prob_true) ),
+							_manager.getLeaf(prob_true),
+							_manager.getLeaf(1-prob_true) ),
 					DDOper.ARITH_PROD );
 		}
 		return ret;
