@@ -18,7 +18,9 @@ public class HandCodedPolicies {
 		e.printStackTrace();
 		System.exit(1);
 	    }
+	}else if( domain_file.contains("grid") ){
+		return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
 	}
-	return null;
+	return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
     }
 }

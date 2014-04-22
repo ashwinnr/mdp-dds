@@ -1,5 +1,7 @@
 package add;
 
+import com.google.common.primitives.Longs;
+
 import dd.DDRNode;
 
 public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
@@ -61,7 +63,7 @@ public class ADDRNode extends DDRNode<ADDNode> implements Comparable<ADDRNode> {
 	
 	@Override
 	public int hashCode() {
-		return ((Long)GLOBAL_ID).hashCode();
+		return Longs.hashCode(GLOBAL_ID);//(Long)GLOBAL_ID).hashCode();
 //		if( !hashSet ){
 //			
 //			int child = this.theNode.hashCode();

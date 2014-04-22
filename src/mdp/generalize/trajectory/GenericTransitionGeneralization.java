@@ -50,13 +50,19 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    final int depth) {
 	
 	
+	final ADDManager manager = parameters.get_manager();
 	if( depth == 0 || parameters.getFix_start_state() || parameters.getNum_states() == 1 ){
-	    return parameters.get_manager().getProductBDDFromAssignment(state.getFactoredState());
+	    return manager.getProductBDDFromAssignment(state.getFactoredState());
 	}
 	
 	final Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P> generalizer = parameters.getGeneralizer();
 	final ADDRNode ret = generalizer.generalize_state(state, action, next_state, parameters.getParameters(), depth);
-	return parameters.getNum_states() == -1 ? ret : parameters.get_manager().sampleBDD(ret, parameters.get_rand(), parameters.getNum_states() );
+	final ADDRNode state_node = manager.getProductBDDFromAssignment(state.getFactoredState());
+	
+	return parameters.getNum_states() == -1 ? ret : 
+		manager.BDDUnion( 
+				state_node, 
+				manager.sampleBDD(ret, parameters.get_rand(), parameters.getNum_states()-1 ) );
     }
 
     @Override
@@ -70,10 +76,12 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    return parameters.get_manager().getProductBDDFromAssignment( action.getFactoredAction() );
 	}
 	
-	final ADDRNode ret = parameters.getGeneralizer().generalize_action(state, action, next_state, parameters.getParameters(), depth);
+	final ADDRNode ret = parameters.getGeneralizer().generalize_action(state, 
+			action, next_state, parameters.getParameters(), depth);
 	//pick only actions that are legal
 	    
-	return parameters.getNum_actions() == -1 ? ret : parameters.get_manager().sampleBDD( ret, parameters.get_rand(), parameters.getNum_actions() );
+	return parameters.getNum_actions() == -1 ? ret : 
+		parameters.get_manager().sampleBDD( ret, parameters.get_rand(), parameters.getNum_actions() );
     }
     
     public ADDRNode[] generalize_trajectory_forwards( 
@@ -115,6 +123,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    	if( cur_gen_state.equals(manager.DD_ZERO) ){
 	    		throw new Exception("WARNING generalized state is zero");
 	    	}else if( 
+	    			parameters.getNum_states() == -1 && 
 	    			manager.restrict( cur_gen_state, states[i].getFactoredState() ).equals( 
 	    					manager.DD_ZERO ) ){
 	    		throw new Exception("WARNING generalized state does not contain state" );

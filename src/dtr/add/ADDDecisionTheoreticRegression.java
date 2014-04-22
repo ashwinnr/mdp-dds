@@ -2065,8 +2065,8 @@ public class ADDDecisionTheoreticRegression implements
 		action.put( "reboot__c2", false );
 //		action.put( "reboot__c3", false );
 		ADDManager manager = mdp.getManager();
-		ADDRNode thing = manager.getINode("running__c1", manager.getLeaf(4d, 4d), 
-									manager.getLeaf(7.5, 7.5) );
+		ADDRNode thing = manager.getINode("running__c1", manager.getLeaf( 4d), 
+									manager.getLeaf(7.5) );
 		thing = manager.remapVars( thing, mdp.getPrimeRemap() );
 		thing = ADD_dtr.regressAction( thing, action, false, null , false,  0.0d, APPROX_TYPE.NONE );
 		manager.showGraph( thing );

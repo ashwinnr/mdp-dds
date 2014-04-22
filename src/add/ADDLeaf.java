@@ -9,18 +9,18 @@ import util.MySoftReference;
 import util.Pair;
 import dd.DDLeaf;
 
-public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, Comparable<ADDLeaf> {
+public class ADDLeaf extends DDLeaf< Double > implements ADDNode, Comparable<ADDLeaf> {
 
-    	public final static double PRECISION = 1e-9;
+	public final static double PRECISION = 1e-9;
     
 	@Override
 	public ADDLeaf getNullDD() {
-		this.leafValues = new Pair<Double, Double>(Double.NaN, Double.NaN);
+		this.leafValues = Double.NaN;
 		return this;
 	}
 
 	@Override
-	public ADDLeaf plugIn( final Pair<Double, Double> leafVals ) {
+	public ADDLeaf plugIn( final Double leafval ){
 //		if( leafVals._o1 > leafVals._o2 ){
 //			try{
 //				throw new Exception("lower bound higher than upper bound");
@@ -31,7 +31,7 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 //		}
 //		final double max = Math.max( leafVals._o1, leafVals._o2 );
 //		final double min = Math.min( leafVals._o1, leafVals._o2 );
-		this.leafValues.copy( leafVals._o1, leafVals._o2 );
+		this.leafValues = leafval;
 		return this;
 	}
 
@@ -42,12 +42,12 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 
 	@Override
 	public double getMax() {
-		return Math.max(this.leafValues._o1,  this.leafValues._o2);
+		return this.leafValues;//Math.max(this.leafValues._o1,  this.leafValues._o2);
 	}
 
 	@Override
 	public double getMin() {
-		return Math.min(this.leafValues._o1,  this.leafValues._o2);	
+		return this.leafValues;//Math.min(this.leafValues._o1,  this.leafValues._o2);	
 	}
 
 	@Override
@@ -69,27 +69,28 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 		return -1;
 	}
 
-	public void printHash(){
-		int h1 = leafValues._o1.hashCode();
-		int h2 = leafValues._o2.hashCode();
-		
-		System.out.println( h1 + " " + h2  + " " + (h1^h2) );
-	}
+//	public void printHash(){
+//		int h1 = leafValues._o1.hashCode();
+//		int h2 = leafValues._o2.hashCode();
+//		
+//		System.out.println( h1 + " " + h2  + " " + (h1^h2) );
+//	}
 	
 	@Override
 	public int hashCode() {
-		int ret;
-		if( this.leafValues._o1 == Double.NEGATIVE_INFINITY ){
-			ret = -1;
-		}else{
-			ret = super.hashCode();
-//			double avg = ( leafValues._o1 + leafValues._o2 ) / 2d;
-//			double sign1 = Math.abs( leafValues._o1 );
-//			double sign2 = Math.abs( leafValues._o2 );
-		}
-		
-//		System.out.println( "Leaf hashcode : " + this + " " + ret );
-		return ret;
+		return this.leafValues.hashCode();
+//		int ret;
+//		if( this.leafValues._o1 == Double.NEGATIVE_INFINITY ){
+//			ret = -1;
+//		}else{
+//			ret = super.hashCode();
+////			double avg = ( leafValues._o1 + leafValues._o2 ) / 2d;
+////			double sign1 = Math.abs( leafValues._o1 );
+////			double sign2 = Math.abs( leafValues._o2 );
+//		}
+//		
+////		System.out.println( "Leaf hashcode : " + this + " " + ret );
+//		return ret;
 	}
 	
 	@Override
@@ -97,29 +98,30 @@ public class ADDLeaf extends DDLeaf< Pair<Double, Double> > implements ADDNode, 
 //	    System.out.println("====");
 //	    System.out.println(this.toString() );
 //	    System.out.println( obj.toString() );
-	    
-	    final ADDLeaf leaf = (ADDLeaf) obj;
-	    if( (leaf.getMax() == Double.NEGATIVE_INFINITY && this.getMax()!=  Double.NEGATIVE_INFINITY) 
-		    || (leaf.getMax() != Double.NEGATIVE_INFINITY && this.getMax() == Double.NEGATIVE_INFINITY ) ){
-		return false;
-	    }else if( leaf.getMax() == Double.NEGATIVE_INFINITY && this.getMax() == Double.NEGATIVE_INFINITY ){
-		return true;
-	    }
-	   
-	    return super.equals(obj);
+	    return leafValues.equals(((ADDLeaf)obj).leafValues);
+//	    final ADDLeaf leaf = (ADDLeaf) obj;
+//	    if( (leaf.getMax() == Double.NEGATIVE_INFINITY && this.getMax()!=  Double.NEGATIVE_INFINITY) 
+//		    || (leaf.getMax() != Double.NEGATIVE_INFINITY && this.getMax() == Double.NEGATIVE_INFINITY ) ){
+//		return false;
+//	    }else if( leaf.getMax() == Double.NEGATIVE_INFINITY && this.getMax() == Double.NEGATIVE_INFINITY ){
+//		return true;
+//	    }
+//	   
+//	    return super.equals(obj);
 	}
 
-	public void plugIn(Double low, Double high) {
-	    if( high < low ){
-		try{
-		    throw new Exception("invalid leaf " + low + high );
-		}catch( Exception e ){
-		    e.printStackTrace();
-		    System.exit(1);
-		}
-	    }
-	    leafValues._o1 = low;
-	    leafValues._o2 = high;
-	}
+//	public void plugIn(Double val){//, Double high) {
+//		leafValues = val;
+////	    if( high != low ){
+////		try{
+////		    throw new Exception("invalid leaf " + low + high );
+////		}catch( Exception e ){
+////		    e.printStackTrace();
+////		    System.exit(1);
+////		}
+////	    }
+////	    leafValues._o1 = low;
+////	    leafValues._o2 = high;
+//	}
 
 }

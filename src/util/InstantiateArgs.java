@@ -1,5 +1,7 @@
 package util;
 
+import java.util.Arrays;
+
 import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
@@ -14,6 +16,7 @@ import org.apache.commons.cli.ParseException;
 
 import dd.DDManager;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 
 public class InstantiateArgs {
     //the purpose of this class is to provide
@@ -34,17 +37,17 @@ public class InstantiateArgs {
 	ret.addOption("constraintPruning", true, "use ADD pruning for constraints" );
 	ret.addOption("doApricodd", true, "enable APRICODD for value functions" );
 	ret.addOption("apricoddError", true, "error for ADD approximation - double" );
-	ret.addOption("apricoddType", true, "APRICODD type - " + DDManager.APPROX_TYPE.values().toString() );
+	ret.addOption("apricoddType", true, "APRICODD type - " + Arrays.toString( DDManager.APPROX_TYPE.values() ) );
 	ret.addOption("apricoddGP", true, "geometric error progression with depth > 1" );
 	ret.addOption("heuristicType", true, "backups to use for computing heuristic " +
-	"- " + BACKUP_TYPE.values().toString() );
+	"- " + Arrays.toString( BACKUP_TYPE.values() ) );
 	ret.addOption("heuristicMins",  true, "max. minutes to run heuristic computation - double" );
 	ret.addOption("heuristicSteps", true, "number of steps of VI for heuristic computation - int" );
 	ret.addOption("memoryBoundNodes", true, "memory bound for MBFAR - long" );
 	ret.addOption("initialStateConf", true, "IID initial state distribution " +
-	"- CONJUNCTIVE/BERNOULLI/UNIFORM" );
+				Arrays.toString( INITIAL_STATE_CONF.values() ) );
 	ret.addOption("initialStateProb", true, "IID parameter - double in [0,1]" );
-	ret.addOption("backupType", true, "backups for RTDP " +  BACKUP_TYPE.values().toString() );
+	ret.addOption("backupType", true, "backups for RTDP " +  Arrays.toString( BACKUP_TYPE.values() ) );
 	ret.addOption("numTrajectories", true, "number of trajectories to sample - int");
 	ret.addOption("stepsDP", true, "number of trajectory replays -int " );
 	ret.addOption("stepsLookahead", true, "number of states in trajectories - int");
@@ -57,16 +60,16 @@ public class InstantiateArgs {
 	ret.addOption("generalization", true, "type of generalization - value/action/reward/EBL/off");
 	ret.addOption("exploration", true, "exploration for trajectory - epsilon/off");
 	ret.addOption("generalizationRule", true, "rule for generalizing within an ADD - " + 
-			GENERALIZE_PATH.values().toString() );
+			Arrays.toString( GENERALIZE_PATH.values() ) );
 	ret.addOption("truncateTrials", true, "whether to truncate trial on new state" );
 	ret.addOption( OptionBuilder.withArgName("consistencyRule").withValueSeparator(',').hasArgs()
 		.withDescription("comma separated rules for generalizing trajectory - " +
-				Consistency.values().toString() )
+				Arrays.toString( Consistency.values() ) )
 		.create("consistencyRule") );
 	ret.addOption("enableLabelling", true, "enable labelling states as solved" );
 	ret.addOption("convergenceTest", true, "convergence test for labelling nodes - double" );
 	ret.addOption("actionAllDepth", true, "whether to aggrate over level as well - boolean" );
-	ret.addOption("actionType", true, "type of aggregate - " + UTYPE.values().toString() );
+	ret.addOption("actionType", true, "type of aggregate - " + Arrays.toString( UTYPE.values() ) );
 	
 	return ret;
     }   

@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.common.primitives.Longs;
+
 import util.MySoftReference;
 import util.Pair;
 import util.UniPair;
@@ -147,11 +149,18 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 	}
 
 	public int hashCode() {
-		long true_id = getTrueChild().getID();
-		long false_id = getFalseChild().getID();
+		final long true_id = getTrueChild().getID();
+		final long false_id = getFalseChild().getID();
 		
-		return com.google.common.base.Objects.hashCode( this.testVariable, 
-				true_id, false_id );
+		final int true_id_hash = Longs.hashCode(true_id);
+		final int false_id_hash = Longs.hashCode(false_id);
+//		
+		final int var_hash = testVariable.hashCode();
+//		
+		return (31*31)*var_hash + 31*true_id_hash + false_id_hash;
+//		return com.google.common.base.Objects.hashCode( var_hash, true_id, false_id );
+//		return com.google.common.base.Objects.hashCode( this.testVariable, 
+//				getTrueChild(), getFalseChild() );
 		
 //		if( hashSet ){
 //			return _nHashCode;
@@ -209,4 +218,17 @@ public class ADDINode extends DDINode<ADDNode, ADDRNode, UniPair<ADDRNode> >
 //		}
 //		return null;
 //	}
+	
+	@Override
+	public void updateMinMax() {
+		if( Double.isNaN(_nMax) || Double.isNaN(_nMin) ){
+			final double one_max = children._o1.getMax();
+			final double two_max = children._o2.getMax();
+			_nMax = Math.max( one_max, two_max );
+			
+			final double one_min = children._o1.getMin();
+			final double two_min = children._o2.getMin();
+			_nMin = Math.min( one_min, two_min );
+		}
+	}
 }

@@ -1,6 +1,6 @@
 domain grid_mdp {
  			requirements = {
- 				//constrained-state,
+ 				constrained-state,
  				reward-deterministic
  			};
  		
@@ -23,46 +23,60 @@ domain grid_mdp {
  		
  				GOAL(xpos,ypos) : {non-fluent, bool, default = false};
  		
- 				robot-at(xpos, ypos) : {state-fluent, bool, default = false};
- 		
- 				move-north : {action-fluent, bool, default = false};
- 				move-south : {action-fluent, bool, default = false};
- 				move-east  : {action-fluent, bool, default = false};
- 				move-west  : {action-fluent, bool, default = false};
+ 				robot-at-x(xpos) : {state-fluent, bool, default = false};
+				robot-at-y(ypos) : {state-fluent, bool, default = false};
+		
+				//actions - for x and y
+				//00 - noop
+				//10 - move -1 x/y
+				//01 - move +1 x/y
+				//11 - noop
+				delta-x-1 : {action-fluent, bool, default = false };
+				delta-x-2 : {action-fluent, bool, default = false };
+				delta-y-1 : {action-fluent, bool, default = false };
+				delta-y-2 : {action-fluent, bool, default = false };
+				
  			};
  		
  			cpfs {
  		
- 				robot-at'(?x,?y) =
- 		
- 					if ( GOAL(?x,?y) ^ robot-at(?x,?y)  )
- 					then
- 						KronDelta(true)
- 					else if ( ( robot-at(?x,?y) ^ ~exists_{?x2 : xpos, ?y2 : ypos}[ robot-at(?x2,?y2) ^ ~(?x2 == ?x ^ ?y2 == ?y)  ] ) 
-							 ^ ( ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y,?y2) ] )
- 							 | ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y,?y2) ] ) 
- 							 | ( move-east ^ exists_{?x2 : xpos} [ EAST(?x,?x2) ] )
- 							 | ( move-west ^ exists_{?x2 : xpos} [ WEST(?x,?x2) ] ) ) )
- 					then
- 						KronDelta(false)
- 					else if ( ~robot-at(?x,?y) ^ ( move-north ^ exists_{?y2 : ypos} [ NORTH(?y2,?y) ^ robot-at(?x,?y2) ^ ~(?y == ?y2) ] )
- 							 | ( move-south ^ exists_{?y2 : ypos} [ SOUTH(?y2,?y) ^ robot-at(?x,?y2) ^ ~(?y == ?y2) ] )
- 							 | ( move-east ^ exists_{?x2 : xpos} [ EAST(?x2,?x) ^ robot-at(?x2,?y) ^ ~(?x == ?x2) ] )
- 							 | ( move-west ^ exists_{?x2 : xpos} [ WEST(?x2,?x) ^ robot-at(?x2,?y) ^ ~(?x == ?x2)] ))
- 					then
- 						KronDelta( true )
- 					else
- 						KronDelta( robot-at(?x,?y) );
+ 				robot-at-x'(?x) =
+					if ( ~robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ^ delta-x-1 ^ ~delta-x-2 ^ robot-at-x(?x2) ] 
+							| exists_{?x2:xpos}[ WEST(?x,?x2) ^ ~delta-x-1 ^ delta-x-2 ^ robot-at-x(?x2) ] ) )
+					then 
+						KronDelta(true)//arriving from other x
+					else if ( robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ] ^ ~delta-x-1 ^ delta-x-2 
+					|  exists_{?x2:xpos}[ WEST(?x,?x2) ] ^ delta-x-1 ^ ~delta-x-2 ) )
+					then
+						KronDelta(false)//vacate this x
+					else 
+						KronDelta( robot-at-x(?x) ); //noop//(delta-x-1 == delta-x-2
+						
+				robot-at-y'(?y) = 
+					if ( ~robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ^ delta-y-1 ^ ~delta-y-2 ^ robot-at-y(?y2) ] 
+							| exists_{?y2:ypos}[ SOUTH(?y,?y2) ^ ~delta-y-1 ^ delta-y-2 ^ robot-at-y(?y2) ] ) )
+					then 
+						KronDelta(true)//arriving from other y
+					else if ( robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ] ^ ~delta-y-1 ^ delta-y-2 
+					|  exists_{?y2:ypos}[ SOUTH(?y,?y2) ] ^ delta-y-1 ^ ~delta-y-2 ) )
+					then
+						KronDelta(false)//vacate this y
+					else 
+						KronDelta( robot-at-y(?y) );//^ (delta-y-1 == delta-y-2) ) );
+					
+					
  		
  			};
  		
  			// 0 reward for reaching goal, -1 in all other cases
- 			reward = [sum_{?x : xpos, ?y : ypos} [ 0.0 -(GOAL(?x,?y) ^ ~robot-at(?x,?y))] ];
+ 			reward = sum_{?x : xpos, ?y : ypos}[ GOAL(?x,?y) * robot-at-x(?x) * robot-at-y(?y) ];
  		
  			state-action-constraints {
-				move-north + move-south + move-west + move-east <= 1;
+				//move-north + move-south + move-west + move-east <= 1;
  				// Robot at exactly one position
- 				[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] == 1;
+ 				[sum_{?x : xpos} robot-at-x(?x)] == 1;
+				[sum_{?y : ypos} robot-at-y(?y)] == 1;
+				
  			};
  		
  		}
