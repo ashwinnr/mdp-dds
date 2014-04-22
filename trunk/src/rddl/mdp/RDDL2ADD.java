@@ -626,10 +626,9 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			final String... vars ){
 		ADDRNode ret = _manager.DD_ONE;
 		for( final String var : vars ){
-			ret = _manager.apply(
+			ret = _manager.BDDIntersection(
 					ret, 
-					_manager.getIndicatorDiagram(var, truth),
-					DDOper.ARITH_PROD );
+					_manager.getIndicatorDiagram(var, truth) );
 		}
 		return ret;
 	}

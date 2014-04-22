@@ -236,10 +236,24 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
 			if( val == null ){
-			    partial_state.put( svar, false );// : val );
+			    partial_state.put( svar, _rand.nextBoolean() );// : val );
 			}
 		}
-		return new FactoredState<RDDLFactoredStateSpace>().setFactoredState(partial_state);
+		
+		final FactoredState<RDDLFactoredStateSpace> partial_factored_state 
+		= new FactoredState<RDDLFactoredStateSpace>().setFactoredState(partial_state);
+		setStateAction( partial_factored_state, null );
+		_constraint.setState( _state );
+		
+		try {
+			_constraint.checkConstraints( false );
+		}catch( Exception e ){
+			e.printStackTrace();
+			System.exit(1);
+		}
+		
+		
+		return partial_factored_state;
 	}
 	
 	
