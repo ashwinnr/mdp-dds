@@ -1785,10 +1785,13 @@ public class ADDDecisionTheoreticRegression implements
 		switch( init_state_conf ){
 		case BERNOULLI :
 			ret = _mdp.getIIDBernoulliDistribution(init_state_prob, state_vars);
+			break;
 		case CONJUNCTIVE :
 			ret = _mdp.getIIDConjunction(!(init_state_prob==0.0d), state_vars );
+			break;
 		case UNIFORM :
 			ret = _mdp.getIIDUniformDistribution( state_vars );
+			break;
 		}
 		final ADDRNode constr = _manager.productDD(this.__state_constraints);
 		if( !constr.equals(_manager.DD_ONE) ){
