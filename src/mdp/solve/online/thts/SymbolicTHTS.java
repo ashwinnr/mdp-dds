@@ -224,14 +224,15 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			}
 		}
 		
-		
-		final double value = get_heuristic_value( state, depth );
+		//this value is used for backup
+		//actually no need to initialize here if backup is done backwards
+//		final double value = get_heuristic_value( state, depth );
 
-		if( _valueDD[depth] == null ){
-			_valueDD[depth] = _manager.DD_ZERO;
-		}
+//		if( _valueDD[depth] == null ){
+//			_valueDD[depth] = _manager.DD_ZERO;
+//		}
 		
-		_valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );
+//		_valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );
 	}
 	
 	protected double get_heuristic_val( final NavigableMap<String, Boolean> state_assign, final int depth) {
@@ -281,9 +282,16 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	}
 	
 	@Override
-	public boolean is_node_solved(final FactoredState<RDDLFactoredStateSpace> assign,
+	public boolean is_node_solved(
+			final FactoredState<RDDLFactoredStateSpace> assign,
 			final int depth) {
-		return _manager.restrict( _solved[depth], assign.getFactoredState() ).getMax() == 1.0d;
+		return is_node_solved( assign.getFactoredState() , depth );
+	}
+	
+	public boolean is_node_solved(
+			final NavigableMap<String, Boolean> assign,
+			final int depth) {
+		return _manager.restrict( _solved[depth], assign ).equals(_manager.DD_ONE);
 	}
 	
 	public void mark_node_solved( final FactoredState<RDDLFactoredStateSpace> assign,

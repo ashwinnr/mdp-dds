@@ -636,7 +636,8 @@ public class ADDDecisionTheoreticRegression implements
 		}else {
 			ret_ns =  BDDImageSPUDD( reachable_states, action_quantification, constrain_naively );
 		}
-		return _manager.remapVars(ret_ns, _mdp.getPrimeUnMap() );
+		final ADDRNode ret = _manager.remapVars(ret_ns, _mdp.getPrimeUnMap() );
+		
 	}
 	
 	private ADDRNode BDDImageSPUDD(final ADDRNode reachable_states,
