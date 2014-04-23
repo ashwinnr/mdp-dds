@@ -233,11 +233,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );
 	}
-
-	protected double get_heuristic_value(
-			final FactoredState<RDDLFactoredStateSpace> state, final int depth) {
-		double value = Double.POSITIVE_INFINITY;
-		final NavigableMap<String, Boolean> state_assign = state.getFactoredState();
+	
+	protected double get_heuristic_val( final NavigableMap<String, Boolean> state_assign, final int depth) {
+	    double value = Double.POSITIVE_INFINITY;
 				
 		final double reward = _mdp.getReward( state_assign );
 		
@@ -245,7 +243,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			value = reward;
 		}else{
 			for( int d = depth+1; d < steps_lookahead; ++d ){
-				if( is_node_visited( state, d ) ){
+				if( is_node_visited( state_assign, d ) ){
 					value = _RMAX*(d-depth) + get_value( state_assign, d );
 				}
 			}
@@ -255,17 +253,28 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}
 		
 		return value;
+
 	}
 
+	protected double get_heuristic_value(
+			final FactoredState<RDDLFactoredStateSpace> state, final int depth) {
+	    return get_heuristic_val(state.getFactoredState(), depth);
+	}
+
+	public boolean is_node_visited(final NavigableMap<String, Boolean> state_assign,
+		final int depth ) {
+	    return _manager.restrict( _visited[depth], state_assign ).equals(_manager.DD_ONE);
+	}
+	
 	public boolean is_node_visited(final FactoredState<RDDLFactoredStateSpace> state,
 			final int depth ) {
-		return _manager.restrict( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ONE);
+		return is_node_visited(state.getFactoredState(), depth );
 	}
 
-	public ADDRNode set_value( final  NavigableMap<String, Boolean> assign, final int depth ,
-			final double value ) {
-		return _manager.assign( _valueDD[depth], assign, value);
-	}
+//	public ADDRNode set_value( final  NavigableMap<String, Boolean> assign, final int depth ,
+//			final double value ) {
+//		return _manager.assign( _valueDD[depth], assign, value);
+//	}
 	
 	public double get_value( final NavigableMap<String, Boolean> assign, final int depth ) {
 		return _manager.restrict(_valueDD[depth], assign).getMax();
