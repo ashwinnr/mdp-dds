@@ -427,6 +427,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public static void main(String[] args) throws Exception {
+//	    testGetProductDD( );
+	    testAssignDD();
 //		testApricodd();
 //		testBreakTies();
 		//		testAddPair();
@@ -440,7 +442,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		testApply();
 //		testConstrain();
 		//		testRestrict();
-		testEnumeratePaths();
+//		testEnumeratePaths();
 //		testPathsToLeaf();
 		//		testEvaluate();
 //				testApplyCache();
@@ -481,6 +483,53 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//		System.out.println( results );
 
 	}
+
+	private static void testAssignDD() {
+	    
+	    ArrayList<String> ord = new ArrayList<String>();
+
+		ord.add("X");
+		ord.add("Y");
+		ord.add("Z");
+
+		ADDManager man = new ADDManager(100, 100, ord, 42);
+		
+		ADDRNode leaf1 = man.getLeaf(3d);
+
+		ADDRNode leaf2 = man.getLeaf(6d);
+
+		ADDRNode inode = man.getINode("X",  
+			man.getINode("Z", leaf1, leaf2), 
+			man.getINode("Y", leaf1, leaf2) );
+		
+		NavigableMap<String, Boolean> assign = Maps.newTreeMap();
+		assign.put("X", true);
+		assign.put("Y", false);
+		
+		man.showGraph( inode, man.assign(inode, assign , 6d) );
+		
+		
+
+	}
+
+	private static void testGetProductDD() {
+	    
+	    ArrayList<String> ord = new ArrayList<String>();
+
+		ord.add("X");
+		ord.add("Y");
+		ord.add("Z");
+
+		ADDManager man = new ADDManager(100, 100, ord, 42);
+
+		NavigableMap<String, Boolean> assign = Maps.newTreeMap();
+		assign.put("X", true);
+		assign.put("Y", false);
+		
+		man.showGraph( man.getProductBDDFromAssignment(assign) );
+	}
+	
+	
 
 	public static void testAddPair(){
 
@@ -3055,7 +3104,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	//main methods of getting RNode from INode and Leaf
 	//gets the canonical copy - including negated edges
-	public <T extends ADDNode> ADDRNode getRNode( final Class<T> type,
+	protected <T extends ADDNode> ADDRNode getRNode( final Class<T> type,
 			final boolean create ){
 //		Objects.requireNonNull( obj );
 
@@ -4000,18 +4049,23 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return null;
 	}
 
-	public ADDRNode getProductBDDFromAssignment(final NavigableMap<String, Boolean>... assignments ) {
-		ADDRNode ret = DD_ONE;
-		for( final NavigableMap<String, Boolean> assignment : assignments ){
-			for( Map.Entry<String, Boolean> entry : assignment.entrySet() ){
-				ADDRNode thisDD = getIndicatorDiagram(entry.getKey(), entry.getValue());
-				ret = apply( ret, thisDD, DDOper.ARITH_PROD );
-			}	
-		}
-		
-		return ret;
+	public ADDRNode getProductBDDFromAssignment(final NavigableMap<String, Boolean> assignments ) {
+		return getProductBDDFromAssignmentInt( 0, assignments );
 	}
 
+	private ADDRNode getProductBDDFromAssignmentInt( final int pos, 
+		final NavigableMap<String, Boolean> assignments ){
+	    if( pos >= _ordering.size() ){
+		return DD_ONE;
+	    }
+	    final String var = _ordering.get(pos);
+	    final Boolean val = assignments.get( var );
+	    if( val != null ){
+		final ADDRNode root_next = getProductBDDFromAssignmentInt(pos+1, assignments);
+		return makeINode( var, val ? root_next : DD_ZERO, val ? DD_ZERO : root_next );
+	    }
+	    return getProductBDDFromAssignmentInt(pos+1, assignments);
+	}
 //	public ADDRNode convertNegInfZeroDDToBDD(final ADDRNode input) {
 //		//convert a DD with zero and neg inf DDs
 //		//maps zero to one
@@ -4472,17 +4526,46 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return getRNode( ADDLeaf.class, true );
 	}
 
-	public ADDRNode assign(final ADDRNode input,
-			NavigableMap<String, Boolean> assign, 
-			final double new_val ) {
-		
-		final ADDRNode bdd = getProductBDDFromAssignment(assign);
-		final ADDRNode bdd_not = BDDNegate( bdd );
-		final ADDRNode ret = apply( scalarMultiply(bdd, new_val),
-				apply( bdd_not, input, DDOper.ARITH_PROD ),
-				DDOper.ARITH_PLUS );
-		return ret;
-	}
+//	public ADDRNode assign(final ADDRNode input,
+//			NavigableMap<String, Boolean> assign, 
+//			final double new_val ) {
+//	
+//	    //dont use apply assuming input is ordered and reduced
+//	    Map< ADDRNode, ADDRNode > _tempUnaryCache  = new HashMap< ADDRNode, ADDRNode>();
+//	    final ADDRNode ret = assignInt( input, assign, new_val, assign.size(), _tempUnaryCache );
+//	    _tempUnaryCache = null;
+//	    return ret;
+//	}
+//	
+//	private ADDRNode assignInt( final ADDRNode input, final NavigableMap<String, Boolean> assign, 
+//		final double new_val, final int to_go , Map<ADDRNode, ADDRNode> _tempUnaryCache ){
+//	    final ADDNode theNode = input.getNode();
+//	    if( to_go == 0 ){
+//		return getLeaf(new_val);
+//	    }else if( theNode instanceof ADDLeaf ){
+//		return input;
+//	    }else if( _tempUnaryCache.containsKey(input) ){
+//		return _tempUnaryCache.get( input );
+//	    }
+//	    
+//	    final String testVar = input.getTestVariable();
+//	    final Boolean val = assign.get(testVar);
+//	    if( val != null ){
+//		final ADDRNode sub_assign = val ? assignInt( input.getTrueChild(), assign, new_val, to_go-1 , _tempUnaryCache) :
+//		    assignInt( input.getFalseChild(), assign, new_val , _tempUnaryCache);
+//		final ADDRNode ret = val ? makeINode(testVar, sub_assign, input.getFalseChild() ) :
+//		    makeINode( testVar, input.getFalseChild(), sub_assign );
+//		_tempUnaryCache.put(input, ret);
+//		return ret;
+//	    }
+//	    //recurse necessary
+//	    final ADDRNode true_assign = assignInt(input.getTrueChild(), assign, new_val, to_go, _tempUnaryCache);
+//	    final ADDRNode false_assign = assignInt( input.getFalseChild(), assign, new_val, _tempUnaryCache );
+//	    final ADDRNode ret = makeINode( testVar, true_assign, false_assign );
+//	    _tempUnaryCache.put(input, ret );
+//	    return ret;
+//	}
+////	}
 
 	public ADDRNode get_path(final ADDRNode input,
 			final NavigableMap<String, Boolean>... paths) {
@@ -4516,8 +4599,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public void clearNodes() {
-		madeLeaf = new ReferenceMap<>();
-		madeINodes = new TreeMap<>();
+		madeLeaf = new ReferenceMap<ADDLeaf, ADDRNode>();
+		madeINodes = new TreeMap<String, 
+		ReferenceMap< ADDINode, ADDRNode>>();
 	}
 
 }
