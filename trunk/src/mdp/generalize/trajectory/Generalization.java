@@ -28,20 +28,18 @@ public abstract class Generalization<S extends FactoredStateSpace,
 	public ADDRNode generalize( final ADDRNode input, 
 			final GENERALIZE_PATH rule ,
 			final ADDManager manager,
-			final NavigableMap<String, Boolean>... paths ){
+			final NavigableMap<String, Boolean> path ){
 		switch( rule ){
 		case ALL_PATHS :
 			ADDRNode eval = input;
-			for( final NavigableMap<String, Boolean> path : paths ){
-				eval = manager.restrict( eval, path );
-			}
+			eval = manager.restrict( eval, path );
 			
 			ADDLeaf leaf = (ADDLeaf)eval.getNode();
 			return manager.all_paths_to_leaf(input, leaf); 
 		case NONE :
-			return manager.getProductBDDFromAssignment(paths);
+			return manager.getProductBDDFromAssignment(path);
 		case PATH :
-			return manager.get_path( input, paths );
+			return manager.get_path( input, path );
 		}
 		return null;
 	}

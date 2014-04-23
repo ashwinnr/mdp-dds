@@ -386,14 +386,19 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		final Set<NavigableMap<String, Boolean>> paths_states
 		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
+		ADDRNode weighted_states = states;
 		
 		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
 		
 		for( final NavigableMap<String, Boolean> path_state : paths_states ){
 			fs.setFactoredState(path_state);
 			final double hval = get_heuristic_value(fs, depth);
-			ret = _manager.assign( ret , path_state, hval );
+			ret = _manager.assign( weighted_states , path_state, hval );//assign may increase size
 		}
+		
+		ret = _manager.apply( _manager.apply( ret, 
+				_manager.BDDNegate( states ), DDOper.ARITH_PROD ),
+				weighted_states, DDOper.ARITH_PLUS );
 		
 		return ret; 
 	}

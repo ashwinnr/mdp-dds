@@ -4526,6 +4526,18 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return getRNode( ADDLeaf.class, true );
 	}
 
+	public ADDRNode assign(final ADDRNode input,
+			NavigableMap<String, Boolean> assign, 
+			final double new_val ) {
+		
+		final ADDRNode bdd = getProductBDDFromAssignment(assign);
+		final ADDRNode bdd_not = BDDNegate( bdd );
+		final ADDRNode ret = apply( scalarMultiply(bdd, new_val),
+				apply( bdd_not, input, DDOper.ARITH_PROD ),
+				DDOper.ARITH_PLUS );
+		return ret;
+	}
+	
 //	public ADDRNode assign(final ADDRNode input,
 //			NavigableMap<String, Boolean> assign, 
 //			final double new_val ) {
