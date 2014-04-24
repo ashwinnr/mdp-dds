@@ -70,6 +70,7 @@ public class InstantiateArgs {
 	ret.addOption("convergenceTest", true, "convergence test for labelling nodes - double" );
 	ret.addOption("actionAllDepth", true, "whether to aggrate over level as well - boolean" );
 	ret.addOption("actionType", true, "type of aggregate - " + Arrays.toString( UTYPE.values() ) );
+	ret.addOption("EBLPolicy", true, "EBL region on policy- bool" );
 	
 	return ret;
     }   

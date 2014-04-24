@@ -123,7 +123,6 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    	if( cur_gen_state.equals(manager.DD_ZERO) ){
 	    		throw new Exception("WARNING generalized state is zero");
 	    	}else if( 
-	    			parameters.getNum_states() == -1 && 
 	    			manager.restrict( cur_gen_state, states[i].getFactoredState() ).equals( 
 	    					manager.DD_ZERO ) ){
 	    		throw new Exception("WARNING generalized state does not contain state" );
@@ -163,11 +162,11 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //									manager.DD_ZERO ) ;
 			break;
 		    case WEAK_POLICY : 
-			consistent_cur_gen_state = 
+				final ADDRNode bddImagePolicy = _dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
+					parameters.get_policyDD()[i-1], true);
+				consistent_cur_gen_state = 
 //				parameters.get_constrain_naively() ? 
-						manager.BDDIntersection(consistent_cur_gen_state, 
-				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					parameters.get_policyDD()[i-1], true)  );
+						manager.BDDIntersection( consistent_cur_gen_state, bddImagePolicy  );
 //					: manager.constrain(consistent_cur_gen_state, 
 //							_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
 //									parameters.get_policyDD()[i-1], true) ,

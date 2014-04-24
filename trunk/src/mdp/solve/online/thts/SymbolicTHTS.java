@@ -330,10 +330,18 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	private FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> get_policy_action(
 			final FactoredState<RDDLFactoredStateSpace> state, 
 			final int depth) {
+		final ADDRNode action_dd = _manager.restrict(
+				_policyDD[depth], state.getFactoredState() );
+		if( action_dd.equals(_manager.DD_ZERO ) ){
+			try{
+				throw new Exception("No action defined for state " + state.getFactoredState() );
+			}catch(Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		final NavigableMap<String, Boolean> partial_path = 
-				Maps.newTreeMap( _manager.sampleOneLeaf( _manager.restrict(
-				_policyDD[depth], state.getFactoredState() ) ,
-				_rand ) );
+				Maps.newTreeMap( _manager.sampleOneLeaf( action_dd , _rand ) );
 //		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> partial_action 
 //		= cur_action.setFactoredAction( path );
 		for( final String actvar : _mdp.get_actionVars() ){

@@ -212,7 +212,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				System.out.print("-");
 				
 			}
-//			System.out.println( state_assign );
+			if( DISPLAY_TRAJECTORY ){
+				System.out.println( cur_state.toString() );
+			}
 			
 //			trajectory_states[ trajectory_states.length-1 ].setFactoredState( cur_state.getFactoredState() );
 			
@@ -635,7 +637,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 						UTYPE.valueOf(cmd.getOptionValue("actionType") ) );
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			inner_params = new EBLParams(null, null, new Random( rand.nextLong()), 
-					null , constrain_naively);
+					null , constrain_naively,
+					Boolean.parseBoolean(cmd.getOptionValue("EBLPolicy") ) );
 		}else if( cmd.getOptionValue("generalization").equals("reward") ){
 			inner_params = new RewardGeneralizationParameters(null, 
 					GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
