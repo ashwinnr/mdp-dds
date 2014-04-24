@@ -226,13 +226,18 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		//this value is used for backup
 		//actually no need to initialize here if backup is done backwards
-//		final double value = get_heuristic_value( state, depth );
+		
 
 //		if( _valueDD[depth] == null ){
 //			_valueDD[depth] = _manager.DD_ZERO;
 //		}
+		if( depth == steps_lookahead-1 ){
+		    //only need to add last level nodes
+		    //to _valueDD
+		    final double value = get_heuristic_value( state, depth );
+		    _valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );    
+		}
 		
-//		_valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );
 	}
 	
 	protected double get_heuristic_val( final NavigableMap<String, Boolean> state_assign, final int depth) {
@@ -272,10 +277,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		return is_node_visited(state.getFactoredState(), depth );
 	}
 
-//	public ADDRNode set_value( final  NavigableMap<String, Boolean> assign, final int depth ,
-//			final double value ) {
-//		return _manager.assign( _valueDD[depth], assign, value);
-//	}
+	public ADDRNode set_value( final  NavigableMap<String, Boolean> assign, final int depth ,
+			final double value ) {
+		return _manager.assign( _valueDD[depth], assign, value);
+	}
 	
 	public double get_value( final NavigableMap<String, Boolean> assign, final int depth ) {
 		return _manager.restrict(_valueDD[depth], assign).getMax();
@@ -377,17 +382,17 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		_visited = new ADDRNode[ steps_lookahead ];
 		Arrays.fill( _visited, _manager.DD_ZERO );
 		
-		_manager.clearNodes();
+		
+//		_manager.clearNodes();
 		
 		System.gc();
 		
 	}
 
-	protected void display(
-			final ADDRNode[] values, final ADDRNode[] policies ) {
-		for( int i = 0 ; i < values.length; ++i ){
-			ADDRNode vfn = values[i];
-			ADDRNode plcy = policies[i];
+	protected void display(  ) {
+		for( int i = 0 ; i < _valueDD.length; ++i ){
+			ADDRNode vfn = _valueDD[i];
+			ADDRNode plcy = _policyDD[i];
 			System.out.println("i = " + i );
 			System.out.println("Size of Value fn. " + _manager.countNodes(vfn) );
 			System.out.println("Size of policy " + _manager.countNodes( plcy ) );
