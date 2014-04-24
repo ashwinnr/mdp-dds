@@ -4610,10 +4610,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
-	public void clearNodes() {
-		madeLeaf = new ReferenceMap<ADDLeaf, ADDRNode>();
-		madeINodes = new TreeMap<String, 
-		ReferenceMap< ADDINode, ADDRNode>>();
-	}
+//	public void clearNodes() {
+//		madeLeaf = new ReferenceMap<ADDLeaf, ADDRNode>();
+//		madeINodes = new TreeMap<String, 
+//		ReferenceMap< ADDINode, ADDRNode>>();
+//	}
 
 }

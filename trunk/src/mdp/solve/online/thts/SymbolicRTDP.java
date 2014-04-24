@@ -129,7 +129,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 		if( !_manager.evaluate(_solved[0], state.getFactoredState()).equals(_manager.DD_ONE) ){
 			do_sRTDP( state );
-			display( _valueDD, _policyDD );
+			display(  );//_valueDD, _policyDD );
 		}
 		
 		final ADDRNode action_dd 
@@ -160,7 +160,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
 			if( !is_node_visited(cur_state, num_actions) ){
 				initilialize_node(cur_state, num_actions);
-				visit_node( cur_state, num_actions );
+				visit_node(cur_state, num_actions);
 //				if( truncateTrials ){
 //					System.out.println("Truncating trial : " + num_actions );
 //					System.out.println("Truncating trial : " + cur_state );
@@ -198,8 +198,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
 				if( !is_node_visited(cur_state, num_actions) ){
 					initilialize_node(cur_state, num_actions);
-					visit_node( cur_state, num_actions );
-					
+					visit_node(cur_state, num_actions);
 					if( truncateTrials ){
 //						System.out.println("Truncating trial : " + num_actions );
 //						System.out.println("Truncating trial : " + cur_state );
@@ -237,8 +236,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("Trials to go  " + trials_to_go );
 			
 			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
+//			display();
 		}
 		System.out.println();
+	
 	}
 	
 	protected ADDRNode[] generalize_trajectory(final FactoredState<RDDLFactoredStateSpace>[] trajectory_states, 
@@ -266,13 +267,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		int i = (num_states-1)*2;//-1;
 		int j = num_states-1;
-		
+		ADDRNode visit_save_j = null;// Arrays.copyOf(_visited, _visited.length);
+			
 		while( i >= 2 ){
 		
 //	    	System.out.println("Updating trajectories " + j );
 	    	
 	    	ADDRNode this_next_states, this_states, this_actions;
 	    	ADDRNode source_val, target_val, target_policy;
+	    	
 	    	
 	    	this_next_states = trajectory[i--];
 			this_actions = trajectory[i--];
@@ -286,7 +289,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//visited in next state already initialized and updated
 			//others need to be updated
 			final ADDRNode image_not_visited = _manager.BDDIntersection( next_states, 
-					_manager.BDDNegate( _visited[j] ) );
+					_manager.BDDNegate( visit_save_j == null ? _visited[j] : visit_save_j ) );
 			if( !image_not_visited.equals(_manager.DD_ZERO) ){
 				source_val = initilialize_node_temp( _valueDD[j], image_not_visited, j);
 			}else{
@@ -330,10 +333,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 			}
 			
+			//even though the backup is assigned to v[j-1]
+			//the backup for v[j-2] will not use these values if visited=0
 			_valueDD[ j-1 ] = backup._o1;
 			_policyDD[ j-1 ] = backup._o2._o1;
 			
-			_manager.flushCaches();
+			//FIX 1 : visit all the nodes in generalized states
+			//and remove at the end
+			visit_save_j = visit_node( this_states, j-1 );
+			
 			
 //			System.out.println(j + " " + backup._o2._o2 );
 			--j;
@@ -344,6 +352,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			
 		}
+//		_visited = visit_save;
 //		display(_valueDD, _policyDD);
 //		System.out.println();
 		
@@ -378,10 +387,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		return backed;
 //	}
 	
+	private ADDRNode visit_node(ADDRNode states, int depth) {
+	    return  _manager.BDDUnion(_visited[depth], states );
+	}
+
 	private ADDRNode initilialize_node_temp( final ADDRNode value_fn, 
 			final ADDRNode states, final int depth ) {
 		//for each path in states that lead to 1
 		//initialize
+	    	if( states.equals(_manager.DD_ONE) && value_fn.equals(_manager.DD_ZERO) ){
+	    	    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
+	    	}
 		ADDRNode ret = value_fn;
 		
 		final Set<NavigableMap<String, Boolean>> paths_states
@@ -393,7 +409,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		for( final NavigableMap<String, Boolean> path_state : paths_states ){
 			fs.setFactoredState(path_state);
 			final double hval = get_heuristic_value(fs, depth);
-			ret = _manager.assign( weighted_states , path_state, hval );//assign may increase size
+			weighted_states = _manager.assign( weighted_states , path_state, hval );//assign may increase size
 		}
 		
 		ret = _manager.apply( _manager.apply( ret, 

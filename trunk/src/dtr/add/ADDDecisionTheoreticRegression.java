@@ -633,71 +633,74 @@ public class ADDDecisionTheoreticRegression implements
 		ADDRNode ret_ns = null; 
 		if( withActionVars ){
 			ret_ns =  BDDImageFAR( reachable_states, action_quantification, constrain_naively );
-		}else {
-			ret_ns =  BDDImageSPUDD( reachable_states, action_quantification, constrain_naively );
 		}
+//		else {
+//			ret_ns =  BDDImageSPUDD( reachable_states, action_quantification, constrain_naively );
+//		}
 		final ADDRNode ret = _manager.remapVars(ret_ns, _mdp.getPrimeUnMap() );
+		
+		return _manager.constrain(ret, _manager.productDD( __state_constraints ), _manager.DD_ZERO );
 		
 	}
 	
-	private ADDRNode BDDImageSPUDD(final ADDRNode reachable_states,
-			final DDQuantify quantification, final boolean constrain_naively) {
-		final List<NavigableMap<String, Boolean>> actions = _mdp.getFullRegressionOrder();
-		final Map<Map<String, Boolean>, Map<String, ADDRNode>> theRelations = _mdp.getTransitionRelationSPUDD();
-		final Map<NavigableMap<String, Boolean>, ArrayList<Pair<String, String>>> 
-			theRelationsLast = _mdp.getTransitionRelationLastSPUDD();
-		ADDRNode ret = _manager.DD_ZERO;
-		final int idx_reach = addStateConstraint(reachable_states);
-		
-		for( final NavigableMap<String, Boolean> action : actions ){
-			ADDRNode ret_action = _manager.DD_ONE; 
-			ret_action = applyMDPConstraints(ret_action, action, _manager.DD_ZERO, constrain_naively, null);
-			final Map<String, ADDRNode> action_relation = theRelations.get( action );
-			final ArrayList<Pair<String, String>> action_last = theRelationsLast.get( action );
-			int lastSeen_index = 0;
-			final int lastSeen_size = action_last.size();
-			for( final String ns_var : _mdp.getSumOrder() ){
-				ret_action = _manager.apply( ret_action, 
-						action_relation.get( ns_var ),
-						DDOper.ARITH_PROD );
-				ret_action = applyMDPConstraints(ret_action, action, _manager.DD_ZERO, constrain_naively, null);
-				
-				if( lastSeen_index == lastSeen_size ){
-					continue;
-				}else{//check for state vars to quantify
-					Pair<String, String> first_lastSeen = action_last.get( lastSeen_index );
-					while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == ns_var ) && 
-							lastSeen_index < lastSeen_size ){ //counts on interned string
-						ret_action = _manager.quantify( ret_action, first_lastSeen._o2, quantification );
-						ret_action = applyMDPConstraints(ret_action, action, _manager.DD_ZERO, constrain_naively, null);
-						
-						if( ++lastSeen_index < lastSeen_size ){
-							first_lastSeen = action_last.get( lastSeen_index );
-						}
-					}
-				}
-			}
-			
-			for( final String state_var : _mdp.getFactoredStateSpace().getStateVariables() ){
-				ret_action = _manager.quantify( ret_action ,  state_var , quantification);
-			}
-			 
-			for( final String action_var : _mdp.getFactoredActionSpace().getActionVariables() ){
-				ret_action = _manager.quantify( ret_action, action_var, quantification);
-			}
-			
-			ret = _manager.apply( ret, ret_action, DDOper.ARITH_MAX );
-		}
-		if( !removeStateConstraint(idx_reach) ){
-			try{
-				throw new Exception("Could not remove state constraint");
-			}catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
-		return ret;
-	}
+//	private ADDRNode BDDImageSPUDD(final ADDRNode reachable_states,
+//			final DDQuantify quantification, final boolean constrain_naively) {
+//		final List<NavigableMap<String, Boolean>> actions = _mdp.getFullRegressionOrder();
+//		final Map<Map<String, Boolean>, Map<String, ADDRNode>> theRelations = _mdp.getTransitionRelationSPUDD();
+//		final Map<NavigableMap<String, Boolean>, ArrayList<Pair<String, String>>> 
+//			theRelationsLast = _mdp.getTransitionRelationLastSPUDD();
+//		ADDRNode ret = _manager.DD_ZERO;
+//		final int idx_reach = addStateConstraint(reachable_states);
+//		
+//		for( final NavigableMap<String, Boolean> action : actions ){
+//			ADDRNode ret_action = _manager.DD_ONE; 
+//			ret_action = applyMDPConstraints(ret_action, action, _manager.DD_ZERO, constrain_naively, null);
+//			final Map<String, ADDRNode> action_relation = theRelations.get( action );
+//			final ArrayList<Pair<String, String>> action_last = theRelationsLast.get( action );
+//			int lastSeen_index = 0;
+//			final int lastSeen_size = action_last.size();
+//			for( final String ns_var : _mdp.getSumOrder() ){
+//				ret_action = _manager.apply( ret_action, 
+//						action_relation.get( ns_var ),
+//						DDOper.ARITH_PROD );
+//				ret_action = applyMDPConstraints(ret_action, action, _manager.DD_ZERO, constrain_naively, null);
+//				
+//				if( lastSeen_index == lastSeen_size ){
+//					continue;
+//				}else{//check for state vars to quantify
+//					Pair<String, String> first_lastSeen = action_last.get( lastSeen_index );
+//					while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == ns_var ) && 
+//							lastSeen_index < lastSeen_size ){ //counts on interned string
+//						ret_action = _manager.quantify( ret_action, first_lastSeen._o2, quantification );
+//						ret_action = applyMDPConstraints(ret_action, action, _manager.DD_ZERO, constrain_naively, null);
+//						
+//						if( ++lastSeen_index < lastSeen_size ){
+//							first_lastSeen = action_last.get( lastSeen_index );
+//						}
+//					}
+//				}
+//			}
+//			
+//			for( final String state_var : _mdp.getFactoredStateSpace().getStateVariables() ){
+//				ret_action = _manager.quantify( ret_action ,  state_var , quantification);
+//			}
+//			 
+//			for( final String action_var : _mdp.getFactoredActionSpace().getActionVariables() ){
+//				ret_action = _manager.quantify( ret_action, action_var, quantification);
+//			}
+//			
+//			ret = _manager.apply( ret, ret_action, DDOper.ARITH_MAX );
+//		}
+//		if( !removeStateConstraint(idx_reach) ){
+//			try{
+//				throw new Exception("Could not remove state constraint");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+//		return ret;
+//	}
 
 	private static void testImageAllActions(){
 		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_1.rddl", 
@@ -831,10 +834,11 @@ public class ADDDecisionTheoreticRegression implements
 		int lastSeen_index = 0;
 		final int lastSeen_size = lastSeen.size();
 		//this step removes only illegal states from reachable states
-		final int idx_reach = addStateConstraint(unprimed_reachable_states);
+//		final int idx_reach = addStateConstraint(unprimed_reachable_states);
 		
-		ADDRNode ret = _manager.DD_ONE;
-		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+		ADDRNode ret = _manager.productDD( __action_constraints, __state_constraints, __policy_constraints ); 
+		ret = _manager.productDD(ret, unprimed_reachable_states );
+//		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
 //		System.out.println("Image computation");
 		
@@ -845,7 +849,7 @@ public class ADDDecisionTheoreticRegression implements
 			final ADDRNode theRelation = transitionRelation.get(nextState);
 			ret = _manager.apply( ret , theRelation, DDOper.ARITH_PROD );
 			//this is necessary to include action constraints
-			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 			
 			Pair<String, String> first_lastSeen = lastSeen.get( lastSeen_index );
 			while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == nextState ) && 
@@ -855,7 +859,7 @@ public class ADDDecisionTheoreticRegression implements
 					first_lastSeen = lastSeen.get( lastSeen_index );
 				}
 			}
-			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 		}
 
 		for( String state_var : _mdp.getFactoredStateSpace().getStateVariables() ){
@@ -866,14 +870,14 @@ public class ADDDecisionTheoreticRegression implements
 			ret = _manager.quantify(ret, action_var, quantification);
 		}
 
-		if( !removeStateConstraint(idx_reach) ){
-			try{
-				throw new Exception("Could not remove state constraint");
-			}catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
+//		if( !removeStateConstraint(idx_reach) ){
+//			try{
+//				throw new Exception("Could not remove state constraint");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
 		//do same for imageSPUDD . check image action and imagepolicy
 		//write preimage 
 		return ret;
