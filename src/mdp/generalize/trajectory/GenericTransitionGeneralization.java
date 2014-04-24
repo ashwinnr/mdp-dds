@@ -154,8 +154,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			consistent_cur_gen_state = 
 //				parameters.get_constrain_naively() ?
 						manager.BDDIntersection(consistent_cur_gen_state, 
-				_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					prev_action, true)   ) ;
+				_dtr.BDDImageAction(prev_gen_state, DDQuantify.EXISTENTIAL, 
+					prev_action, true , true)   ) ;
 //					: 
 //						manager.constrain(consistent_cur_gen_state, 
 //								_dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
