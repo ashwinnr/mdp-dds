@@ -639,9 +639,18 @@ public class ADDDecisionTheoreticRegression implements
 //		else {
 //			ret_ns =  BDDImageSPUDD( reachable_states, action_quantification, constrain_naively );
 //		}
-		final ADDRNode ret = _manager.remapVars(ret_ns, _mdp.getPrimeUnMap() );
+		ADDRNode ret = _manager.remapVars(ret_ns, _mdp.getPrimeUnMap() );
+		ret = _manager.BDDIntersection( ret, _manager.productDD( __state_constraints ) );
+		if( ret.equals(_manager.DD_ZERO) ){
+			try{
+				throw new Exception("Image is zero");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		
-		return _manager.constrain(ret, _manager.productDD( __state_constraints ), _manager.DD_ZERO );
+		return ret;
 		
 	}
 	
@@ -754,7 +763,7 @@ public class ADDDecisionTheoreticRegression implements
 
 	private static void testImagePolicy(){
 		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
-				true, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true, 42);
+				true, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, true, 42);
 		
 		ADDDecisionTheoreticRegression ADD_dtr 
 			= new ADDDecisionTheoreticRegression(mdp, 42);
@@ -769,20 +778,23 @@ public class ADDDecisionTheoreticRegression implements
 					DDOper.ARITH_PROD ) ;
 		}
 		
-		ADDRNode policy = manager.DD_ZERO;
+		ADDRNode policy = manager.DD_ONE;
 		for( final String action_var : mdp.getFactoredActionSpace().getActionVariables() ){
+//			policy = ADD_dtr.getNoOpPolicy(mdp.get_actionVars(), manager);
 			policy = manager.apply( policy, 
 					manager.getIndicatorDiagram(action_var, true),
-					DDOper.ARITH_MAX );
+					DDOper.ARITH_PROD );
 		}
 		
 		ADDRNode iter = states;
-		while( i++ < 5 ){
-			manager.showGraph( iter );
-			System.out.println( i +  " " + manager.countNodes(iter) );
+		while( i++ < 1 ){
+//			manager.showGraph( iter );
+			System.out.println( i +  " " + iter );
 			iter = ADD_dtr.BDDImagePolicy(iter, true,  DDQuantify.EXISTENTIAL, policy, false );
 		}
 
+		System.out.println( i +  " " + iter );
+//		manager.showGraph(iter);
 //		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_2_2.rddl", 
 //				false, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true, 42);
 		
@@ -840,6 +852,14 @@ public class ADDDecisionTheoreticRegression implements
 		
 		ADDRNode ret = _manager.productDD( __action_constraints, __state_constraints, __policy_constraints ); 
 		ret = _manager.productDD(ret, unprimed_reachable_states );
+		if( ret.equals(_manager.DD_ZERO) ){
+			try{
+				throw new Exception("Image source is zero");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 //		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
 //		System.out.println("Image computation");
@@ -903,20 +923,59 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		return ret;
 	}
+	
+	public ADDRNode BDDPreImageAction(
+		final ADDRNode next_states_unprimed, 
+		final ADDRNode action,
+		final boolean withActionVars, 
+		final DDQuantify quantification, 
+		final boolean constrain_naively ){
+	final int idx_action_constr = addActionConstraint(action);
+	final ADDRNode ret = BDDPreImage(next_states_unprimed, withActionVars, quantification, constrain_naively);
+	
+	if( action != null && !removePolicyConstraint( idx_action_constr ) ){
+		try{
+			throw new Exception("Could not remove policy constraint");
+		}catch( Exception e ){
+			e.printStackTrace();
+			System.exit(1);
+		}
+	}
+	return ret;
+	}
+	
+	public ADDRNode BDDPreImagePolicy( 
+			final ADDRNode next_states_unprimed, 
+			final ADDRNode policy,
+			final boolean withActionVars, 
+			final DDQuantify quantification, 
+			final boolean constrain_naively ){
+		final int idx_policy_constr = addPolicyConstraint(policy);
+		final ADDRNode ret = BDDPreImage(next_states_unprimed, withActionVars, quantification, constrain_naively);
+		
+		if( policy != null && !removePolicyConstraint( idx_policy_constr ) ){
+			try{
+				throw new Exception("Could not remove policy constraint");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		return ret;
+	}
 	//	preImage using BDDs
 	// OKAY to use pruning here
 	//similar to bakups
-	public ADDRNode BDDPreImage( final ADDRNode next_states_unprimed, 
-			final ADDRNode policy, final boolean withActionVars, 
-			final DDQuantify quantification, final boolean constrain_naively ){
-		final ADDRNode next_states_primed = _manager.remapVars(next_states_unprimed, _mdp.getPrimeRemap());
-		final int idx_policy_constr = policy == null ? -1 : addPolicyConstraint( policy );
+	public ADDRNode BDDPreImage( 
+			final ADDRNode next_states_unprimed, 
+			final boolean withActionVars, 
+			final DDQuantify quantification, 
+			final boolean constrain_naively ){
 		
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
-				&& _manager.hasVars( next_states_primed, _mdp.getFactoredActionSpace().getActionVariables() )
-				&& _manager.hasVars( next_states_primed, _mdp.getFactoredStateSpace().getStateVariables() ) ){
+				&& _manager.hasVars( next_states_unprimed, _mdp.getFactoredActionSpace().getActionVariables() )  ){
 				try{
-					throw new Exception("Has action/next state vars in Image.");
+					throw new Exception("Has action vars in PreImage.");
 				}catch( Exception e ){
 					e.printStackTrace();
 					System.exit(1);
@@ -931,6 +990,9 @@ public class ADDDecisionTheoreticRegression implements
 		final NavigableMap<String, ADDRNode> transitionRelation = _mdp.getTransitionRelationFAR();
 		final ArrayList<String> sumOrder = _mdp.getSumOrder();
 
+		final ADDRNode legal_next_states = _manager.BDDIntersection(next_states_unprimed, 
+				_manager.productDD(__state_constraints) );
+		final ADDRNode next_states_primed = _manager.remapVars(legal_next_states, _mdp.getPrimeRemap());
 		ADDRNode ret = next_states_primed;
 		ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
@@ -941,19 +1003,21 @@ public class ADDDecisionTheoreticRegression implements
 			final ADDRNode theRelation = transitionRelation.get(nextState);
 			ret = _manager.apply( ret , theRelation, DDOper.ARITH_PROD );
 			//this is necessary to include action constraints
-			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
 			ret = _manager.quantify( ret, nextState, quantification );
-//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+			if( !constrain_naively ){
+				ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
+			}
 		}
 
 		for( final String action_var : _mdp.getFactoredActionSpace().getActionVariables() ){
 			ret = _manager.quantify( ret, action_var, quantification);
 		}
 
-		if( policy != null && !removePolicyConstraint( idx_policy_constr ) ){
+		if( ret.equals(_manager.DD_ZERO ) ){
 			try{
-				throw new Exception("Could not remove policy constraint");
+				throw new Exception("Preimage is zero");
 			}catch( Exception e ){
 				e.printStackTrace();
 				System.exit(1);
@@ -961,6 +1025,8 @@ public class ADDDecisionTheoreticRegression implements
 		}
 		return ret;
 	}
+
+	
 	
 	private UnorderedPair<ADDValueFunction, ADDPolicy> regressAllActions(final ADDRNode primed, 
 			final boolean keepQ, final boolean makePolicy, 
@@ -1929,8 +1995,8 @@ public class ADDDecisionTheoreticRegression implements
 //		testRegressAllActions();
 //		testSPUDD();
 //		testConstrainNaively();
-		testImageAllActions();
-//		testImagePolicy();
+//		testImageAllActions();
+		testImagePolicy();
 //		testComputeHeuristic();
 //		try {
 //			testRegressPolicy(true);

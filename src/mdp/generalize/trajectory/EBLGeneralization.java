@@ -34,14 +34,30 @@ public class EBLGeneralization extends Generalization<RDDLFactoredStateSpace
 		}
 		final ADDDecisionTheoreticRegression dtr = parameters.get_dtr();
 
-		final ADDRNode image = dtr.BDDImage(state_bdd, true, 
-				DDQuantify.EXISTENTIAL );
-		final ADDRNode image_not = manager.BDDNegate(image);
+		ADDRNode image, image_not, preimage_image, preimage_image_not ;
 		
-		final ADDRNode preimage_image = dtr.BDDPreImage(image, null, 
-				true, DDQuantify.EXISTENTIAL, true );
-		final ADDRNode preimage_image_not = dtr.BDDPreImage(image_not, null, true,
-				DDQuantify.EXISTENTIAL, true );
+		if( parameters.getOn_policy() ){
+			image = dtr.BDDImagePolicy(state_bdd, true, 
+					DDQuantify.EXISTENTIAL, parameters.get_policyDD()[depth],
+					true );
+			image_not = manager.BDDNegate(image);
+			
+			preimage_image = dtr.BDDPreImage(image, parameters.get_policyDD()[depth], 
+					true, DDQuantify.EXISTENTIAL, true );
+			preimage_image_not = dtr.BDDPreImage(image_not, parameters.get_policyDD()[depth]
+					, true,
+					DDQuantify.EXISTENTIAL, true );
+		}else{
+			image = dtr.BDDImage(state_bdd, true, 
+					DDQuantify.EXISTENTIAL );
+			image_not = manager.BDDNegate(image);
+			
+			preimage_image = dtr.BDDPreImage(image, null, 
+					true, DDQuantify.EXISTENTIAL, true );
+			preimage_image_not = dtr.BDDPreImage(image_not, null, true,
+					DDQuantify.EXISTENTIAL, true );	
+		}
+		
 		//preim_im => ~preim_im_not
 		final ADDRNode gen_state = manager.BDDUnion(
 									manager.BDDNegate(preimage_image),

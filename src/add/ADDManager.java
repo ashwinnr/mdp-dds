@@ -4453,6 +4453,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				curNode = val ? cur_true_child : cur_false_child;
 			}
 		}
+		if( !curNode.equals(DD_ONE) ){
+			try{
+				throw new Exception("BDD sample is not one");
+			}catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		return Maps.unmodifiableNavigableMap( ret );
 	}
 
