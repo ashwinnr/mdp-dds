@@ -294,6 +294,8 @@ public class ADDDecisionTheoreticRegression implements
 		//put input policy in others
 			policy_ret = _manager.BDDUnion( policy_ret, 
 					_manager.BDDIntersection( cur_policy, _manager.BDDNegate(to) ) );
+			
+			policy_ret = _manager.breakTiesInBDD(policy_ret, _mdp.get_actionVars(), false);
 		}
 
 		if( _manager.hasVars( value_ret, _mdp.get_actionVars() ) ){
