@@ -72,6 +72,8 @@ public class InstantiateArgs {
 	ret.addOption("actionType", true, "type of aggregate - " + Arrays.toString( UTYPE.values() ) );
 	ret.addOption("EBLPolicy", true, "EBL region on policy- bool" );
 	
+	ret.addOption("backChain", true, "Whether to back chain the updates back to root note - bool" );
+	
 	return ret;
     }   
 

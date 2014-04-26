@@ -230,13 +230,14 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	//by substitution
 
 	public FactoredState<RDDLFactoredStateSpace> sampleState(
-			final ADDRNode initial_state_dist ) {
+			final ADDRNode initial_state_dist,
+			final RDDL2ADD mdp ) {
 		NavigableMap<String, Boolean> partial_state = 
 				Maps.newTreeMap( ADDManager.sampleOneLeaf( initial_state_dist, _rand ) );
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
 			if( val == null ){
-			    partial_state.put( svar, _rand.nextBoolean() );// : val );
+			    partial_state.put( svar,mdp.getDefaultValue(svar) );// : val );
 			}
 		}
 		
