@@ -1,6 +1,5 @@
 package mdp.generalize.trajectory;
 
-import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
 import mdp.generalize.trajectory.type.GeneralizationType;
