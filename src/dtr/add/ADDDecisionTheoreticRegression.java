@@ -627,6 +627,16 @@ public class ADDDecisionTheoreticRegression implements
 	public  ADDRNode BDDImage( final ADDRNode reachable_states, 
 			final boolean withActionVars, 
 			final DDQuantify action_quantification ){
+	    
+	    	if ( reachable_states.equals(_manager.DD_ZERO) ){
+	    	    try{
+	    		throw new Exception("image input is zero");
+	    	    }catch( Exception e ){
+	    		e.printStackTrace();
+	    		System.exit(1);
+	    	    }
+	    	}
+	    
 		if( !_mdp.isTransitionRelationReady(withActionVars) ){
 			_mdp.makeTransitionRelation( withActionVars );
 		}
@@ -648,6 +658,8 @@ public class ADDDecisionTheoreticRegression implements
 				e.printStackTrace();
 				System.exit(1);
 			}
+		}else if( ret.equals(_manager.DD_ONE) ){
+		    System.out.println("WARNING : image is one");
 		}
 		
 		return ret;
@@ -971,7 +983,16 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean withActionVars, 
 			final DDQuantify quantification, 
 			final boolean constrain_naively ){
-		
+
+	    	if( next_states_unprimed.equals(_manager.DD_ZERO) ){
+	    	    try{
+	    		throw new Exception("PreImage input is zero");
+	    	    }catch( Exception e ){
+	    		e.printStackTrace();
+	    		System.exit(1);
+	    	    }
+	    	}
+	    
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0
 				&& _manager.hasVars( next_states_unprimed, _mdp.getFactoredActionSpace().getActionVariables() )  ){
 				try{
@@ -1022,6 +1043,8 @@ public class ADDDecisionTheoreticRegression implements
 				e.printStackTrace();
 				System.exit(1);
 			}
+		}else if( ret.equals(_manager.DD_ONE) ){
+		    System.out.println("Preimage is one");
 		}
 		return ret;
 	}
@@ -1852,7 +1875,8 @@ public class ADDDecisionTheoreticRegression implements
 	
 	public ADDRNode getIIDInitialStates(INITIAL_STATE_CONF init_state_conf,
 			double init_state_prob ) {
-		final String[] state_vars = _mdp.get_stateVars().toArray(new String[1]);
+		Set<String> state_vars_set = _mdp.get_stateVars();
+		final String[] state_vars = state_vars_set.toArray(new String[ state_vars_set.size() ]);
 		ADDRNode ret = null;
 		
 		switch( init_state_conf ){

@@ -304,14 +304,13 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			break;
 		    
 		    case BACKWARDS_WEAK_POLICY : 
-		    	final ADDRNode preimage = _dtr.BDDPreImage( prev_gen_state,
-		    			parameters.get_policyDD()[i], true, DDQuantify.EXISTENTIAL, 
-		    			false );
+		    	final ADDRNode preimage = _dtr.BDDPreImagePolicy( prev_gen_state, parameters.get_policyDD()[i],
+		    		true, DDQuantify.EXISTENTIAL, false );
 		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
 		    			preimage, manager.DD_ZERO );
 		    	break;
 		    case BACKWARDS_WEAK_ACTION : 
-		    	final ADDRNode preimage_1 = _dtr.BDDPreImage(prev_gen_state,
+		    	final ADDRNode preimage_1 = _dtr.BDDPreImagePolicy(prev_gen_state,
 		    			prev_action, true, DDQuantify.EXISTENTIAL, 
 		    			false );
 		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 

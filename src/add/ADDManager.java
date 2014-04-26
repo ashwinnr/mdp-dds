@@ -5,6 +5,7 @@ import graph.Graph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.collections4.map.ReferenceMap;
 
+import util.InternedArrayList;
 import util.Pair;
 
 import com.google.common.cache.Cache;
@@ -1192,7 +1194,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	protected ArrayList< String > _ordering = null;
+	protected InternedArrayList< String > _ordering = null;//new InternedArrayList<String>();
+	
 	protected Runtime _runtime = Runtime.getRuntime();
 
 	//caches can be in terms of RNodes
@@ -1253,7 +1256,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		DD_ZERO = getLeaf(0.0d);
 		DD_ONE = getLeaf(1.0d);
 		DD_NEG_INF = getLeaf( getNegativeInfValue());
-		_ordering = ordering;
+		_ordering = new InternedArrayList<String>( ordering );
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
 		
 //		_rand = new Random(seed);
@@ -4015,7 +4018,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public ADDRNode restrict(final ADDRNode input,
-			final NavigableMap<String, Boolean> assign) {
+			final Map<String, Boolean> assign) {
 		if( input.getNode() instanceof ADDLeaf ){
 			return input;
 		}
@@ -4027,7 +4030,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	private ADDRNode restrictInt(final ADDRNode input,
-			final NavigableMap<String, Boolean> assign,
+			final Map<String, Boolean> assign,
 			final Map<ADDRNode, ADDRNode> _tempUnaryCache ) {
 		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
@@ -4453,7 +4456,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				curNode = val ? cur_true_child : cur_false_child;
 			}
 		}
-		if( !curNode.equals(DD_ONE) ){
+		if( curNode.equals(DD_ZERO) ){
 			try{
 				throw new Exception("BDD sample is not one");
 			}catch( Exception e ){
@@ -4552,17 +4555,38 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	
 //	    //dont use apply assuming input is ordered and reduced
 //	    Map< ADDRNode, ADDRNode > _tempUnaryCache  = new HashMap< ADDRNode, ADDRNode>();
-//	    final ADDRNode ret = assignInt( input, assign, new_val, assign.size(), _tempUnaryCache );
+//	    final Set<String> assigns = assign.keySet();
+//	    final List<Integer> orders = new ArrayList<Integer>();
+//	    
+//	    for( final String ass : assigns ){
+//		orders.add( _ordering.indexOf(ass) );
+//	    }
+//
+//	    Collections.sort(orders, new Comparator<Integer>(){
+//
+//		@Override
+//		public int compare(Integer o1, Integer o2) {
+//		    return (o1-o2);
+//		}
+//		
+//	    });
+//	    
+//	    final Integer[] orders_int = orders.toArray ( new Integer[orders.size()] );
+//	    
+//	    
+//	    final ADDRNode ret = assignInt( input, Maps.unmodifiableNavigableMap( assign ), new_val, assign.size(), 
+//		    _tempUnaryCache, orders_int , 0 );
 //	    _tempUnaryCache = null;
 //	    return ret;
 //	}
 //	
 //	private ADDRNode assignInt( final ADDRNode input, final NavigableMap<String, Boolean> assign, 
-//		final double new_val, final int to_go , Map<ADDRNode, ADDRNode> _tempUnaryCache ){
+//		final double new_val, final int to_go , Map<ADDRNode, ADDRNode> _tempUnaryCache, 
+//		final Integer[] orders_int, final int cur_idx  ){
 //	    final ADDNode theNode = input.getNode();
 //	    if( to_go == 0 ){
 //		return getLeaf(new_val);
-//	    }else if( theNode instanceof ADDLeaf ){
+//	    }else if( theNode instanceof ADDLeaf && to_go != 0 ){
 //		return input;
 //	    }else if( _tempUnaryCache.containsKey(input) ){
 //		return _tempUnaryCache.get( input );
@@ -4570,17 +4594,38 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	    
 //	    final String testVar = input.getTestVariable();
 //	    final Boolean val = assign.get(testVar);
+//	    final int this_ord = _ordering.indexOf( testVar );
+//	    final int cur_ord_assign = orders_int[cur_idx];
+//	    
+//	    if( this_ord > cur_ord_assign ){
+//		//current node skips levels
+//		//some of these levels need to be assigned
+//		ADDRNode recurse = DD_ONE;
+//		while( cur_idx == this_ord ){
+//		    final String that_var = _ordering.get( cur_idx );
+//		    final Boolean that_assign = assign.get( that_var );
+//		    recurse = BDDIntersection(recurse, getIndicatorDiagram(that_var, that_assign) );
+//		    ++cur_idx;
+//		}
+//		final ADDRNode ret = assignInt(
+//			, assign, new_val, to_go, _tempUnaryCache, orders_int, cur_idx)
+//	    }
+//	    
 //	    if( val != null ){
-//		final ADDRNode sub_assign = val ? assignInt( input.getTrueChild(), assign, new_val, to_go-1 , _tempUnaryCache) :
-//		    assignInt( input.getFalseChild(), assign, new_val , _tempUnaryCache);
+//		Map< String, Boolean > not_assigned_val = new HashMap< String, Boolean >( orders_int );
+//		orders_int.remove( testVar );
+//		
+//		final ADDRNode sub_assign = val ? 
+//			assignInt( input.getTrueChild(), assign, new_val, to_go-1 , _tempUnaryCache, not_assigned_val ) :
+//			assignInt( input.getFalseChild(), assign, new_val, to_go-1 , _tempUnaryCache, not_assigned_val );
 //		final ADDRNode ret = val ? makeINode(testVar, sub_assign, input.getFalseChild() ) :
 //		    makeINode( testVar, input.getFalseChild(), sub_assign );
 //		_tempUnaryCache.put(input, ret);
 //		return ret;
 //	    }
 //	    //recurse necessary
-//	    final ADDRNode true_assign = assignInt(input.getTrueChild(), assign, new_val, to_go, _tempUnaryCache);
-//	    final ADDRNode false_assign = assignInt( input.getFalseChild(), assign, new_val, _tempUnaryCache );
+//	    final ADDRNode true_assign = assignInt(input.getTrueChild(), assign, new_val, to_go, _tempUnaryCache, orders_int );
+//	    final ADDRNode false_assign = assignInt( input.getFalseChild(), assign, new_val, to_go, _tempUnaryCache, orders_int );
 //	    final ADDRNode ret = makeINode( testVar, true_assign, false_assign );
 //	    _tempUnaryCache.put(input, ret );
 //	    return ret;

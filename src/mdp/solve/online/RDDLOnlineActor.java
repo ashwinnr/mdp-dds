@@ -8,6 +8,7 @@ import mdp.define.PolicyStatistics;
 import add.ADDManager;
 import add.ADDRNode;
 
+import rddl.RDDL.DOMAIN;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
@@ -93,7 +94,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 		while( states_to_go --> 0 ){
 			
 			final FactoredState<RDDLFactoredStateSpace> init_state 
-			= _transition.sampleState(initial_state_add);
+			= _transition.sampleState(initial_state_add, _mdp);
 			System.out.println("Initial state #" + states_to_go + " " + init_state.toString() );
 			int rounds_to_go = _nRounds;
 			

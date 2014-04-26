@@ -70,6 +70,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private FactoredAction[] trajectory_actions;
 	
 	public final static boolean  DISPLAY_TRAJECTORY = false;
+	public boolean BACK_CHAIN;
 	
 
 	public SymbolicRTDP(
@@ -105,7 +106,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			int gen_num_actions,
 			GENERALIZE_PATH gen_rule,
 			Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
-			Consistency[] cons, boolean truncateTrials, boolean enableLabelling) {
+			Consistency[] cons, boolean truncateTrials, boolean enableLabelling,
+			final boolean backChain ) {
 		super(domain, instance, epsilon, debug, order, seed, useDiscounting, numStates,
 				numRounds, FAR, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, heuristic_type, time_heuristic_mins, steps_heuristic,
@@ -113,6 +115,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, exploration, cons, truncateTrials, enableLabelling );
+		this.BACK_CHAIN = backChain;
+		
 		trajectory_states = new FactoredState[ steps_lookahead ];
 		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
 		for( int i = 0 ; i < steps_lookahead-1; ++i ){
@@ -291,7 +295,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//visited in next state already initialized and updated
 			//others need to be updated
 			final ADDRNode image_not_visited = _manager.BDDIntersection( next_states, 
-					_manager.BDDNegate( visit_save_j == null ? _visited[j] : visit_save_j ) );
+					_manager.BDDNegate( 
+						BACK_CHAIN && visit_save_j != null ? visit_save_j : _visited[j] ) );
 			if( !image_not_visited.equals(_manager.DD_ZERO) ){
 				source_val = initilialize_node_temp( _valueDD[j], image_not_visited, j);
 			}else{
@@ -342,7 +347,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			//FIX 1 : visit all the nodes in generalized states
 			//and remove at the end
-			visit_save_j = visit_node( this_states, j-1 );
+			_valueDD[ j ] = CONSTRAIN_NAIVELY ? 
+				_manager.BDDIntersection(_valueDD[j], _visited[j] ) :
+				    _manager.constrain( _valueDD[j], _visited[j], _manager.DD_ZERO );
+			if( BACK_CHAIN ){
+			    visit_save_j = visit_node( this_states, j-1 );
+			}
 			
 			
 //			System.out.println(j + " " + backup._o2._o2 );
@@ -424,178 +434,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	public static void main(String[] args) throws InterruptedException {
 
 		System.out.println( Arrays.toString(args) );
-//		boolean useDiscount = true, actionVars = false, constraint_pruning = false, do_apricodd = false,
-//				gen_states = false, gen_actions = false;
-//		int num_states = 0, num_rounds = 0, heuristic_steps = -1, 
-//				num_trajectories = 0, steps_dp = 0, steps_lookahead = 0, num_gen_states = 0, num_gen_actions = 0;
-//		String domain_file = null, instance_file = null;
-//		long rand_seed = 83, MB = -1;
-//		double apricodd_epsilon = 0, heuristic_mins = 10, init_state_prob = 0;
-//		APPROX_TYPE apricodd_type = null;
-//		BACKUP_TYPE heuristic_type = BACKUP_TYPE.VI_FAR, backup_type = BACKUP_TYPE.VI_FAR;
-//		INITIAL_STATE_CONF init_state = INITIAL_STATE_CONF.UNIFORM;
-//		Generalization generalization = null;
-//		Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration = null;
-//		GeneralizationParameters generalizationParameters = null;
-//		
-//		for( final String arg : args ){
-//
-//			int index = arg.indexOf('=');
-//			
-//			if( arg.startsWith("discounting") ){
-//				if( arg.endsWith("true") ){
-//					useDiscount = true;
-//				}else{
-//					useDiscount = false;
-//				}
-//			}
-//			
-//			if( arg.startsWith("testStates") ){
-//				num_states = Integer.parseInt( arg.substring( index+1 ) );
-//			}
-//			
-//			if( arg.startsWith("testRounds") ){
-//				num_rounds = Integer.parseInt( arg.substring( index+1 ) );
-//			}
-//			
-//			if( arg.startsWith("domain") ){
-//				domain_file = arg.substring(index+1);
-//			}
-//			
-//			if( arg.startsWith("instance") ){
-//				instance_file = arg.substring(index+1);
-//			}
-//			
-//			if( arg.startsWith("randSeed") ){
-//				rand_seed = Long.parseLong( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("actionVars") ){
-//				actionVars = Boolean.parseBoolean( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("constraintPruning") ){
-//				constraint_pruning = Boolean.parseBoolean( arg.substring( index + 1 ) );
-//			}
-//			
-//			if( arg.startsWith("doApricodd") ){
-//				do_apricodd = Boolean.parseBoolean( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("apricoddError") ){
-//				apricodd_epsilon  = Double.parseDouble(arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("apricoddType") ){
-//				apricodd_type = APPROX_TYPE.valueOf( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("heuristicType") ){
-//				heuristic_type = BACKUP_TYPE.valueOf( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("heuristicMins") ){
-//				heuristic_mins = Double.parseDouble( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("heuristicSteps") ){
-//				heuristic_steps = Integer.parseInt( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("memoryBoundNodes") ){
-//				MB = Long.parseLong( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("initialStateConf") ){
-//				init_state = INITIAL_STATE_CONF.valueOf( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("initialStateProb") ){
-//				init_state_prob = Double.parseDouble( arg.substring( index+1 ) );
-//			}
-//			
-//			if( arg.startsWith("backupType") ){
-//				backup_type = BACKUP_TYPE.valueOf( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("numTrajectories") ){
-//				num_trajectories = Integer.parseInt( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("stepsDP") ){
-//				steps_dp = Integer.parseInt( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("stepsLookahead") ){
-//				steps_lookahead = Integer.parseInt( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("generalizeStates" ) ){
-//				gen_states = Boolean.parseBoolean( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("generalizeActions") ){
-//				gen_actions = Boolean.parseBoolean( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("limitGeneralizedStates") ){
-//				num_gen_states = Integer.parseInt( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("limitGeneralizedActions") ){
-//				num_gen_actions = Integer.parseInt( arg.substring(index+1) );
-//			}
-//			
-//			if( arg.startsWith("generalization" ) ){
-//				if( arg.endsWith("value") ){
-//					generalization = new ValueGeneralization();
-//					generalizationParameters = new ValueGeneralizationParameters(null, 
-//							GENERALIZE_PATH.ALL_PATHS, new Random(rand_seed), 
-//							Arrays.copyOf(new double[]{apricodd_epsilon}, steps_lookahead), 
-//							null, apricodd_type, num_states);
-//				}else if( arg.endsWith("action") ){
-//					generalization = new OptimalActionGeneralization();
-//					generalizationParameters = new OptimalActionParameters(null, GENERALIZE_PATH.ALL_PATHS, 
-//							new Random(rand_seed), null, true );
-//				}
-//			}
-//			
-//			if( arg.startsWith("exploration-epsilon-greedy" ) ){
-//					exploration = new EpsilonGreedyExploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
-//						(Double.parseDouble(arg.substring(index+1)), rand_seed, 1);
-//			}else if( arg.equals("exploration=off") ){
-//				exploration = null;
-//			}
-//		}
-//			
-//			
-//		Runnable worker = new SymbolicRTDP(
-//				domain_file, instance_file,
-////				Double.parseDouble( args[2] ), 
-//				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, 
-//				rand_seed, useDiscount, 
-//				num_states, num_rounds, actionVars,
-//				constraint_pruning, 
-//				do_apricodd, 
-//				apricodd_epsilon,  
-//				apricodd_type,
-//				heuristic_type, 
-//				heuristic_mins,
-//				heuristic_steps,
-//				MB,
-//				init_state,
-//				init_state_prob, 
-//				backup_type,
-//				num_trajectories, 
-//				steps_dp,
-//				steps_lookahead,
-//				generalization,
-//				generalizationParameters, 
-//				!gen_states, 
-//				!gen_actions, 
-//				num_gen_states,
-//				num_gen_actions, 
-//				exploration );
 
 		SymbolicRTDP srtdp = SymbolicRTDP.instantiateMe(args);
 		
@@ -700,7 +538,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				exploration,
 				consistency,
 				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ),
-				Boolean.parseBoolean( cmd.getOptionValue("enableLabelling") ) );
+				Boolean.parseBoolean( cmd.getOptionValue("enableLabelling") ),
+				Boolean.parseBoolean( cmd.getOptionValue("backChain") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

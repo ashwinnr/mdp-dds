@@ -51,8 +51,8 @@ import factored.mdp.define.FactoredStateSpace;
 
 public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
-	private static final long  MANAGER_STORE_INIT_SIZE = (long) 1e4;
-	private static final long  MANAGER_STORE_INCR_SIZE = (long) 1e4;
+	private static final long  MANAGER_STORE_INIT_SIZE = (long) 1e2;
+	private static final long  MANAGER_STORE_INCR_SIZE = (long) 1e2;
 	
 	protected ADDManager _manager;
 	private boolean _bCPFDeterministic;
@@ -230,7 +230,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	public RDDL2ADD( final String pDomain, final String pInstance, boolean withActionVars, 
 						DEBUG_LEVEL debug, ORDER order, final boolean buildADDs,
 						long seed ) {
-
+	    	super();
 		__debug_level = debug;
 		_order = order;
 		_rand = new Random(seed);
@@ -1611,6 +1611,15 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			ret += _manager.restrict(rew, assign).getMax();
 		}
 		return ret;
+	}
+
+	public Boolean getDefaultValue(final String svar) {
+	    if( _stateVars.contains( svar ) ){
+		return (Boolean) _state.getDefaultValue( _tmStateVars.get( svar )._o1 );
+	    }else if( _actionVars.contains( svar ) ){
+		return (Boolean) _state.getDefaultValue( _tmActionVars.get( svar )._o1 );
+	    }
+	    return null;
 	}
 
 }

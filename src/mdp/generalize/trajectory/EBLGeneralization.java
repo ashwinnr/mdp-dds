@@ -42,9 +42,9 @@ public class EBLGeneralization extends Generalization<RDDLFactoredStateSpace
 					true );
 			image_not = manager.BDDNegate(image);
 			
-			preimage_image = dtr.BDDPreImage(image, parameters.get_policyDD()[depth], 
+			preimage_image = dtr.BDDPreImagePolicy(image, parameters.get_policyDD()[depth], 
 					true, DDQuantify.EXISTENTIAL, true );
-			preimage_image_not = dtr.BDDPreImage(image_not, parameters.get_policyDD()[depth]
+			preimage_image_not = dtr.BDDPreImagePolicy(image_not, parameters.get_policyDD()[depth]
 					, true,
 					DDQuantify.EXISTENTIAL, true );
 		}else{
@@ -52,9 +52,9 @@ public class EBLGeneralization extends Generalization<RDDLFactoredStateSpace
 					DDQuantify.EXISTENTIAL );
 			image_not = manager.BDDNegate(image);
 			
-			preimage_image = dtr.BDDPreImage(image, null, 
+			preimage_image = dtr.BDDPreImage(image,  
 					true, DDQuantify.EXISTENTIAL, true );
-			preimage_image_not = dtr.BDDPreImage(image_not, null, true,
+			preimage_image_not = dtr.BDDPreImage(image_not, true,
 					DDQuantify.EXISTENTIAL, true );	
 		}
 		
