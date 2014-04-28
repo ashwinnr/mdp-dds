@@ -364,6 +364,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	@Override
 	public void visit_node(FactoredState<RDDLFactoredStateSpace> state,
 			int depth) {
+		
+		if( depth == steps_lookahead-1 ){
+			return;
+		}
+		
 		_visited[depth] = _manager.BDDUnion(_visited[depth], 
 				_manager.getProductBDDFromAssignment( state.getFactoredState() ) );
 		if( _manager.restrict( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){

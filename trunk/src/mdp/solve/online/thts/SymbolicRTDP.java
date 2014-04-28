@@ -15,6 +15,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
+import com.sun.net.httpserver.Authenticator.Success;
 import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 import mdp.define.PolicyStatistics;
@@ -71,6 +72,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	
 	public final static boolean  DISPLAY_TRAJECTORY = false;
 	public boolean BACK_CHAIN;
+	private int _successful_update = 0;
+	private int successful_policy_update = 0;
 	
 
 	public SymbolicRTDP(
@@ -144,6 +147,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_manager.flushCaches();
 		
 		cur_action.setFactoredAction(action);
+		
+		System.out.println( (double)_successful_update / nTrials );
+		_successful_update = 0;
+		
+		System.out.println( (double)successful_policy_update/ nTrials );
+		successful_policy_update = 0;
+		
 		
 		throwAwayEverything();
 		
@@ -245,6 +255,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			display();
 		}
 		System.out.println();
+		System.out.println( "Value of init state " + 
+		_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
 	
 	}
 	
@@ -296,7 +308,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//others need to be updated
 			final ADDRNode image_not_visited = _manager.BDDIntersection( next_states, 
 					_manager.BDDNegate( 
-						BACK_CHAIN && visit_save_j != null ? visit_save_j : _visited[j] ) );
+						( BACK_CHAIN && visit_save_j  != null ) ? visit_save_j : _visited[j] ) );
 			if( !image_not_visited.equals(_manager.DD_ZERO) ){
 				source_val = initilialize_node_temp( _valueDD[j], image_not_visited, j);
 			}else{
@@ -309,7 +321,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, CONSTRAIN_NAIVELY);
 			_DPTimer.PauseTimer();
 			
-//			System.out.println("BE = " + backup._o2._o2 );
+			if( j-1 == 0 && ( ( _manager.evaluate(backup._o1, trajectory_states[j-1].getFactoredState() ).getMax()
+						) - ( _manager.evaluate(target_val, trajectory_states[j-1].getFactoredState() ).getMax() ) ) != 0 ){
+				_successful_update++;
+			}
 			
 			if( enableLabelling  ){
 				final ADDRNode diff = _manager.apply( target_val, backup._o1, DDOper.ARITH_MINUS );
@@ -343,6 +358,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//even though the backup is assigned to v[j-1]
 			//the backup for v[j-2] will not use these values if visited=0
 			_valueDD[ j-1 ] = backup._o1;
+			if( j-1 == 0 && !_policyDD[j-1].equals(backup._o2._o1) ){
+				++successful_policy_update ;
+			}
 			_policyDD[ j-1 ] = backup._o2._o1;
 			
 			//FIX 1 : visit all the nodes in generalized states
