@@ -148,12 +148,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		cur_action.setFactoredAction(action);
 		
-		System.out.println( (double)_successful_update / nTrials );
+		System.out.println( "#updates to value " + (double)_successful_update / nTrials );
 		_successful_update = 0;
 		
-		System.out.println( (double)successful_policy_update/ nTrials );
+		System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
 		successful_policy_update = 0;
 		
+		System.out.println( "Value of init state " + 
+				_manager.evaluate(_valueDD[0], state.getFactoredState() ).toString() );
+			
 		
 		throwAwayEverything();
 		
@@ -255,9 +258,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			display();
 		}
 		System.out.println();
-		System.out.println( "Value of init state " + 
-		_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
-	
+		
 	}
 	
 	protected ADDRNode[] generalize_trajectory(final FactoredState<RDDLFactoredStateSpace>[] trajectory_states, 
@@ -365,9 +366,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			//FIX 1 : visit all the nodes in generalized states
 			//and remove at the end
-			_valueDD[ j ] = CONSTRAIN_NAIVELY ? 
-				_manager.BDDIntersection(_valueDD[j], _visited[j] ) :
-				    _manager.constrain( _valueDD[j], _visited[j], _manager.DD_ZERO );
+			_valueDD[ j ] = resetValue( _valueDD[j], j );
+			_policyDD[ j ] = resetPolicy( _policyDD[j] , j );
+			
 			if( BACK_CHAIN ){
 			    visit_save_j = visit_node( this_states, j-1 );
 			}
@@ -386,6 +387,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		display(_valueDD, _policyDD);
 //		System.out.println();
 		
+	}
+
+	private ADDRNode resetValue( final ADDRNode value, final int depth ) {
+		return _manager.constrain( value, _visited[ depth ], _manager.DD_ZERO );
 	}
 
 //	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> 
@@ -417,6 +422,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		return backed;
 //	}
 	
+	private ADDRNode resetPolicy(final ADDRNode policy, 
+			final int depth ) {
+		final ADDRNode this_visited = _visited[ depth ] ;
+		//whenever visited zero
+		//set policy to _baseline
+		//without increasing size
+		return _manager.constrain(policy, this_visited, _manager.DD_ONE );
+	}
+
 	private ADDRNode visit_node(ADDRNode states, int depth) {
 	    return  _manager.BDDUnion(_visited[depth], states );
 	}
