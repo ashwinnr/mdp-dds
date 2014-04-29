@@ -61,7 +61,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected ADDRNode[] _policyDD;
 	protected ADDRNode[] _visited; 
 	protected ADDRNode[] _solved;
-	private ADDRNode _baseLinePolicy;
+//	private ADDRNode _baseLinePolicy;
 	
 	protected static final FactoredAction[] EMPTY_ACTION_ARRAY = {};
 	
@@ -130,7 +130,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
 					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
 
-		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
+//		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 
 		this.exploration = exploration; 
 		
@@ -163,7 +163,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 
 		
 		_policyDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _policyDD, _baseLinePolicy );
+		Arrays.fill( _policyDD, _manager.DD_ONE );
 
 		_RMAX = _mdp.getRMax();
 
@@ -383,7 +383,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	
 	protected void throwAwayEverything() {
 		_policyDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill(_policyDD, _baseLinePolicy );
+		Arrays.fill(_policyDD, _manager.DD_ONE );
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		Arrays.fill( _valueDD, _manager.DD_ZERO );
