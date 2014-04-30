@@ -174,13 +174,16 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //		   
 		    case VISITED :
 		    	
-			consistent_cur_gen_state = 
+			
 //			    
 //			parameters.get_constrain_naively()  ?
-					manager.BDDIntersection( consistent_cur_gen_state, 
-				parameters.get_visited()[i] );
-//				: manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
-//						manager.DD_ZERO );
+//					manager.BDDIntersection( consistent_cur_gen_state, 
+//				parameters.get_visited()[i] );
+//				: 
+			if( i != states.length-1 ){
+				consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
+						manager.DD_ZERO );
+			}
 			break;
 //
 		    case BACKWARDS_WEAK_ACTION:
@@ -298,8 +301,16 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		    case NONE :
 			break;
 		    case VISITED :
-			consistent_cur_gen_state = manager.BDDIntersection( consistent_cur_gen_state, 
-				parameters.get_visited()[i] );
+
+//			    
+//			parameters.get_constrain_naively()  ?
+//					manager.BDDIntersection( consistent_cur_gen_state, 
+//				parameters.get_visited()[i] );
+//				: 
+			if( i != states.length-1 ){
+				consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
+						manager.DD_ZERO );
+			}
 			break;
 		    
 		    case BACKWARDS_WEAK_POLICY : 

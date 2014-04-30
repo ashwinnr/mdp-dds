@@ -15,6 +15,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import com.google.common.collect.Maps;
+
 import rddl.EvalException;
 import rddl.RDDL;
 import rddl.RDDL.AGG_EXPR;
@@ -303,7 +305,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			_rddlActionSpace.setActionVariables(_actionVars);
 			
 			_rddlStateSpace = new RDDLFactoredStateSpace();
-			_rddlStateSpace.setStateVariables(_stateVars);
+			_rddlStateSpace.setStateVariables(_stateVars  );
 			
 			_rddlTransition = new RDDLFactoredTransition(_state, _rddlStateSpace,
 					_rddlActionSpace, _tmStateVars, _rand.nextLong(), _tmActionVars);

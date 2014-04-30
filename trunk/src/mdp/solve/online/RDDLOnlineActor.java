@@ -1,5 +1,6 @@
 package mdp.solve.online;
 
+import java.util.NavigableMap;
 import java.util.Random;
 
 import mdp.define.Action;
@@ -77,6 +78,10 @@ public abstract class RDDLOnlineActor implements Runnable {
 		HORIZON = _mdp.getHorizon();
 		this.init_state_conf = init_state_conf;
 		this.init_state_prob = init_state_prob;
+		
+		_transition = _mdp.getFactoredTransition();
+		_reward = _mdp.getFactoredReward();
+		
 	}
 	
 	public abstract FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act( 
@@ -86,15 +91,14 @@ public abstract class RDDLOnlineActor implements Runnable {
 	public void run() {
 		final ADDRNode initial_state_add = _dtr.getIIDInitialStates( init_state_conf ,
 				init_state_prob );
-		_transition = _mdp.getFactoredTransition();
-		_reward = _mdp.getFactoredReward();
+		
 		int states_to_go  = _nStates;
 		final PolicyStatistics stats = new PolicyStatistics(_nStates, _nRounds);
 		
 		while( states_to_go --> 0 ){
 			
 			final FactoredState<RDDLFactoredStateSpace> init_state 
-			= _transition.sampleState(initial_state_add, _mdp);
+			= _transition.sampleState(initial_state_add  );
 			System.out.println("Initial state #" + states_to_go + " " + init_state.toString() );
 			int rounds_to_go = _nRounds;
 			
