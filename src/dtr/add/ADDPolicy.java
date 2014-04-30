@@ -139,7 +139,7 @@ public class ADDPolicy extends
 		
 		for( int i = 0 ; i < numStates; ++i ){
 			FactoredState<RDDLFactoredStateSpace> init_state 
-				= _transition.sampleState( initial_state_dist );
+				= _transition.sampleState( initial_state_dist ) ;
 			
 			
 			System.out.println("Initial state #" + i );

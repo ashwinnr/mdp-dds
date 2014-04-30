@@ -2,8 +2,11 @@ package rddl.mdp;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeSet;
+
+import com.google.common.collect.Maps;
 
 import factored.mdp.define.FactoredStateSpace;
 
@@ -12,7 +15,7 @@ public class RDDLFactoredStateSpace implements FactoredStateSpace {
 	private static Set<String> stateVariables;
 	private static Set<String> nextStateVariables;
 	
-	public void setStateVariables(Set<String> _stateVars) {
+	public void setStateVariables(Set<String> _stateVars  ) {
 		RDDLFactoredStateSpace.stateVariables = _stateVars;
 	}
 	
@@ -30,5 +33,5 @@ public class RDDLFactoredStateSpace implements FactoredStateSpace {
 	public Set<String> getStateVariables() {
 		return stateVariables;
 	}
-	
+
 }

@@ -1,63 +1,39 @@
 package mdp.solve.online.thts;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Set;
-import java.util.Stack;
-import java.util.TreeMap;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-
-import com.sun.net.httpserver.Authenticator.Success;
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
-
-import mdp.define.PolicyStatistics;
 import mdp.generalize.trajectory.EBLGeneralization;
 import mdp.generalize.trajectory.Generalization;
-import mdp.generalize.trajectory.GenericTransitionGeneralization;
 import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.OptimalActionGeneralization;
-import mdp.generalize.trajectory.RewardGeneralization;
 import mdp.generalize.trajectory.ValueGeneralization;
 import mdp.generalize.trajectory.parameters.EBLParams;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
-import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
 import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
 import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
 import mdp.generalize.trajectory.type.GeneralizationType;
 import mdp.solve.online.Exploration;
-import mdp.solve.online.RDDLOnlineActor;
-import mdp.solve.solver.HandCodedPolicies;
-import rddl.EvalException;
-import rddl.mdp.RDDL2ADD;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
 import rddl.mdp.RDDLFactoredActionSpace;
-import rddl.mdp.RDDLFactoredReward;
 import rddl.mdp.RDDLFactoredStateSpace;
-import rddl.mdp.RDDLFactoredTransition;
-import rddl.viz.CrossingTrafficDisplay;
-import rddl.viz.SysAdminScreenDisplay;
 import util.InstantiateArgs;
-import util.Timer;
 import util.UnorderedPair;
-import add.ADDLeaf;
-import add.ADDManager;
 import add.ADDRNode;
 import dd.DDManager.APPROX_TYPE;
 import dd.DDManager.DDOper;
 import dd.DDManager.DDQuantify;
-import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
@@ -256,6 +232,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
 //			display();
+			if( trials_to_go % 100 == 0 ){
+				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
+				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
+				System.out.println( "Value of init state " + 
+						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+//				dis
+			}
 		}
 		System.out.println();
 		
@@ -487,9 +471,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			generalizer = new OptimalActionGeneralization();
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			generalizer = new EBLGeneralization();
-		}else if( cmd.getOptionValue("generalization").equals("reward") ){
-			generalizer = new RewardGeneralization();
 		}
+//		else if( cmd.getOptionValue("generalization").equals("reward") ){
+//			generalizer = new RewardGeneralization();
+//		}
 		
 		final Random rand = new Random( Long.parseLong( cmd.getOptionValue("seed") ) );
 		final boolean constrain_naively = !Boolean.parseBoolean( cmd.getOptionValue("constraintPruning") );

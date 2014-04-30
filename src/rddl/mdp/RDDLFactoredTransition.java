@@ -51,6 +51,8 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	private RDDLConstrainedMDP _constraint;
 	private NavigableMap< String, Boolean > _nextStateMap = new TreeMap<String, Boolean>();
 	
+	private static NavigableMap<String, Boolean> _defVal = null;
+	
 	public RDDLFactoredTransition( rddl.State rddlState, 
 			RDDLFactoredStateSpace rddlStateSpace,
 			RDDLFactoredActionSpace rddlActionSpace,
@@ -91,6 +93,7 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			}
 			_groundSubs[i] = subs;
 			_groundExpr[i] = cpf_expr;
+			_defVal.put( _stateVars[i], (Boolean) _state.getDefaultValue(rddlPair._o1) );
 			++i;
 		}
 		_constraint = new RDDLConstrainedMDP();
@@ -230,14 +233,13 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	//by substitution
 
 	public FactoredState<RDDLFactoredStateSpace> sampleState(
-			final ADDRNode initial_state_dist,
-			final RDDL2ADD mdp ) {
+			final ADDRNode initial_state_dist  ){
 		NavigableMap<String, Boolean> partial_state = 
 				Maps.newTreeMap( ADDManager.sampleOneLeaf( initial_state_dist, _rand ) );
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
 			if( val == null ){
-			    partial_state.put( svar,mdp.getDefaultValue(svar) );// : val );
+			    partial_state.put( svar, _defVal.get( svar ) );// : val );
 			}
 		}
 		
