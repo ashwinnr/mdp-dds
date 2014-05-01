@@ -291,9 +291,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					this_actions, true, _actionVars );//WARNING : constant true
 			//visited in next state already initialized and updated
 			//others need to be updated
-			final ADDRNode image_not_visited = _manager.BDDIntersection( next_states, 
-					_manager.BDDNegate( 
-						( BACK_CHAIN && visit_save_j  != null ) ? visit_save_j : _visited[j] ) );
+			final ADDRNode image_not_visited = _manager.constrain( next_states, 
+				_manager.BDDNegate( 
+				( BACK_CHAIN && visit_save_j  != null ) ? visit_save_j : _visited[j] ),
+				_manager.DD_ZERO );
+//				_manager.constrain( 
+//				_manager.BDDIntersection( next_states, 
+//					_manager.BDDNegate( 
+//						( BACK_CHAIN && visit_save_j  != null ) ? visit_save_j : _visited[j] ) );
 			if( !image_not_visited.equals(_manager.DD_ZERO) ){
 				source_val = initilialize_node_temp( _valueDD[j], image_not_visited, j);
 			}else{

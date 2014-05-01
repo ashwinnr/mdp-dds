@@ -51,7 +51,7 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	private RDDLConstrainedMDP _constraint;
 	private NavigableMap< String, Boolean > _nextStateMap = new TreeMap<String, Boolean>();
 	
-	private static NavigableMap<String, Boolean> _defVal = null;
+	private static NavigableMap<String, Boolean> _defVal = Maps.newTreeMap();
 	
 	public RDDLFactoredTransition( rddl.State rddlState, 
 			RDDLFactoredStateSpace rddlStateSpace,

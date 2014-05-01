@@ -240,8 +240,10 @@ public class ADDDecisionTheoreticRegression implements
 	    		}
 	    	}
 	    	
-		final ADDRNode unprimed = _manager.BDDIntersection(source_value_fn, from) ;
-//		constrain_naively ?     _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
+		final ADDRNode unprimed = 
+//		    _manager.BDDIntersection(source_value_fn, from) ;
+//		constrain_naively ?     
+		    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
 
 		final ADDRNode primed = 
 				_manager.remapVars( 
@@ -658,9 +660,10 @@ public class ADDDecisionTheoreticRegression implements
 				e.printStackTrace();
 				System.exit(1);
 			}
-		}else if( ret.equals(_manager.DD_ONE) ){
-		    System.out.println("WARNING : image is one");
 		}
+//		else if( ret.equals(_manager.DD_ONE) ){
+//		    System.out.println("WARNING : image is one");
+//		/}
 		
 		return ret;
 		
