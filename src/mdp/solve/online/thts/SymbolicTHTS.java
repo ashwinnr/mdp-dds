@@ -74,6 +74,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected boolean truncateTrials;
 	protected double _RMAX;
 	protected boolean enableLabelling;
+	private ADDRNode _baseLinePolicy;
 	
 //	public enum SUCCESSOR{
 //		NONE, BRTDP, FRTDP
@@ -130,7 +131,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
 					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
 
-//		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
+		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 
 		this.exploration = exploration; 
 		
@@ -162,22 +163,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		//		false, 0.0d, apricodd_type, MB, time_heuristic_mins );
 
 		
-		_policyDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _policyDD, _manager.DD_ONE );
-
-		_RMAX = _mdp.getRMax();
-
-		_valueDD = new ADDRNode[ steps_lookahead ];
-		for( int depth = 0; depth < steps_lookahead; ++depth ){
-			_valueDD[ depth ] = _manager.DD_ZERO;
-		}
-
-		_visited = new ADDRNode[ steps_lookahead ];
-		Arrays.fill(_visited, _manager.DD_ZERO);
-
-		_solved = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _solved, _manager.DD_ZERO);
-		_solved[ steps_lookahead-1 ] = _manager.DD_ONE;
+		throwAwayEverything();
 
 		//_solved = new ADDRNode[ steps_lookahead ];
 		//for( int depth =  0; depth < steps_lookahead-1; ++depth ){
@@ -330,6 +316,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	private FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> get_policy_action(
 			final FactoredState<RDDLFactoredStateSpace> state, 
 			final int depth) {
+	    //added randomization for action here
 		final ADDRNode action_dd = _manager.restrict(
 				_policyDD[depth], state.getFactoredState() );
 		if( action_dd.equals(_manager.DD_ZERO ) ){
@@ -383,7 +370,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	
 	protected void throwAwayEverything() {
 		_policyDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill(_policyDD, _manager.DD_ONE );
+		Arrays.fill(_policyDD, _baseLinePolicy );
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		Arrays.fill( _valueDD, _manager.DD_ZERO );
