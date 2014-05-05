@@ -151,6 +151,7 @@ public class SPUDDFAR implements Runnable{
 					
 //			_manager.showGraph( _valueDD );//, _policy );
 		}
+		
 
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetTimeSoFarAndResetInMinutes() );
