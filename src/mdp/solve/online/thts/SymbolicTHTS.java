@@ -8,6 +8,7 @@ import java.util.Random;
 
 import com.google.common.collect.Maps;
 
+import add.ADDINode;
 import add.ADDRNode;
 import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredStateSpace;
@@ -75,6 +76,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected double _RMAX;
 	protected boolean enableLabelling;
 	private ADDRNode _baseLinePolicy;
+	protected int heuristic_sharing;
 	
 //	public enum SUCCESSOR{
 //		NONE, BRTDP, FRTDP
@@ -174,6 +176,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		_DPTimer = new Timer();
 		_DPTimer.PauseTimer();
 		
+		_RMAX = _mdp.getRMax();
+		
 		final P inner_params = _genaralizeParameters.getParameters();
 		inner_params.set_manager(_manager);
 		
@@ -217,32 +221,37 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //		if( _valueDD[depth] == null ){
 //			_valueDD[depth] = _manager.DD_ZERO;
 //		}
-		if( depth == steps_lookahead-1 ){
+//		if( depth == steps_lookahead-1 ){
 		    //only need to add last level nodes
 		    //to _valueDD
 		    final double value = get_heuristic_value( state, depth );
 		    _valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );    
-		}
+//		}
 		
 	}
 	
 	protected double get_heuristic_val( final NavigableMap<String, Boolean> state_assign, final int depth) {
 	    double value = Double.POSITIVE_INFINITY;
 				
-		final double reward = _mdp.getReward( state_assign );
 		
 		if( depth == steps_lookahead-1 ){
+			final double reward = _mdp.getReward( state_assign );
 			value = reward;
-		}else{
-			for( int d = depth+1; d < steps_lookahead; ++d ){
-				if( is_node_visited( state_assign, d ) ){
-					value = _RMAX*(d-depth) + get_value( state_assign, d );
-				}
+		}
+//		else{
+		for( int d = depth+1; d < steps_lookahead; ++d ){//dont include reward level as they have value 0s
+			if( d == steps_lookahead-1 ){
+				final double reward = _mdp.getReward( state_assign );
+				value = _RMAX*(d-depth) + reward;
+			}else if( is_node_visited( state_assign, d ) ){
+				++heuristic_sharing;
+				value = _RMAX*(d-depth) + get_value( state_assign, d );
 			}
 		}
-		if( value == Double.POSITIVE_INFINITY ){
-			value = _RMAX*(steps_lookahead-depth);
-		}
+//		}
+//		if( value == Double.POSITIVE_INFINITY ){
+//			value = reward + _RMAX*(steps_lookahead-1-depth);
+//		}
 		
 		return value;
 
@@ -255,7 +264,18 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 
 	public boolean is_node_visited(final NavigableMap<String, Boolean> state_assign,
 		final int depth ) {
-	    return _manager.restrict( _visited[depth], state_assign ).equals(_manager.DD_ONE);
+		final ADDRNode restriction = _manager.restrict( _visited[depth], state_assign );
+//		if( restriction.getNode() instanceof ADDINode ){
+//			try{
+//				throw new Exception("error visited called on partial state");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+		//what if : we consider partial states as visited if 
+		//there does not exists extension that is not visited
+	    return restriction.equals(_manager.DD_ONE);
 	}
 	
 	public boolean is_node_visited(final FactoredState<RDDLFactoredStateSpace> state,
@@ -356,9 +376,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			return;
 		}
 		
+//		if( _visited[depth].equals( _manager.DD_ONE ) ){
+//			System.out.println("visited is one??");
+//		}
+		
 		_visited[depth] = _manager.BDDUnion(_visited[depth], 
 				_manager.getProductBDDFromAssignment( state.getFactoredState() ) );
-		if( _manager.restrict( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){
+		if( _manager.evaluate( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){
 			try {
 				throw new Exception("visted not marked as visited");
 			} catch (Exception e) {
@@ -366,6 +390,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				System.exit(1);
 			}
 		}
+		
+//		if( _visited[depth].equals( _manager.DD_ONE ) ){
+//			System.out.println("visited is one??");
+//		}
 	}
 	
 	protected void throwAwayEverything() {
@@ -381,7 +409,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_visited = new ADDRNode[ steps_lookahead ];
 		Arrays.fill( _visited, _manager.DD_ZERO );
-		
+//		_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
 		
 //		_manager.clearNodes();
 		

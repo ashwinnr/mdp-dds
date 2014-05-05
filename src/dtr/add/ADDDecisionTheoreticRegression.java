@@ -198,15 +198,21 @@ public class ADDDecisionTheoreticRegression implements
 		
 //	    	System.out.println("Backup");
 //	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
-	    	if( from.equals(_manager.DD_ONE) ){
+		
+			if( from.equals(_manager.DD_ONE) && to.equals(_manager.DD_ONE) ){
+				System.out.println("WARNING : VI backup! Check generalization" );
+			}
+		
+//	    	if( from.equals(_manager.DD_ONE) ){
 //	    	    System.out.println("WARNING : backing up from all states " );
-	    	}else if( from.equals(_manager.DD_ZERO) ){
+//	    	}else 
+			if( from.equals(_manager.DD_ZERO) ){
 	    	    System.out.println("WARNING : backing up from no states " );
 	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
 	    	}
 	    	
 	    	if( to.equals(_manager.DD_ONE) ){
-	    	    System.out.println("WARNING : backing up value of all states " );
+	    	    System.out.println("WARNING : backing up to all states " );
 	    	}else if( to.equals(_manager.DD_ZERO ) ){
 	    	    System.out.println("WARNING : backing up TO no states " );
 	    	    return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>( current_value, new UnorderedPair<ADDRNode,Double>( cur_policy, 0.0d ) );
@@ -241,9 +247,9 @@ public class ADDDecisionTheoreticRegression implements
 	    	}
 	    	
 		final ADDRNode unprimed = 
-//		    _manager.BDDIntersection(source_value_fn, from) ;
+		    _manager.BDDIntersection(source_value_fn, from) ;
 //		constrain_naively ?     
-		    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
+//		    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
 
 		final ADDRNode primed = 
 				_manager.remapVars( 
