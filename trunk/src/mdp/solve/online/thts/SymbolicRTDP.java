@@ -446,7 +446,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//careful when threshold
 			//remove non updated states from diff
 			
-			
 			final ADDRNode checker = _manager.BDDIntersection(diff, update_states);
 			diff = _manager.constrain(diff, update_states, _manager.DD_NEG_INF);
 			
@@ -479,7 +478,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("State : " + actual_state.getFactoredState() );
 //			System.out.println( "Threshold : " + backChainThreshold );
 			
-				
 			//threshold
 			final ADDRNode small_change_update_only =   _manager.threshold(diff, backChainThreshold, true );
 //			, 
@@ -498,10 +496,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.println("Good updates all around");
 			}
 			
-//			if( large_change_update_only.equals(_manager.DD_ZERO ) ){
-//				//just truncating the trajectory here
-//				++truncated_backup;
-//				return;
+			if( large_change_update_only.equals(_manager.DD_ZERO ) ){
+				//just truncating the trajectory here
+				++truncated_backup;
+				return;
 //	//			try{
 //	//				throw new Exception("For thresholld " + backChainThreshold + 
 //	//						" no update took place" + ".\nThe max update was = " + diff.getMax() );
@@ -509,13 +507,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	//				e.printStackTrace();
 //	//				System.exit(1);
 //	//			}
-//			}
+			}
 			final ADDRNode new_visited = _manager.BDDUnion( _visited[depth], large_change_update_only);
 			if( new_visited.equals( _manager.DD_ONE ) && !_visited[depth].equals(_manager.DD_ONE) ){
 				System.out.println("visited is one. Depth " + depth );
 			}
 			_visited[ depth ] = new_visited;
-			
+
 			_valueDD[ depth ] = 
 //				new_val;
 //					_manager.BDDIntersection( new_val, large_change );
@@ -524,13 +522,22 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			
 					_manager.constrain( new_val, 
 						large_change//no good and updated -> 0
-							, _manager.DD_ZERO );//!(^) = good | no update -> 1
+							, _manager.DD_ZERO ); //getVMax( depth ) );//!(^) = good | no update -> 1
 			
-			if( _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() == 
+			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
 				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
 				_manager.evaluate( new_val, actual_state.getFactoredState() ).getMax() ) {
 			    System.out.println("value of actual state is not set");
 			}
+
+			//value should be zero => visited zero
+//			if( _manager.apply( 
+//					_manager.BDDIntersection( new_val, _visited[depth] ),
+//					_manager.BDDIntersection( _visited[depth], _valueDD[depth]) 
+//					, DDOper.ARITH_MINUS).getMin() < 0 ){
+//				
+//			}
+			
 			
 			_policyDD[ depth ] = //new_policy; 
 //				new_policy;//, large_change_update_only, _manager.DD_ONE ); 
@@ -540,7 +547,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 						large_change//no good and updated -> 0
 							, _manager.DD_ONE );
 		}else{
-		    	_visited[ depth ] = _manager.BDDUnion( _visited[depth], update_states );
+	    	_visited[ depth ] = _manager.BDDUnion( _visited[depth], update_states );
 		    
 			_valueDD[ depth ] = new_val;
 //			, 
@@ -605,9 +612,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final ADDRNode states, final int depth ) {
 		//for each path in states that lead to 1
 		//initialize
-	    	if( states.equals(_manager.DD_ONE) ){
-	    	    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
-	    	}
+    	if( states.equals(_manager.DD_ONE) ){
+    	    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
+    	}
 		ADDRNode ret = value_fn;
 		
 		final Set<NavigableMap<String, Boolean>> paths_states

@@ -315,9 +315,27 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
-		if( _manager.apply( current_value, value_ret, DDOper.ARITH_MINUS ).getMin() < 0 ){
+		if( !_manager.apply( 
+				_manager.BDDIntersection( current_value, _manager.BDDNegate( to ) ), 
+				_manager.BDDIntersection( value_ret, _manager.BDDNegate( to ) ),
+				DDOper.ARITH_MINUS ).equals( _manager.DD_ZERO )   ){
 		    try{
-			throw new Exception("Value of state has increased");
+			throw new Exception("Value of un updated state has changed");
+		    }catch( Exception e ){
+			e.printStackTrace();
+			System.exit(1);
+		    }
+		}
+		
+		//current value may be zero hence cause increase error
+		final ADDRNode diff_to = _manager.apply( 
+				_manager.BDDIntersection( current_value, to ), 
+				_manager.BDDIntersection( value_ret, to ),
+				DDOper.ARITH_MINUS ) ;
+		
+		if( diff_to.getMin() < 0  ){
+		    try{
+			throw new Exception("Value of updated state has increased");
 		    }catch( Exception e ){
 			e.printStackTrace();
 			System.exit(1);
