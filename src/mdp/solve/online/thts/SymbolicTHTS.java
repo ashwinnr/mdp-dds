@@ -402,7 +402,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		Arrays.fill(_policyDD, _baseLinePolicy );
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _valueDD, _manager.DD_ZERO );
+		for( int i = 0 ; i < steps_lookahead; ++i ){
+			_valueDD[i] = _manager.DD_ZERO;//getVMax(i);
+		}
 		
 		_solved = new ADDRNode[ steps_lookahead ];
 		Arrays.fill( _solved, _manager.DD_ZERO );
@@ -416,6 +418,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		System.gc();
 		
+	}
+
+	protected ADDRNode getVMax(final int depth ) {
+		return _manager.getLeaf( _RMAX * (steps_lookahead-depth) );
 	}
 
 	protected void display(  ) {
