@@ -24,8 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.collections4.map.ReferenceMap;
-
-import util.InternedArrayList;
 import util.Pair;
 
 import com.google.common.cache.Cache;
@@ -430,7 +428,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	public static void main(String[] args) throws Exception {
 //	    testGetProductDD( );
-	    testAssignDD();
+//	    testAssignDD();
+	    testGetProductFromAssign();
 //		testApricodd();
 //		testBreakTies();
 		//		testAddPair();
@@ -484,6 +483,31 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//		
 		//		System.out.println( results );
 
+	}
+
+	private static void testGetProductFromAssign() {
+	    ArrayList<String> ord = new ArrayList<String>();
+
+		ord.add("X");
+		ord.add("Y");
+		ord.add("Z");
+
+		ADDManager man = new ADDManager(100, 100, ord, 42);
+		
+		ADDRNode leaf1 = man.getLeaf(3d);
+
+		ADDRNode leaf2 = man.getLeaf(6d);
+
+		ADDRNode inode = man.getINode("X",  
+			man.getINode("Z", leaf1, leaf2), 
+			man.getINode("Y", leaf1, leaf2) );
+		
+		NavigableMap<String, Boolean> assign = Maps.newTreeMap();
+		assign.put("Y", true);
+		assign.put("X", false);
+		
+		man.showGraph( man.getProductBDDFromAssignment(assign) );
+		
 	}
 
 	private static void testAssignDD() {
@@ -1194,7 +1218,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	protected InternedArrayList< String > _ordering = null;//new InternedArrayList<String>();
+	protected ArrayList< String > _ordering = null;//new InternedArrayList<String>();
 	
 	protected Runtime _runtime = Runtime.getRuntime();
 
@@ -1256,7 +1280,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		DD_ZERO = getLeaf(0.0d);
 		DD_ONE = getLeaf(1.0d);
 		DD_NEG_INF = getLeaf( getNegativeInfValue());
-		_ordering = new InternedArrayList<String>( ordering );
+		_ordering = new ArrayList<String>( ordering );
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
 		
 //		_rand = new Random(seed);
@@ -4051,24 +4075,42 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 		return null;
 	}
-
-	public ADDRNode getProductBDDFromAssignment(final NavigableMap<String, Boolean> assignments ) {
-		return getProductBDDFromAssignmentInt( 0, assignments );
+	
+	public ADDRNode getProductBDDFromAssignment( final NavigableMap<String, Boolean> assignments ) {
+	    ADDRNode ret = DD_ONE;
+	    for( final String key : assignments.keySet() ){
+		final boolean assign = assignments.get( key );
+		ret = BDDIntersection(ret, getIndicatorDiagram(key, assign));
+	    }
+	    return ret;
 	}
 
-	private ADDRNode getProductBDDFromAssignmentInt( final int pos, 
-		final NavigableMap<String, Boolean> assignments ){
-	    if( pos >= _ordering.size() ){
-		return DD_ONE;
-	    }
-	    final String var = _ordering.get(pos);
-	    final Boolean val = assignments.get( var );
-	    if( val != null ){
-		final ADDRNode root_next = getProductBDDFromAssignmentInt(pos+1, assignments);
-		return makeINode( var, val ? root_next : DD_ZERO, val ? DD_ZERO : root_next );
-	    }
-	    return getProductBDDFromAssignmentInt(pos+1, assignments);
-	}
+//	public ADDRNode getProductBDDFromAssignment(final NavigableMap<String, Boolean> assignments ) {
+//		return getProductBDDFromAssignmentInt( 0, assignments );
+//	}
+//
+//	private ADDRNode getProductBDDFromAssignmentInt( final int pos, 
+//		final NavigableMap<String, Boolean> assignments ){
+//	    if( pos >= _ordering.size() ){
+//		return DD_ONE;
+//	    }
+//	    final String var = _ordering.get(pos);
+//	    final Boolean val = assignments.get( var );
+//	    if( val != null ){
+//		final ADDRNode root_next = getProductBDDFromAssignmentInt(pos+1, assignments);
+//		if( isBefore( root_next, getIndicatorDiagram(var, val) ) ) {
+//		    try{
+//			throw new Exception("root next is before " + var + " after " + root_next.getTestVariable() );
+//		    }catch( Exception e ){
+//			e.printStackTrace();
+//			System.exit(1);
+//		    }
+//		}
+//		
+//		return getINode( var, val ? root_next : DD_ZERO, val ? DD_ZERO : root_next );
+//	    }
+//	    return getProductBDDFromAssignmentInt(pos+1, assignments);
+//	}
 //	public ADDRNode convertNegInfZeroDDToBDD(final ADDRNode input) {
 //		//convert a DD with zero and neg inf DDs
 //		//maps zero to one
@@ -4079,6 +4121,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		final ADDRNode max_zero = apply( plus_one, DD_ZERO, DDOper.ARITH_MAX );
 //		return max_zero;
 //	}
+
+	private boolean isBeforeOrdering(final String var1, final String var2) {
+		final int ind1 = _ordering.indexOf( var1 );
+		final int ind2 = _ordering.indexOf( var2 );
+		return ind1 < ind2;
+	}
 
 	public boolean hasSuffixVars(final ADDRNode ret,
 			final String suffix ) {
