@@ -619,11 +619,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		for( final NavigableMap<String, Boolean> path_state : paths_states ){
 			fs.setFactoredState(path_state);
 			final double hval = get_heuristic_value(fs, depth);
+			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
+//			_manager.showGraph( this_dd );
 			weighted_states = _manager.apply( weighted_states, 
-					_manager.scalarMultiply( _manager.getProductBDDFromAssignment(path_state), hval ),
+					_manager.scalarMultiply( this_dd, hval ),
 					DDOper.ARITH_PLUS );//paths will already be disjoint
 //					_manager.assign( weighted_states , path_state, hval );//assign may increase size
 		}
+		
+//		_manager.showGraph( weighted_states );
 		
 		ret = _manager.apply( _manager.apply( ret, 
 				_manager.BDDNegate( states ), DDOper.ARITH_PROD ),
