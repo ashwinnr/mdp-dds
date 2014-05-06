@@ -315,6 +315,15 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
+		if( _manager.apply( current_value, value_ret, DDOper.ARITH_MINUS ).getMin() < 0 ){
+		    try{
+			throw new Exception("Value of state has increased");
+		    }catch( Exception e ){
+			e.printStackTrace();
+			System.exit(1);
+		    }
+		}
+		
 		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double> >( 
 				value_ret, new UnorderedPair<ADDRNode, Double>( policy_ret , residual ) );
 	}

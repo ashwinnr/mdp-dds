@@ -236,14 +236,15 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		if( depth == steps_lookahead-1 ){
 			final double reward = _mdp.getReward( state_assign );
-			value = reward;
+			return reward;
 		}
 //		else{
 		for( int d = depth+1; d < steps_lookahead; ++d ){//dont include reward level as they have value 0s
 			if( d == steps_lookahead-1 ){
 				final double reward = _mdp.getReward( state_assign );
 				value = _RMAX*(d-depth) + reward;
-			}else if( is_node_visited( state_assign, d ) ){
+			}
+			else if( is_node_visited( state_assign, d ) ){
 				++heuristic_sharing;
 				value = _RMAX*(d-depth) + get_value( state_assign, d );
 			}
