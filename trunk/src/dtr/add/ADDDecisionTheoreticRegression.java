@@ -195,6 +195,15 @@ public class ADDDecisionTheoreticRegression implements
 			final boolean makePolicy,
 			final long BIGDD ,
 			final boolean constrain_naively ){
+	    
+	    if( _manager.BDDIntersection(source_value_fn, from).getMin() == _manager.getNegativeInfValue() ){
+		try{
+		    throw new Exception("has -inf value in state that is being backed up");//THIS SI HAPPENING
+		}catch( Exception e ){
+		    e.printStackTrace();
+		    System.exit(1);
+		}
+	    }
 		
 //	    	System.out.println("Backup");
 //	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
@@ -315,10 +324,8 @@ public class ADDDecisionTheoreticRegression implements
 			}
 		}
 		
-		if( !_manager.apply( 
-				_manager.BDDIntersection( current_value, _manager.BDDNegate( to ) ), 
-				_manager.BDDIntersection( value_ret, _manager.BDDNegate( to ) ),
-				DDOper.ARITH_MINUS ).equals( _manager.DD_ZERO )   ){
+		if( !_manager.BDDIntersection( current_value, _manager.BDDNegate( to ) ).
+			equals(_manager.BDDIntersection( value_ret, _manager.BDDNegate( to ) )) ){
 		    try{
 			throw new Exception("Value of un updated state has changed");
 		    }catch( Exception e ){
@@ -327,20 +334,30 @@ public class ADDDecisionTheoreticRegression implements
 		    }
 		}
 		
-		//current value may be zero hence cause increase error
-		final ADDRNode diff_to = _manager.apply( 
-				_manager.BDDIntersection( current_value, to ), 
-				_manager.BDDIntersection( value_ret, to ),
-				DDOper.ARITH_MINUS ) ;
-		
-		if( diff_to.getMin() < 0  ){
+		//updated state - value not = neg inf
+		if( _manager.BDDIntersection(value_ret, to).getMin() == _manager.getNegativeInfValue() ){
 		    try{
-			throw new Exception("Value of updated state has increased");
+			throw new Exception("Updated state has value -inf");
 		    }catch( Exception e ){
 			e.printStackTrace();
 			System.exit(1);
 		    }
 		}
+		
+		//current value may be zero hence cause increase error
+//		final ADDRNode diff_to = _manager.apply( 
+//				_manager.BDDIntersection( current_value, to ), 
+//				_manager.BDDIntersection( value_ret, to ),
+//				DDOper.ARITH_MINUS ) ;
+//		
+//		if( diff_to.getMin() < 0  ){
+//		    try{
+//			throw new Exception("Value of updated state has increased");
+//		    }catch( Exception e ){
+//			e.printStackTrace();
+//			System.exit(1);
+//		    }
+//		}
 		
 		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double> >( 
 				value_ret, new UnorderedPair<ADDRNode, Double>( policy_ret , residual ) );

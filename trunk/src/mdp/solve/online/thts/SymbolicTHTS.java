@@ -246,14 +246,30 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			}
 			else if( is_node_visited( state_assign, d ) ){
 				++heuristic_sharing;
-				value = _RMAX*(d-depth) + get_value( state_assign, d );
+				final double that_value = get_value( state_assign, d );
+				if( that_value == _manager.getNegativeInfValue() ){
+				    try{
+					throw new Exception("visited state has value -inf");
+				    }catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				    }
+				}
+				value = _RMAX*(d-depth) + that_value;
 			}
 		}
 //		}
 //		if( value == Double.POSITIVE_INFINITY ){
 //			value = reward + _RMAX*(steps_lookahead-1-depth);
 //		}
-		
+		if( Double.isInfinite(value) ){
+		    try{
+			throw new Exception("heurisitc is -inf");
+		    }catch( Exception e  ){
+			e.printStackTrace();
+			System.exit(1);
+		    }
+		}
 		return value;
 
 	}
@@ -381,8 +397,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //			System.out.println("visited is one??");
 //		}
 		
+		final ADDRNode this_dd = _manager.getProductBDDFromAssignment( state.getFactoredState() );
 		_visited[depth] = _manager.BDDUnion(_visited[depth], 
-				_manager.getProductBDDFromAssignment( state.getFactoredState() ) );
+				this_dd );
 		if( _manager.evaluate( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){
 			try {
 				throw new Exception("visted not marked as visited");
@@ -390,6 +407,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				e.printStackTrace();
 				System.exit(1);
 			}
+		}
+		if( _manager.evaluate(_valueDD[depth], state.getFactoredState() ).equals( _manager.DD_NEG_INF ) ){
+		    try{
+			throw new Exception("visited node not initialized properly");
+		    }catch( Exception e ){
+			e.printStackTrace();System.exit(1);
+		    }
 		}
 		
 //		if( _visited[depth].equals( _manager.DD_ONE ) ){
@@ -403,7 +427,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int i = 0 ; i < steps_lookahead; ++i ){
-			_valueDD[i] = _manager.DD_ZERO;//getVMax(i);
+			_valueDD[i] = _manager.DD_NEG_INF;//DD_ZERO;//getVMax(i);
 		}
 		
 		_solved = new ADDRNode[ steps_lookahead ];

@@ -47,7 +47,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private FactoredState[] trajectory_states;
 	private FactoredAction[] trajectory_actions;
 	
-	public final static boolean  DISPLAY_TRAJECTORY = false;
+	public final static boolean  DISPLAY_TRAJECTORY = true;
 //	public boolean BACK_CHAIN;
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
@@ -508,21 +508,46 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	//				System.exit(1);
 //	//			}
 			}
+			//updates for visited, v and pi
 			final ADDRNode new_visited = _manager.BDDUnion( _visited[depth], large_change_update_only);
+			//_visited => new_vis
+			// == !_vis OR new_vis
+			if( ! _manager.BDDUnion( _manager.BDDNegate(_visited[depth]) , new_visited ).equals(_manager.DD_ONE) ){
+			    try{
+				throw new Exception("visited turned from one to zero");
+			    }catch( Exception e ){
+				e.printStackTrace();
+				System.exit(1);
+			    }
+			}
+			
 			if( new_visited.equals( _manager.DD_ONE ) && !_visited[depth].equals(_manager.DD_ONE) ){
 				System.out.println("visited is one. Depth " + depth );
 			}
+			
 			_visited[ depth ] = new_visited;
 
-			_valueDD[ depth ] = 
+//			_valueDD[ depth ] = 
 //				new_val;
 //					_manager.BDDIntersection( new_val, large_change );
 			//must be OK here tio use intersection as diff already has the vars of new_val
 			//and so good_update has the same vars
 //			
-					_manager.constrain( new_val, 
-						large_change//no good and updated -> 0
-							, _manager.DD_ZERO ); //getVMax( depth ) );//!(^) = good | no update -> 1
+//					_manager.BDDIntersection( new_val, large_change );
+			
+			
+			
+			//TODO :
+			//does it happen that a visited node has small change
+			//so put -inf 
+			//but does not reset visited
+			//and how does this happen the first time
+			// if this is the case, visited and value will not be coherent!
+			
+			_valueDD[ depth] = _manager.constrain(_valueDD[depth], large_change, _manager.DD_NEG_INF);
+					//			( new_val, 
+//						large_change//no good and updated -> 0
+//							, _manager.DD_NEG_INF ); //getVMax( depth ) );//!(^) = good | no update -> 1
 			
 			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
 				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
@@ -530,14 +555,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			    System.out.println("value of actual state is not set");
 			}
 
-			//value should be zero => visited zero
-//			if( _manager.apply( 
-//					_manager.BDDIntersection( new_val, _visited[depth] ),
-//					_manager.BDDIntersection( _visited[depth], _valueDD[depth]) 
-//					, DDOper.ARITH_MINUS).getMin() < 0 ){
-//				
-//			}
-			
+			//visited = 1 => value != -inf
+			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
+				try{
+				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
+				}catch( Exception e ){
+				    e.printStackTrace();
+				    System.exit(1);
+				}
+			}
+
+			//visited = 0 => value == -inf
 			
 			_policyDD[ depth ] = //new_policy; 
 //				new_policy;//, large_change_update_only, _manager.DD_ONE ); 
@@ -612,9 +640,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final ADDRNode states, final int depth ) {
 		//for each path in states that lead to 1
 		//initialize
-    	if( states.equals(_manager.DD_ONE) ){
-    	    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
-    	}
+    		if( states.equals(_manager.DD_ONE) ){
+    		    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
+    		}
 		ADDRNode ret = value_fn;
 		
 		final Set<NavigableMap<String, Boolean>> paths_states
@@ -639,6 +667,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		ret = _manager.apply( _manager.apply( ret, 
 				_manager.BDDNegate( states ), DDOper.ARITH_PROD ),
 				weighted_states, DDOper.ARITH_PLUS );
+		
+		if( _manager.BDDIntersection(ret, states).getMin() == _manager.getNegativeInfValue() ){
+		    try{
+			throw new Exception("newly initialized state has neg inf value");
+		    }catch( Exception e  ){
+			e.printStackTrace();
+			System.exit(1);
+		    }
+		}
 		
 		return ret; 
 	}
