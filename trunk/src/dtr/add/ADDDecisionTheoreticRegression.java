@@ -2096,8 +2096,7 @@ public class ADDDecisionTheoreticRegression implements
 			= new ADDDecisionTheoreticRegression(mdp, 42);
 		ADDManager manager = mdp.getManager();
 	
-		ADDRNode handCodedPolicy = getRebootDeadPolicy( manager, ADD_dtr, 
-				mdp.getFactoredActionSpace().getActionVariables() );
+		ADDRNode handCodedPolicy = ADD_dtr.getRebootDeadPolicy(  );
 		
 		manager.showGraph( ADD_dtr.evaluatePolicy(manager.DD_ZERO, handCodedPolicy, 
 				20, 0.01d, true, false, null , false , 0.0d, APPROX_TYPE.NONE )._o1 );
@@ -2117,8 +2116,7 @@ public class ADDDecisionTheoreticRegression implements
 //				mdp.getFactoredActionSpace().getActionVariables(),
 //				manager);
 		
-		ADDRNode handCodedPolicy = getRebootDeadPolicy( manager, ADD_dtr, 
-				mdp.getFactoredActionSpace().getActionVariables() );
+		ADDRNode handCodedPolicy = ADD_dtr.getRebootDeadPolicy(  );
 		
 		int i = 0;
 		ADDRNode newValueFn = null;
@@ -2147,11 +2145,12 @@ public class ADDDecisionTheoreticRegression implements
 	    return manager.sampleBDD(policy, rand, 1);
 	}
 
-	public static ADDRNode getRebootDeadPolicy(ADDManager manager,
-			ADDDecisionTheoreticRegression dtr, final Set<String> actionVars) throws EvalException {
+	public ADDRNode getRebootDeadPolicy() throws EvalException {
 		
-		ADDRNode policy = manager.DD_ONE;
-		for( final String actionVar : actionVars ){
+		ADDRNode policy = _manager.DD_ONE;
+		int to_go =  _mdp._i._nNonDefActions;
+		
+		for( final String actionVar : _mdp.get_actionVars() ){
 //			ADDRNode rebooter = manager.getIndicatorDiagram(actionVar, true);
 //			ADDRNode runner = manager.getIndicatorDiagram(actionVar.replace("reboot", "running"), 
 //					false );
@@ -2162,15 +2161,19 @@ public class ADDDecisionTheoreticRegression implements
 //					manager.getIndicatorDiagram(actionVar.replace("reboot", "running"), true),
 //					DDOper.ARITH_PROD );
 			
-			ADDRNode thisPolicy = manager.getINode( 
+			ADDRNode thisPolicy = _manager.getINode( 
 					actionVar.replace("reboot", "running"), 
-					manager.getIndicatorDiagram(actionVar, false),
-					manager.getIndicatorDiagram(actionVar, true) );
+					_manager.getIndicatorDiagram(actionVar, false),
+					_manager.getIndicatorDiagram(actionVar, true) );
 
-			policy = manager.apply(policy, thisPolicy, DDOper.ARITH_PROD );
+			policy = _manager.BDDIntersection(policy, thisPolicy);//, DDOper.ARITH_PROD );
+			--to_go;
+			if( to_go == 0 ){
+				break;
+			}
 		}
 		
-		policy = dtr.applyMDPConstraints( policy , null, manager.DD_ZERO, true, null);
+		policy = applyMDPConstraints( policy , null, _manager.DD_ZERO, true, null);
 		return policy;
 	}
 

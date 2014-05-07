@@ -31,7 +31,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     private Consistency[] _cons;
     public enum Consistency{
 	WEAK_POLICY, WEAK_ACTION, VISITED, BACKWARDS_WEAK_POLICY, BACKWARDS_WEAK_ACTION,
-	NONE, BACKWARDS_STRONG
+	NONE, BACKWARDS_STRONG, NOT_VISITED
     }
     
     public GenericTransitionGeneralization( final ADDDecisionTheoreticRegression dtr ,
@@ -180,12 +180,26 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //					manager.BDDIntersection( consistent_cur_gen_state, 
 //				parameters.get_visited()[i] );
 //				: 
-			if( i != states.length-1 ){
-				consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
-						manager.DD_ZERO );
-			}
+//			if( i != states.length-1 ){
+				consistent_cur_gen_state =
+						manager.BDDIntersection(consistent_cur_gen_state, parameters.get_visited()[i]);
+//						manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
+//						manager.DD_ZERO );
+//			}
 			break;
+			
+		    case NOT_VISITED :
+//		    	if( i != states.length-1 ){
+					consistent_cur_gen_state =
+					manager.BDDUnion( manager.getProductBDDFromAssignment( states[i].getFactoredState() ), 
+							manager.BDDIntersection(consistent_cur_gen_state, 
+									manager.BDDNegate( parameters.get_visited()[i] ) ) );
+//							manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
+//							manager.DD_ZERO );
+//				}
 //
+			break;
+					
 		    case BACKWARDS_WEAK_ACTION:
 			break;
 		    case BACKWARDS_WEAK_POLICY:
@@ -307,12 +321,20 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //					manager.BDDIntersection( consistent_cur_gen_state, 
 //				parameters.get_visited()[i] );
 //				: 
-			if( i != states.length-1 ){
-				consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, parameters.get_visited()[i], 
-						manager.DD_ZERO );
-			}
+//			if( i != states.length-1 ){
+				consistent_cur_gen_state = manager.BDDIntersection(consistent_cur_gen_state, parameters.get_visited()[i]);
+				//, 
+					//	manager.DD_ZERO );
+//			}
 			break;
 		    
+		    case NOT_VISITED :
+		    	consistent_cur_gen_state = manager.BDDUnion( manager.getProductBDDFromAssignment( states[i].getFactoredState() ), 
+						manager.BDDIntersection(consistent_cur_gen_state, 
+								manager.BDDNegate( parameters.get_visited()[i] ) ) );
+		    	break;
+		    
+			
 		    case BACKWARDS_WEAK_POLICY : 
 		    	final ADDRNode preimage = _dtr.BDDPreImagePolicy( prev_gen_state, parameters.get_policyDD()[i],
 		    		true, DDQuantify.EXISTENTIAL, false );
