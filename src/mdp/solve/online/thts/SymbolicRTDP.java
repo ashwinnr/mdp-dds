@@ -47,7 +47,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private FactoredState[] trajectory_states;
 	private FactoredAction[] trajectory_actions;
 	
-	public final static boolean  DISPLAY_TRAJECTORY = true;
+	public final static boolean  DISPLAY_TRAJECTORY = false;
 //	public boolean BACK_CHAIN;
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
