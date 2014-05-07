@@ -908,7 +908,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		man.showGraph( inodeA, inodeB, inodeAB, inodeABC );
 
-		System.out.println( man.countPaths( inodeABC ) );
+//		System.out.println( man.countPaths( inodeABC ) );
 
 	}
 
@@ -2383,17 +2383,23 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return 1L + trueCount + falseCount;
 	}
 
-	public int countPaths( final ADDRNode rnode ){
+	public int countPathsBDD( final ADDRNode rnode ){
+		return enumeratePathsBDD(rnode).size();
+	}
+	
+	public int countPathsADD( final ADDRNode rnode ){
 //		Objects.requireNonNull( rnode );
-		final ADDNode node = rnode.getNode();
-		if( node instanceof ADDLeaf ){
-			return 1;
-		}
-		final int trueCount = countPaths( rnode.getTrueChild() );
-		final int falseCount = countPaths( rnode.getFalseChild() );
-		return trueCount + falseCount;
+//		final ADDNode node = rnode.getNode();
+//		if( node instanceof ADDLeaf ){
+//			return 1;
+//		}
+//		final int trueCount = countPaths( rnode.getTrueChild() );
+//		final int falseCount = countPaths( rnode.getFalseChild() );
+//		return trueCount + falseCount;
+		return enumeratePathsADD(rnode).size();
 	}
 
+	
 	@Override
 	public void createStore( final long NumDDs ) {
 		this.STORE_INCREMENT = NumDDs;
@@ -2422,7 +2428,29 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 		return ret;
 	}
-
+	
+	public Set<NavigableMap<String,Boolean>> enumeratePathsBDD(
+			final ADDRNode input ) {
+		return enumeratePaths( input, true, true, 
+				DD_ONE,
+				false );
+		
+	}
+	
+	public Set<NavigableMap<String,Boolean>> enumeratePathsADD(
+			final ADDRNode input ) {
+		return enumeratePaths( input, true, true, 
+				DD_NEG_INF,
+				true );
+		
+	}
+	
+	public Set<NavigableMap<String,Boolean>> enumeratePaths(
+			final ADDRNode input ) {
+		return enumeratePaths( input, true, false, 
+				DD_ZERO,
+				false );
+	}
 	public Set<NavigableMap<String,Boolean>> enumeratePaths(
 			final ADDRNode input, 
 			final boolean include_leaves, final boolean specified_leaves_only, 

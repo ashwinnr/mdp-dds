@@ -236,6 +236,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		if( depth == steps_lookahead-1 ){
 			final double reward = _mdp.getReward( state_assign );
+//			System.out.println( "state " +  state_assign.toString() + "reward " + reward + " depth  " + depth );
 			return reward;
 		}
 //		else{
@@ -243,6 +244,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			if( d == steps_lookahead-1 ){
 				final double reward = _mdp.getReward( state_assign );
 				value = _RMAX*(d-depth) + reward;
+//				System.out.println( reward + " + " + _RMAX*(d-depth) );
 			}
 			else if( is_node_visited( state_assign, d ) ){
 				++heuristic_sharing;
@@ -389,10 +391,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	public void visit_node(FactoredState<RDDLFactoredStateSpace> state,
 			int depth) {
 		
-		if( depth == steps_lookahead-1 ){
-			return;
-		}
-		
+//		if( depth == steps_lookahead-1 ){
+//			return;
+//		}
+//		
 //		if( _visited[depth].equals( _manager.DD_ONE ) ){
 //			System.out.println("visited is one??");
 //		}
@@ -453,10 +455,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			ADDRNode vfn = _valueDD[i];
 			ADDRNode plcy = _policyDD[i];
 			System.out.println("i = " + i );
-			System.out.println("Size of Value fn. " + _manager.countNodes(vfn) );
-			System.out.println("Size of policy " + _manager.countNodes( plcy ) );
-			System.out.println("Size of visited " + _manager.countNodes( _visited[i] ) );
-			System.out.println("Size of solved " + _manager.countNodes( _solved[i] ) );
+			System.out.println("#Minterms of Value fn. " + _manager.countPathsADD(vfn) );
+			System.out.println("Size of policy " + _manager.countPathsBDD( plcy ) );
+			System.out.println("Size of visited " + _manager.countPathsBDD( _visited[i] ) );
+			System.out.println("Size of solved " + _manager.countPathsBDD( _solved[i] ) );
 		}
 		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 	}
