@@ -11,14 +11,15 @@ import dtr.add.ADDDecisionTheoreticRegression;
 public class HandCodedPolicies {
 
     public static ADDRNode get( final String domain_file, final ADDDecisionTheoreticRegression dtr, ADDManager manager, Set<String> actionVars ){
-//	if( domain_file.contains("sysadmin") ){
-//	    try {
-//		return ADDDecisionTheoreticRegression.getRebootDeadPolicy(manager, dtr, actionVars);
-//	    } catch (EvalException e) {
-//		e.printStackTrace();
-//		System.exit(1);
-//	    }
-//	}else if( domain_file.contains("grid") ){
+	if( domain_file.contains("sysadmin") ){
+	    try {
+		return dtr.getRebootDeadPolicy( );
+	    } catch (EvalException e) {
+		e.printStackTrace();
+		System.exit(1);
+	    }
+	}
+//	else if( domain_file.contains("grid") ){
 //		return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
 //	}
 	return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);

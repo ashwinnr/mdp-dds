@@ -75,7 +75,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected boolean truncateTrials;
 	protected double _RMAX;
 	protected boolean enableLabelling;
-	private ADDRNode _baseLinePolicy;
+	protected ADDRNode _baseLinePolicy;
 	protected int heuristic_sharing;
 	
 //	public enum SUCCESSOR{
@@ -372,7 +372,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //		= cur_action.setFactoredAction( path );
 		for( final String actvar : _mdp.get_actionVars() ){
 			if( !partial_path.containsKey(actvar) ){
-				partial_path.put( actvar, false );
+				partial_path.put( actvar, _mdp.getDefaultValue(actvar) );
 			}
 		}
 		if( partial_path.size() != _mdp.get_actionVars().size() ){

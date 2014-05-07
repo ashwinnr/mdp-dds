@@ -166,7 +166,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 
 	private  final Map<String, Map<String, Boolean>> _hmJointActions = new HashMap<String, Map<String,Boolean>>() ;
 
-	protected INSTANCE	_i;
+	public INSTANCE	_i;
 
 	protected NONFLUENTS	_n;
 
