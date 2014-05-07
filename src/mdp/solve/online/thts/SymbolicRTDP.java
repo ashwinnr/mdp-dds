@@ -259,6 +259,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.println( "Value of init state " + 
 						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
 				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+				display(  );
 //				dis
 			}
 		}
@@ -447,6 +448,35 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println( "other states are updated"); 
 //		}
 		
+		//SANITY : value not -inf should only decrease
+//    	final ADDRNode diff_check = _manager.apply(
+//    			_manager.BDDIntersection(_valueDD[depth], _visited[depth] ),
+//    			_manager.BDDIntersection(new_val, _visited[depth] ),
+//    			DDOper.ARITH_MINUS );
+//		if( diff_check.getMin() < 0 ){
+//    		try{
+//    			throw new Exception ("value of state has increased wrt previous value " 
+//    		+ diff_check.getMin() +"\nDepth = " + depth );
+//    		}catch( Exception e ){
+//    			e.printStackTrace();
+//    			final ADDRNode error = _manager.threshold( diff_check, diff_check.getMin(), false );
+//				System.out.println( _manager.enumeratePaths(error, true, true, 
+//						(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
+//				
+//				System.out.println( _manager.enumeratePaths(
+//						_manager.BDDIntersection(_valueDD[depth], error), true, true, 
+//						(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//				
+//				System.out.println( _manager.enumeratePaths(
+//						_manager.BDDIntersection(new_val, error), true, true, 
+//						(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//				
+//				System.out.println("Current Heuristic value : " + 
+//				_manager.enumeratePaths( initilialize_node_temp(update_states, update_states, depth) ) );
+////				System.exit(1);
+//    		}
+//    	}
+		
 		if( _genStates ){
 		    
 		    	if( _visited[depth].equals(_manager.DD_ONE) ){
@@ -454,14 +484,22 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		    	    _policyDD[depth] = new_policy;
 		    	    return;
 		    	}
+		    	
+		    	
+		    	
 		    //changed : quality for generalization judged only for newly visited states
 		    	//states that are not visited and have been updated
 		    	//include actual state
 		    	//find updates for unvisited states that are small
 		    	//convert to constraint
+		    	final ADDRNode this_dd = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
 		    	
 		    	//care = update ^ !visited
-		    	final ADDRNode care_states =  _manager.BDDIntersection(update_states, _manager.BDDNegate(_visited[depth]  ) );
+		    	final ADDRNode care_states =  
+		    			_manager.BDDUnion( 
+		    					this_dd,
+		    					_manager.BDDIntersection(update_states, 
+		    							_manager.BDDNegate(_visited[depth]  ) ) );
 		    	
 		    	if( care_states.equals(_manager.DD_ZERO) ){
 		    	    //no new states to check
@@ -482,26 +520,26 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//remove non updated states from diff
 			
 //			final ADDRNode checker = _manager.BDDIntersection(diff, care_states );
-			if( diff.getMin() < 0  ){
-				try{
-					throw new Exception("Some values have increased wrt heuristic value " + " depth = " + depth  );
-				}catch(Exception e ){
-					e.printStackTrace();
-					final ADDRNode error = _manager.threshold( diff, diff.getMin(), false );
-					System.out.println( _manager.enumeratePaths(error, true, true, 
-							(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
-					
-					System.out.println( _manager.enumeratePaths(
-							_manager.BDDIntersection(heur, error), true, true, 
-							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-					
-					System.out.println( _manager.enumeratePaths(
-							_manager.BDDIntersection(new_val, error), true, true, 
-							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-					
-					System.exit(1);
-				}
-			}
+//			if( diff.getMin() < 0  ){
+//				try{
+//					throw new Exception("Some values have increased wrt heuristic value " + " depth = " + depth  );
+//				}catch(Exception e ){
+//					e.printStackTrace();
+//					final ADDRNode error = _manager.threshold( diff, diff.getMin(), false );
+//					System.out.println( _manager.enumeratePaths(error, true, true, 
+//							(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
+//					
+//					System.out.println( _manager.enumeratePaths(
+//							_manager.BDDIntersection(heur, error), true, true, 
+//							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//					
+//					System.out.println( _manager.enumeratePaths(
+//							_manager.BDDIntersection(new_val, error), true, true, 
+//							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//					
+//					System.exit(1);
+//				}
+//			}
 			diff = _manager.constrain(diff, care_states, _manager.DD_NEG_INF);
 			//!care => diff = -inf
 			
@@ -533,9 +571,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			good_updates += _manager.enumeratePaths( keep_states_update_only
 					, false, true, _manager.DD_ONE, false ).size();
 			
-			if( throw_away_mask.equals(_manager.DD_ONE ) ){
-				System.out.println("Good updates all around");
-			}
+//			if( throw_away_mask.equals(_manager.DD_ONE ) ){
+//				System.out.println("Good updates all around");
+//			}
 			
 			if( throw_away_mask.equals(_manager.DD_ZERO ) ){
 				//just truncating the trajectory here
@@ -553,28 +591,28 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final ADDRNode new_visited = _manager.BDDUnion( _visited[depth], keep_states_update_only );
 			//_visited => new_vis
 			// == !_vis OR new_vis
-			if( ! _manager.BDDUnion( _manager.BDDNegate(_visited[depth]) , new_visited ).equals(_manager.DD_ONE) ){
-			    try{
-				throw new Exception("visited turned from one to zero");
-			    }catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			    }
-			}
+//			if( ! _manager.BDDUnion( _manager.BDDNegate(_visited[depth]) , new_visited ).equals(_manager.DD_ONE) ){
+//			    try{
+//				throw new Exception("visited turned from one to zero");
+//			    }catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			    }
+//			}
 			
 			if( new_visited.equals( _manager.DD_ONE ) && !_visited[depth].equals(_manager.DD_ONE) ){
 				System.out.println("visited is one. Depth " + depth );
 			}
 			
 			//visited = 1 => value != -inf
-			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
-				try{
-				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
-				}catch( Exception e ){
-				    e.printStackTrace();
-				    System.exit(1);
-				}
-			}
+//			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
+//				try{
+//				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
+//				}catch( Exception e ){
+//				    e.printStackTrace();
+//				    System.exit(1);
+//				}
+//			}
 			
 			_visited[ depth ] = new_visited;
 
@@ -594,31 +632,31 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			// if this is the case, visited and value will not be coherent!
 			
 //			_valueDD[ depth] = _manager.BDDIntersection( new_val, throw_away_mask );
-			_valueDD[ depth ] = _manager.constrain( new_val, throw_away_mask, _manager.DD_NEG_INF);
+			_valueDD[ depth ] = _manager.constrain( new_val, _visited[ depth ], _manager.DD_NEG_INF);
 					//			( new_val, 
 //						large_change//no good and updated -> 0
 //							, _manager.DD_NEG_INF ); //getVMax( depth ) );//!(^) = good | no update -> 1
 			
-			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
-				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
-				_manager.evaluate( new_val, actual_state.getFactoredState() ).getMax() ) {
-			    try{
-				throw new Exception( "value of actual state is not set");
-			    }catch (Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			    }
-			}
+//			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
+//				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
+//				_manager.evaluate( new_val, actual_state.getFactoredState() ).getMax() ) {
+//			    try{
+//				throw new Exception( "value of actual state is not set");
+//			    }catch (Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			    }
+//			}
 
 			//visited = 1 => value != -inf
-			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
-				try{
-				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
-				}catch( Exception e ){
-				    e.printStackTrace();
-				    System.exit(1);
-				}
-			}
+//			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
+//				try{
+//				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
+//				}catch( Exception e ){
+//				    e.printStackTrace();
+//				    System.exit(1);
+//				}
+//			}
 
 			//visited = 0 => value == -inf
 			
@@ -627,7 +665,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					//new_policy;
 //					_manager.BDDIntersection( new_policy, large_change );
 					_manager.constrain( new_policy, 
-						keep_states_update_only//no good and updated -> 0
+							_visited[ depth ]//no good and updated -> 0
 							, _manager.DD_ONE );
 		}else{
 	    	_visited[ depth ] = _manager.BDDUnion( _visited[depth], update_states );
