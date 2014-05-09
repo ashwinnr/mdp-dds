@@ -484,7 +484,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}
 			}
 			
-			_valueDD[ depth ]  =_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
+			//visited is not good enough
+			//we  want _v_d to be set to _v_d except in curret_partition which is updated
+			//the below one will retain the backup() in already visited nodes
+			//which may increase the # partitions
+			_valueDD[ depth ]  =
+					_manager.apply( 
+							_manager.BDDIntersection( new_val, current_parition ),
+							_manager.BDDIntersection( _valueDD[ depth ] , _manager.BDDNegate( current_parition ) ) 
+							, DDOper.ARITH_PLUS );
 			
 			//updated state - value not = neg inf
 //			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
@@ -496,7 +504,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //					System.exit(1);
 //			    }
 //			}
-			_policyDD[ depth ] = _manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
+			_policyDD[ depth ] = _manager.BDDUnion( 
+					_manager.BDDIntersection( new_policy, current_parition ),
+					_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_parition) )  ) ;
+			//_visited[depth], _manager.DD_ONE );
 			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
 
 			//actual state must have new values and policy
