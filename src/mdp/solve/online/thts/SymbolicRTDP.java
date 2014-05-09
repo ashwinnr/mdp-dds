@@ -55,6 +55,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private int good_updates;
 	private int truncated_backup;
 	private boolean _genStates;
+	private DEBUG_LEVEL _dbg;
 	
 
 	public SymbolicRTDP(
@@ -99,6 +100,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, exploration, cons, truncateTrials, enableLabelling );
+		_dbg = debug;
 //		this.BACK_CHAIN = backChain;
 		this.backChainThreshold = backChainThreshold; 
 			
@@ -485,38 +487,40 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			_valueDD[ depth ]  =_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
 			
 			//updated state - value not = neg inf
-			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
-					== _manager.getNegativeInfValue() ){
-			    try{
-			    	throw new Exception("Updated state has value -inf");
-			    }catch( Exception e ){
-			    	e.printStackTrace();
-					System.exit(1);
-			    }
-			}
+//			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
+//					== _manager.getNegativeInfValue() ){
+//			    try{
+//			    	throw new Exception("Updated state has value -inf");
+//			    }catch( Exception e ){
+//			    	e.printStackTrace();
+//					System.exit(1);
+//			    }
+//			}
 			_policyDD[ depth ] = _manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
-			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, true, null);
+			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
 
 			//actual state must have new values and policy
-			if( get_value(actual_state, depth) != 
-					_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
-				try{
-					throw new Exception("actual state value not set properly " );
-				}catch( Exception e ) {
-					e.printStackTrace();
-					System.exit(1);
+			if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+				if( get_value(actual_state, depth) != 
+						_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
+					try{
+						throw new Exception("actual state value not set properly " );
+					}catch( Exception e ) {
+						e.printStackTrace();
+						System.exit(1);
+					}
 				}
-			}
-			
-			//EXPENSIVE:
-			//remove
-			if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
-					equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
-				try{
-					throw new Exception("actual state policy not set properly " );
-				}catch( Exception e ) {
-					e.printStackTrace();
-					System.exit(1);
+				
+				//EXPENSIVE:
+				//remove
+				if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
+						equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
+					try{
+						throw new Exception("actual state policy not set properly " );
+					}catch( Exception e ) {
+						e.printStackTrace();
+						System.exit(1);
+					}
 				}
 			}
 		}

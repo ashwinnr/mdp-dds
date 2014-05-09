@@ -205,14 +205,14 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	public void initilialize_node(final FactoredState<RDDLFactoredStateSpace> state,
 			final int depth) {
 		
-		if( _manager.evaluate(_visited[depth], state.getFactoredState()).equals(_manager.DD_ONE) ){
-			try{
-				throw new Exception("Initializing already visited node?");
-			}catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
+//		if( _manager.evaluate(_visited[depth], state.getFactoredState()).equals(_manager.DD_ONE) ){
+//			try{
+//				throw new Exception("Initializing already visited node?");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
 		
 		//this value is used for backup
 		//actually no need to initialize here if backup is done backwards
@@ -406,21 +406,21 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		final ADDRNode this_dd = _manager.getProductBDDFromAssignment( state.getFactoredState() );
 		_visited[depth] = _manager.BDDUnion(_visited[depth], 
 				this_dd );
-		if( _manager.evaluate( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){
-			try {
-				throw new Exception("visted not marked as visited");
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
-		if( _manager.evaluate(_valueDD[depth], state.getFactoredState() ).equals( _manager.DD_NEG_INF ) ){
-		    try{
-			throw new Exception("visited node not initialized properly");
-		    }catch( Exception e ){
-			e.printStackTrace();System.exit(1);
-		    }
-		}
+//		if( _manager.evaluate( _visited[depth], state.getFactoredState() ).equals(_manager.DD_ZERO)){
+//			try {
+//				throw new Exception("visted not marked as visited");
+//			} catch (Exception e) {
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+//		if( _manager.evaluate(_valueDD[depth], state.getFactoredState() ).equals( _manager.DD_NEG_INF ) ){
+//		    try{
+//			throw new Exception("visited node not initialized properly");
+//		    }catch( Exception e ){
+//			e.printStackTrace();System.exit(1);
+//		    }
+//		}
 		
 //		if( _visited[depth].equals( _manager.DD_ONE ) ){
 //			System.out.println("visited is one??");
