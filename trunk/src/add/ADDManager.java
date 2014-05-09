@@ -4449,9 +4449,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 	
-	public ADDRNode BDDIntersection( final ADDRNode input1, 
-			final ADDRNode input2 ){
-		return apply( input1, input2, DDOper.ARITH_PROD );
+	public ADDRNode BDDIntersection( final ADDRNode... inputs ){
+		ADDRNode ret = DD_ONE;
+		for ( final ADDRNode input : inputs ){
+			ret = apply( ret, input, DDOper.ARITH_PROD ); 
+		}
+		return ret;
 	}
 	
 	//not symmetric difference
