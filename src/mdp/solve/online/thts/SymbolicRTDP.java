@@ -378,7 +378,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//e.g. the difference in value must be atleast as large as the difference
 			//in the on trajectory state
 			
-			setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, j-1 , trajectory_states[j-1] );
+			setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, j-1 , 
+					trajectory_states[j-1], trajectory_states[j] );
 
 			if( j-1 == 0 && ( ( _manager.evaluate(target_val, trajectory_states[j-1].getFactoredState() ).getMax()
 					) - ( _manager.evaluate(_valueDD[j-1], trajectory_states[j-1].getFactoredState() ).getMax() ) ) != 0 ){
@@ -417,12 +418,21 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 	}
 
+	//purpose of this method is to keep _valueDD compact
+	//ie remove some states that are already backed up
+	//for the purpose of compactness
+	//method 1 : change wrt heuristic - for newly visited - 2 => BDD
+	//method 2 : change wrt cur_value - for already visited - meh
+	//method 3 : restrict to the partition of the backup that - 1 => BDD
+	//set visited to intersection
+	//contains the cur state
 	private void setValuePolicyVisited( 
 			final ADDRNode new_val,
 			final ADDRNode new_policy,
 			final ADDRNode update_states,
 			final int depth,
-			final FactoredState<RDDLFactoredStateSpace> actual_state ) {
+			final FactoredState<RDDLFactoredStateSpace> actual_state,
+			final FactoredState<RDDLFactoredStateSpace> next_state ) {
 		
 		if( new_policy.equals(_manager.DD_ZERO ) ) {
 			try{
@@ -441,6 +451,79 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			System.exit(1);
 		    }
 		}
+		
+		if( _genStates ){
+			//method 1 BDD
+			// current partition subseteq update_states must contain actual_state
+			// unless consistency is used! - in which case current_partition 
+			// can be a superset
+			ADDRNode current_parition = findNewGeneralizedPartition( new_val,
+				new_policy, update_states, depth, actual_state, next_state );
+			current_parition = _manager.BDDIntersection( current_parition, update_states );
+			
+			if( !_manager.evaluate(current_parition, actual_state.getFactoredState() ).equals(_manager.DD_ONE) ){
+				try{
+					throw new Exception("current partition does not contain actual state" );
+				}catch( Exception e ) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			
+			_visited[ depth ] = _manager.BDDUnion( _visited[depth], current_parition );
+			
+			//actual state must be visited
+			if( !is_node_visited(actual_state, depth) ){
+				try{
+					throw new Exception("actual state has not been visited");
+				}catch( Exception e ) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			
+			_valueDD[ depth ]  =_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
+			
+			//updated state - value not = neg inf
+			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
+					== _manager.getNegativeInfValue() ){
+			    try{
+			    	throw new Exception("Updated state has value -inf");
+			    }catch( Exception e ){
+			    	e.printStackTrace();
+					System.exit(1);
+			    }
+			}
+			_policyDD[ depth ] = _manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
+			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, true, null);
+
+			//actual state must have new values and policy
+			if( get_value(actual_state, depth) != 
+					_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
+				try{
+					throw new Exception("actual state value not set properly " );
+				}catch( Exception e ) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			
+			//EXPENSIVE:
+			//remove
+			if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
+					equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
+				try{
+					throw new Exception("actual state policy not set properly " );
+				}catch( Exception e ) {
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+		}
+		
+		//method 1 + method 2 BDD
+//		final ADDRNode - lets just do this for mow
+		
 		
 				
 //		if( !_manager.apply( new_val, _manager.BDDNegate( update_states ), 
@@ -477,201 +560,208 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //    		}
 //    	}
 		
-		if( _genStates ){
-		    
-		    	if( _visited[depth].equals(_manager.DD_ONE) ){
-		    	    _valueDD[depth] = new_val;
-		    	    _policyDD[depth] = new_policy;
-		    	    return;
-		    	}
-		    	
-		    	
-		    	
-		    //changed : quality for generalization judged only for newly visited states
-		    	//states that are not visited and have been updated
-		    	//include actual state
-		    	//find updates for unvisited states that are small
-		    	//convert to constraint
-		    	final ADDRNode this_dd = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
-		    	
-		    	//care = update ^ !visited
-		    	final ADDRNode care_states =  
-		    			_manager.BDDUnion( 
-		    					this_dd,
-		    					_manager.BDDIntersection(update_states, 
-		    							_manager.BDDNegate(_visited[depth]  ) ) );
-		    	
-		    	if( care_states.equals(_manager.DD_ZERO) ){
-		    	    //no new states to check
-		    	    _valueDD[depth] = new_val;
-		    	    _policyDD[depth] = new_policy;
-		    	    return;
-		    	}
-		    	
-			final ADDRNode heur = initilialize_node_temp(care_states, care_states, depth);
-			//!care => heur = 0
-			
-			ADDRNode diff = _manager.apply( 
-					heur, 
-					_manager.BDDIntersection(new_val, care_states),
-					DDOper.ARITH_MINUS  );//how much did the value change with respect to the heuristic
-			//so diff will be zero for states outside of update_states
-			//careful when threshold
-			//remove non updated states from diff
-			
-//			final ADDRNode checker = _manager.BDDIntersection(diff, care_states );
-			if( diff.getMin() < 0  ){
-				try{
-					throw new Exception("Some values have increased wrt heuristic value " + " depth = " + depth  );
-				}catch(Exception e ){
-					e.printStackTrace();
-					final ADDRNode error = _manager.threshold( diff, diff.getMin(), false );
-					System.out.println( _manager.enumeratePaths(error, true, true, 
-							(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
-					
-					System.out.println( _manager.enumeratePaths(
-							_manager.BDDIntersection(heur, error), true, true, 
-							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-					
-					System.out.println( _manager.enumeratePaths(
-							_manager.BDDIntersection(new_val, error), true, true, 
-							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-					
-					System.exit(1);
-				}
-			}
-			diff = _manager.constrain(diff, care_states, _manager.DD_NEG_INF);
-			//!care => diff = -inf
-			
-			//changed : 5/5 - removed backChainThresh
-			//instead use delta of actual state as thresh
-			//remember changes that were at least as large as actual state
-			//therefore strictly more work than rtdp
-			//WARNING : laziness
-			backChainThreshold = _manager.evaluate(diff, actual_state.getFactoredState() ).getMax(); 
-//			System.out.println("State : " + actual_state.getFactoredState() );
-//			System.out.println( "Threshold : " + backChainThreshold );
-			
-			//threshold
-			//small_change ^ care --> 1 
-			final ADDRNode small_change_care =   _manager.threshold(diff, backChainThreshold, true );
-//			, 
-//							update_states );//un updated states --> 0
-			
-			//large change useful for masking value fn
-			//small change ^ care --> 0
-			//!small OR !care --> 1
-			final ADDRNode throw_away_mask = _manager.BDDNegate( small_change_care );
-			//un updated states --> 1
-			//!small AND care --> 1
-			final ADDRNode keep_states_update_only = _manager.BDDIntersection(throw_away_mask, 
-				care_states ); 
-			//un updated states --> 0
-			
-			good_updates += _manager.enumeratePaths( keep_states_update_only
-					, false, true, _manager.DD_ONE, false ).size();
-			
-//			if( throw_away_mask.equals(_manager.DD_ONE ) ){
-//				System.out.println("Good updates all around");
-//			}
-			
-			if( throw_away_mask.equals(_manager.DD_ZERO ) ){
-				//just truncating the trajectory here
-				++truncated_backup;
-				return;
-//	//			try{
-//	//				throw new Exception("For thresholld " + backChainThreshold + 
-//	//						" no update took place" + ".\nThe max update was = " + diff.getMax() );
-//	//			}catch(Exception e ){
-//	//				e.printStackTrace();
-//	//				System.exit(1);
-//	//			}
-			}
-			//updates for visited, v and pi
-			final ADDRNode new_visited = _manager.BDDUnion( _visited[depth], keep_states_update_only );
-			//_visited => new_vis
-			// == !_vis OR new_vis
-			if( ! _manager.BDDUnion( _manager.BDDNegate(_visited[depth]) , new_visited ).equals(_manager.DD_ONE) ){
-			    try{
-				throw new Exception("visited turned from one to zero");
-			    }catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			    }
-			}
-			
-			if( new_visited.equals( _manager.DD_ONE ) && !_visited[depth].equals(_manager.DD_ONE) ){
-				System.out.println("visited is one. Depth " + depth );
-			}
-			
-			//visited = 1 => value != -inf
-			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
-				try{
-				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
-				}catch( Exception e ){
-				    e.printStackTrace();
-				    System.exit(1);
-				}
-			}
-			
-			_visited[ depth ] = new_visited;
-
-//			_valueDD[ depth ] = 
-//				new_val;
-//					_manager.BDDIntersection( new_val, large_change );
-			//must be OK here tio use intersection as diff already has the vars of new_val
-			//and so good_update has the same vars
+//		if( _genStates ){
+//			//restricting to partition containing cur state
+//			//so can inc # partitions in V by at most 1
 //			
-//					_manager.BDDIntersection( new_val, large_change );
-			
-			//TODO :
-			//does it happen that a visited node has small change
-			//so put -inf 
-			//but does not reset visited
-			//and how does this happen the first time
-			// if this is the case, visited and value will not be coherent!
-			
-//			_valueDD[ depth] = _manager.BDDIntersection( new_val, throw_away_mask );
-			_valueDD[ depth ] = _manager.constrain( new_val, _visited[ depth ], _manager.DD_NEG_INF);
-					//			( new_val, 
-//						large_change//no good and updated -> 0
-//							, _manager.DD_NEG_INF ); //getVMax( depth ) );//!(^) = good | no update -> 1
-			
-			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
-				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
-				_manager.evaluate( new_val, actual_state.getFactoredState() ).getMax() ) {
-			    try{
-				throw new Exception( "value of actual state is not set");
-			    }catch (Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			    }
-			}
-
-			//visited = 1 => value != -inf
-			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
-				try{
-				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
-				}catch( Exception e ){
-				    e.printStackTrace();
-				    System.exit(1);
-				}
-			}
-
-			//visited = 0 => value == -inf
-			
-			_policyDD[ depth ] =
-					_manager.constrain( new_policy, _visited[depth], _manager.DD_ONE ) ;
-			// new_policy; 
-//				new_policy;//, large_change_update_only, _manager.DD_ONE ); 
-					//new_policy;
-//					_manager.BDDIntersection( new_policy, large_change );
-//					_manager.BDDUnion( 
-//							_manager.BDDIntersection(_baseLinePolicy, _manager.BDDNegate( _visited[depth] ) ),
-//							_manager.BDDIntersection( new_policy, 
-//							_visited[ depth ] ) );//no good and updated -> 0
-//							, _manager.DD_ONE );
-		}else{
+//		}
+//		
+//		if( _genStates ){
+//		    
+//		    	if( _visited[depth].equals(_manager.DD_ONE) ){
+//		    	    _valueDD[depth] = new_val;
+//		    	    _policyDD[depth] = new_policy;
+//		    	    return;
+//		    	}
+//		    	
+//		    	
+//		    	
+//		    //changed : quality for generalization judged only for newly visited states
+//		    	//states that are not visited and have been updated
+//		    	//include actual state
+//		    	//find updates for unvisited states that are small
+//		    	//convert to constraint
+//		    	final ADDRNode this_dd = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
+//		    	
+//		    	//care = update ^ !visited
+//		    	final ADDRNode care_states =  
+//		    			_manager.BDDUnion( 
+//		    					this_dd,
+//		    					_manager.BDDIntersection(update_states, 
+//		    							_manager.BDDNegate(_visited[depth]  ) ) );
+//		    	
+//		    	if( care_states.equals(_manager.DD_ZERO) ){
+//		    	    //no new states to check
+//		    	    _valueDD[depth] = new_val;
+//		    	    _policyDD[depth] = new_policy;
+//		    	    return;
+//		    	}
+//		    	
+//			final ADDRNode heur = initilialize_node_temp(care_states, care_states, depth);
+//			//!care => heur = 0
+//			
+//			ADDRNode diff = _manager.apply( 
+//					heur, 
+//					_manager.BDDIntersection(new_val, care_states),
+//					DDOper.ARITH_MINUS  );//how much did the value change with respect to the heuristic
+//			//so diff will be zero for states outside of update_states
+//			//careful when threshold
+//			//remove non updated states from diff
+//			
+////			final ADDRNode checker = _manager.BDDIntersection(diff, care_states );
+//			if( diff.getMin() < 0  ){
+//				try{
+//					throw new Exception("Some values have increased wrt heuristic value " + " depth = " + depth  );
+//				}catch(Exception e ){
+//					e.printStackTrace();
+//					final ADDRNode error = _manager.threshold( diff, diff.getMin(), false );
+//					System.out.println( _manager.enumeratePaths(error, true, true, 
+//							(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
+//					
+//					System.out.println( _manager.enumeratePaths(
+//							_manager.BDDIntersection(heur, error), true, true, 
+//							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//					
+//					System.out.println( _manager.enumeratePaths(
+//							_manager.BDDIntersection(new_val, error), true, true, 
+//							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//					
+//					System.exit(1);
+//				}
+//			}
+//			diff = _manager.constrain(diff, care_states, _manager.DD_NEG_INF);
+//			//!care => diff = -inf
+//			
+//			//changed : 5/5 - removed backChainThresh
+//			//instead use delta of actual state as thresh
+//			//remember changes that were at least as large as actual state
+//			//therefore strictly more work than rtdp
+//			//WARNING : laziness
+//			backChainThreshold = _manager.evaluate(diff, actual_state.getFactoredState() ).getMax(); 
+////			System.out.println("State : " + actual_state.getFactoredState() );
+////			System.out.println( "Threshold : " + backChainThreshold );
+//			
+//			//threshold
+//			//small_change ^ care --> 1 
+//			final ADDRNode small_change_care =   _manager.threshold(diff, backChainThreshold, true );
+////			, 
+////							update_states );//un updated states --> 0
+//			
+//			//large change useful for masking value fn
+//			//small change ^ care --> 0
+//			//!small OR !care --> 1
+//			final ADDRNode throw_away_mask = _manager.BDDNegate( small_change_care );
+//			//un updated states --> 1
+//			//!small AND care --> 1
+//			final ADDRNode keep_states_update_only = _manager.BDDIntersection(throw_away_mask, 
+//				care_states ); 
+//			//un updated states --> 0
+//			
+//			good_updates += _manager.enumeratePaths( keep_states_update_only
+//					, false, true, _manager.DD_ONE, false ).size();
+//			
+////			if( throw_away_mask.equals(_manager.DD_ONE ) ){
+////				System.out.println("Good updates all around");
+////			}
+//			
+//			if( throw_away_mask.equals(_manager.DD_ZERO ) ){
+//				//just truncating the trajectory here
+//				++truncated_backup;
+//				return;
+////	//			try{
+////	//				throw new Exception("For thresholld " + backChainThreshold + 
+////	//						" no update took place" + ".\nThe max update was = " + diff.getMax() );
+////	//			}catch(Exception e ){
+////	//				e.printStackTrace();
+////	//				System.exit(1);
+////	//			}
+//			}
+//			//updates for visited, v and pi
+//			final ADDRNode new_visited = _manager.BDDUnion( _visited[depth], keep_states_update_only );
+//			//_visited => new_vis
+//			// == !_vis OR new_vis
+//			if( ! _manager.BDDUnion( _manager.BDDNegate(_visited[depth]) , new_visited ).equals(_manager.DD_ONE) ){
+//			    try{
+//				throw new Exception("visited turned from one to zero");
+//			    }catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			    }
+//			}
+//			
+//			if( new_visited.equals( _manager.DD_ONE ) && !_visited[depth].equals(_manager.DD_ONE) ){
+//				System.out.println("visited is one. Depth " + depth );
+//			}
+//			
+//			//visited = 1 => value != -inf
+//			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
+//				try{
+//				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
+//				}catch( Exception e ){
+//				    e.printStackTrace();
+//				    System.exit(1);
+//				}
+//			}
+//			
+//			_visited[ depth ] = new_visited;
+//
+////			_valueDD[ depth ] = 
+////				new_val;
+////					_manager.BDDIntersection( new_val, large_change );
+//			//must be OK here tio use intersection as diff already has the vars of new_val
+//			//and so good_update has the same vars
+////			
+////					_manager.BDDIntersection( new_val, large_change );
+//			
+//			//TODO :
+//			//does it happen that a visited node has small change
+//			//so put -inf 
+//			//but does not reset visited
+//			//and how does this happen the first time
+//			// if this is the case, visited and value will not be coherent!
+//			
+////			_valueDD[ depth] = _manager.BDDIntersection( new_val, throw_away_mask );
+//			_valueDD[ depth ] = _manager.constrain( new_val, _visited[ depth ], _manager.DD_NEG_INF);
+//					//			( new_val, 
+////						large_change//no good and updated -> 0
+////							, _manager.DD_NEG_INF ); //getVMax( depth ) );//!(^) = good | no update -> 1
+//			
+//			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
+//				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
+//				_manager.evaluate( new_val, actual_state.getFactoredState() ).getMax() ) {
+//			    try{
+//				throw new Exception( "value of actual state is not set");
+//			    }catch (Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			    }
+//			}
+//
+//			//visited = 1 => value != -inf
+//			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
+//				try{
+//				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
+//				}catch( Exception e ){
+//				    e.printStackTrace();
+//				    System.exit(1);
+//				}
+//			}
+//
+//			//visited = 0 => value == -inf
+//			
+//			_policyDD[ depth ] =
+//					_manager.constrain( new_policy, _visited[depth], _manager.DD_ONE ) ;
+//			// new_policy; 
+////				new_policy;//, large_change_update_only, _manager.DD_ONE ); 
+//					//new_policy;
+////					_manager.BDDIntersection( new_policy, large_change );
+////					_manager.BDDUnion( 
+////							_manager.BDDIntersection(_baseLinePolicy, _manager.BDDNegate( _visited[depth] ) ),
+////							_manager.BDDIntersection( new_policy, 
+////							_visited[ depth ] ) );//no good and updated -> 0
+////							, _manager.DD_ONE );
+//		}
+		else{
 	    	_visited[ depth ] = _manager.BDDUnion( _visited[depth], update_states );
 		    
 			_valueDD[ depth ] = new_val;
@@ -686,6 +776,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		//have set visited and v and pi
 	}
+
 //
 //	private ADDRNode resetValue( final ADDRNode value, final int depth ) {
 //		return _manager.constrain( value, _visited[ depth ], _manager.DD_ZERO );
@@ -732,6 +823,46 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	private ADDRNode visit_node(ADDRNode states, int depth) {
 //	    return  _manager.BDDUnion(_visited[depth], states );
 //	}
+
+	private ADDRNode findNewGeneralizedPartition(final ADDRNode new_val,
+			final ADDRNode new_policy, 
+			final ADDRNode update_states, 
+			final int depth,
+			final FactoredState<RDDLFactoredStateSpace> actual_state, 
+			final FactoredState<RDDLFactoredStateSpace> next_state ) {
+		final ADDRNode action_dd = _manager.restrict(new_policy, actual_state.getFactoredState() );
+		cur_action.setFactoredAction( _manager.sampleOneLeaf(action_dd, _rand) );
+		
+		final ADDRNode save_value = _valueDD[ depth ];
+		final ADDRNode save_policy = _policyDD[ depth ];
+		
+		_valueDD[ depth ] = new_val;
+		_policyDD[ depth ] = new_policy;
+		
+		saveValuePolicy();
+		
+		//this does not take into account consistency
+		final ADDRNode new_generalized_state = 
+				_generalizer.generalize_state(actual_state, cur_action, next_state, _genaralizeParameters, depth);
+		
+		_valueDD[ depth ] = save_value;
+		_policyDD[ depth ] = save_policy;
+		
+		saveValuePolicy();
+		
+		return new_generalized_state;
+	}
+
+	private void saveValuePolicy() {
+		_genaralizeParameters.set_valueDD(_valueDD);
+		_genaralizeParameters.set_policyDD( _policyDD );
+		_genaralizeParameters.set_visited(_visited);
+		
+		final P inner_params = _genaralizeParameters.getParameters();
+		inner_params.set_valueDD(_valueDD);
+		inner_params.set_policyDD(_policyDD);
+		inner_params.set_visited(_visited);
+	}
 
 	private ADDRNode initilialize_node_temp( final ADDRNode value_fn, 
 			final ADDRNode states, final int depth ) {

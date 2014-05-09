@@ -312,6 +312,8 @@ public class ADDDecisionTheoreticRegression implements
 			policy_ret = _manager.BDDUnion( policy_ret, 
 					_manager.BDDIntersection( cur_policy, _manager.BDDNegate(to) ) );
 			
+			policy_ret = applyMDPConstraints(policy_ret, null, _manager.DD_ZERO, constrain_naively, null);
+			
 			policy_ret = _manager.breakTiesInBDD(policy_ret, _mdp.get_actionVars(), false);
 		}
 

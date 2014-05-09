@@ -311,6 +311,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		return _manager.restrict(_valueDD[depth], assign).getMax();
 	}
 	
+	public double get_value( final FactoredState<RDDLFactoredStateSpace> state, final int depth ) {
+		return _manager.restrict( _valueDD[depth], state.getFactoredState() ).getMax();
+	}
+	
 	@Override
 	public boolean is_node_solved(
 			final FactoredState<RDDLFactoredStateSpace> assign,
