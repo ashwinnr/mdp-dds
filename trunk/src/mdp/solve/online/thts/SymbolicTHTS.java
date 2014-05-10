@@ -464,6 +464,5 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			System.out.println("Size of visited " + _manager.countPathsBDD( _visited[i] ) );
 			System.out.println("Size of solved " + _manager.countPathsBDD( _solved[i] ) );
 		}
-		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 	}
 }

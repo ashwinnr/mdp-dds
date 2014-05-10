@@ -55,7 +55,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private int good_updates;
 	private int truncated_backup;
 	private boolean _genStates;
-	private DEBUG_LEVEL _dbg;
 	
 
 	public SymbolicRTDP(
@@ -100,7 +99,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, exploration, cons, truncateTrials, enableLabelling );
-		_dbg = debug;
 //		this.BACK_CHAIN = backChain;
 		this.backChainThreshold = backChainThreshold; 
 			
@@ -119,10 +117,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	public FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act(
 			final FactoredState<RDDLFactoredStateSpace> state) {
 
-		if( !_manager.evaluate(_solved[0], state.getFactoredState()).equals(_manager.DD_ONE) ){
-			do_sRTDP( state );
-			display(  );//_valueDD, _policyDD );
-		}
+//		if( enableLabelling && !_manager.evaluate(_solved[0], state.getFactoredState()).equals(_manager.DD_ONE) ){
+		do_sRTDP( state );
+//			display(  );//_valueDD, _policyDD );
+//		}
 		
 		final ADDRNode action_dd 
 			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
@@ -150,9 +148,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		System.out.println( "Value of init state " + 
 				_manager.evaluate(_valueDD[0], state.getFactoredState() ).toString() );
+		
+		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+		
+//		display();
 			
 		
 		throwAwayEverything();
+		saveValuePolicy();
 		
 		return cur_action;
 	}
@@ -251,19 +254,19 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
 //			display();
-			if( trials_to_go % 100 == 0 ){
-				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
-				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
-				System.out.println( "Heuristic sharing " + this.heuristic_sharing );
-				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
-				System.out.println( "#Truncated backups " + (double)truncated_backup / ( steps_lookahead * (nTrials-trials_to_go) ) );
-				
-				System.out.println( "Value of init state " + 
-						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
-				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
-				display(  );
-//				dis
-			}
+//			if( trials_to_go % 100 == 0 ){
+//				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
+//				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
+//				System.out.println( "Heuristic sharing " + this.heuristic_sharing );
+//				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
+//				System.out.println( "#Truncated backups " + (double)truncated_backup / ( steps_lookahead * (nTrials-trials_to_go) ) );
+//				
+//				System.out.println( "Value of init state " + 
+//						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+//				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+//				display(  );
+////				dis
+//			}
 		}
 		System.out.println();
 		
@@ -484,54 +487,41 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}
 			}
 			
-			//visited is not good enough
-			//we  want _v_d to be set to _v_d except in curret_partition which is updated
-			//the below one will retain the backup() in already visited nodes
-			//which may increase the # partitions
-			_valueDD[ depth ]  =
-					_manager.apply( 
-							_manager.BDDIntersection( new_val, current_parition ),
-							_manager.BDDIntersection( _valueDD[ depth ] , _manager.BDDNegate( current_parition ) ) 
-							, DDOper.ARITH_PLUS );
+			_valueDD[ depth ]  =_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
 			
 			//updated state - value not = neg inf
-//			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
-//					== _manager.getNegativeInfValue() ){
-//			    try{
-//			    	throw new Exception("Updated state has value -inf");
-//			    }catch( Exception e ){
-//			    	e.printStackTrace();
-//					System.exit(1);
-//			    }
-//			}
-			_policyDD[ depth ] = _manager.BDDUnion( 
-					_manager.BDDIntersection( new_policy, current_parition ),
-					_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_parition) )  ) ;
-			//_visited[depth], _manager.DD_ONE );
-			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
+			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
+					== _manager.getNegativeInfValue() ){
+			    try{
+			    	throw new Exception("Updated state has value -inf");
+			    }catch( Exception e ){
+			    	e.printStackTrace();
+					System.exit(1);
+			    }
+			}
+			_policyDD[ depth ] = _manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
+//			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
 
 			//actual state must have new values and policy
-			if( _dbg.compareTo( DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-				if( get_value(actual_state, depth) != 
-						_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
-					try{
-						throw new Exception("actual state value not set properly " );
-					}catch( Exception e ) {
-						e.printStackTrace();
-						System.exit(1);
-					}
+			if( get_value(actual_state, depth) != 
+					_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
+				try{
+					throw new Exception("actual state value not set properly " );
+				}catch( Exception e ) {
+					e.printStackTrace();
+					System.exit(1);
 				}
-				
-				//EXPENSIVE:
-				//remove
-				if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
-						equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
-					try{
-						throw new Exception("actual state policy not set properly " );
-					}catch( Exception e ) {
-						e.printStackTrace();
-						System.exit(1);
-					}
+			}
+			
+			//EXPENSIVE:
+			//remove
+			if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
+					equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
+				try{
+					throw new Exception("actual state policy not set properly " );
+				}catch( Exception e ) {
+					e.printStackTrace();
+					System.exit(1);
 				}
 			}
 		}
@@ -886,30 +876,34 @@ public class SymbolicRTDP< T extends GeneralizationType,
     		if( states.equals(_manager.DD_ONE) ){
     		    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
     		}
-		ADDRNode ret = value_fn;
 		
-		final Set<NavigableMap<String, Boolean>> paths_states
-		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
-		ADDRNode weighted_states = _manager.DD_ZERO;
+//		final Set<NavigableMap<String, Boolean>> paths_states
+//		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
+//		ADDRNode weighted_states = _manager.DD_ZERO;
 		
-		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
-		
-		for( final NavigableMap<String, Boolean> path_state : paths_states ){
-			fs.setFactoredState(path_state);
-			final double hval = get_heuristic_value(fs, depth);
-			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
-//			_manager.showGraph( this_dd );
-			weighted_states = _manager.apply( weighted_states, 
-					_manager.scalarMultiply( this_dd, hval ),
-					DDOper.ARITH_PLUS );//paths will already be disjoint
+//		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
+//		
+//		double max_hval = Double.NEGATIVE_INFINITY;
+//		
+//		for( final NavigableMap<String, Boolean> path_state : paths_states ){
+//			fs.setFactoredState(path_state);
+//			final double hval = get_heuristic_value(fs, depth);
+//			max_hval = Math.max( max_hval,  hval );
+//			
+//			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
+////			_manager.showGraph( this_dd );
+//			weighted_states = _manager.apply( weighted_states, 
+//					_manager.scalarMultiply( this_dd, hval ),
+//					DDOper.ARITH_PLUS );//paths will already be disjoint
 //					_manager.assign( weighted_states , path_state, hval );//assign may increase size
-		}
+//		}
 		
 //		_manager.showGraph( weighted_states );
 		
-		ret = _manager.apply( _manager.apply( ret, 
-				_manager.BDDNegate( states ), DDOper.ARITH_PROD ),
-				weighted_states, DDOper.ARITH_PLUS );
+		final ADDRNode ret = _manager.apply( _manager.BDDIntersection( value_fn, 
+				_manager.BDDNegate( states ) ),
+				_manager.BDDIntersection(states, _manager.getLeaf( (steps_lookahead-depth)*_RMAX ) ), 
+				DDOper.ARITH_PLUS );
 		
 		if( _manager.BDDIntersection(ret, states).getMin() == _manager.getNegativeInfValue() ){
 		    try{
