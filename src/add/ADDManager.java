@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.collections4.map.ReferenceMap;
+
+import util.InternedArrayList;
 import util.Pair;
 
 import com.google.common.cache.Cache;
@@ -1218,7 +1220,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	}
 
-	protected ArrayList< String > _ordering = null;//new InternedArrayList<String>();
+	protected InternedArrayList< String > _ordering = null;//new InternedArrayList<String>();
 	
 	protected Runtime _runtime = Runtime.getRuntime();
 
@@ -1280,9 +1282,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		DD_ZERO = getLeaf(0.0d);
 		DD_ONE = getLeaf(1.0d);
 		DD_NEG_INF = getLeaf( getNegativeInfValue());
-		_ordering = new ArrayList<String>( ordering );
+		_ordering = new InternedArrayList<String>();//( ordering );
 		addPermenant(DD_ZERO, DD_ONE, DD_NEG_INF);
+		for( final String var : ordering ){
+			_ordering.add( var.intern() );
+		}
 		
+		for( final String var : ordering ){
+			addPermenant( getIndicatorDiagram(var, true) );
+			addPermenant( getIndicatorDiagram(var, false) );
+		}
 //		_rand = new Random(seed);
 	}
 
@@ -2364,7 +2373,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 			ret.add( countNodesInt( rnode , new HashSet<ADDRNode>() ) );
 		}
-		return Collections.unmodifiableList( ret ); 
+		return ret;//Collections.unmodifiableList( ret ); 
 	}
 
 	private long countNodesInt( final ADDRNode rnode, final HashSet<ADDRNode> seen ){
@@ -2489,7 +2498,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					leafVal , invert , _tempUnaryCache , paths );
 //		_tempUnaryCache.invalidateAll();
 		_tempUnaryCache = null;
-		return Collections.unmodifiableSet( paths );
+		return paths;// Collections.unmodifiableSet( paths );
 	}
 
 	public static void testEnumeratePaths( ){
@@ -2581,7 +2590,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				if( include_leaves ){
 					NavigableMap<String, Boolean> tm = new TreeMap<String, Boolean>();
 					tm.put( node.toString(), false) ;
-					paths.add( Maps.unmodifiableNavigableMap( tm ) );
+					paths.add( tm );//Maps.unmodifiableNavigableMap( tm ) );
 				}
 			}else{
 				return -1;//nly case when path must not be added if it fails the condition
@@ -2615,7 +2624,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				for( final NavigableMap<String, Boolean> true_path : true_paths ){
 					NavigableMap<String, Boolean> this_true_path = new TreeMap<String, Boolean>( true_path );
 					this_true_path.put( testVar, true );
-					this_node_paths.add( Maps.unmodifiableNavigableMap( this_true_path ) );
+					this_node_paths.add( this_true_path );//Maps.unmodifiableNavigableMap( this_true_path ) );
 				}	
 			}
 			
@@ -2628,17 +2637,17 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			if( false_paths.isEmpty() && ret_false != -1  ){
 				NavigableMap<String, Boolean> this_false_path = new TreeMap<String, Boolean>( );
 				this_false_path.put( testVar, false );
-				this_node_paths.add(  Maps.unmodifiableNavigableMap( this_false_path ) );
+				this_node_paths.add(  this_false_path );//Maps.unmodifiableNavigableMap( this_false_path ) );
 			}else{
 				for( final NavigableMap<String, Boolean> false_path : false_paths ){
 					NavigableMap<String, Boolean> this_false_path = new TreeMap<String, Boolean>( false_path );
 					this_false_path.put( testVar, false );
-					this_node_paths.add(  Maps.unmodifiableNavigableMap( this_false_path ) );
+					this_node_paths.add( this_false_path );//  Maps.unmodifiableNavigableMap( this_false_path ) );
 				}
 			}
 			
 			final Set<NavigableMap<String, Boolean>> ret 
-				= Collections.unmodifiableSet( this_node_paths );
+				= this_node_paths;//Collections.unmodifiableSet( this_node_paths );
 			cache.put( input, ret );
 			paths.addAll(ret);
 			
@@ -3009,7 +3018,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		Objects.requireNonNull( input );
 		SortedSet<ADDLeaf> ret = new TreeSet<ADDLeaf>();
 		getLeavesInt( input, ret, new TreeSet<ADDRNode>() );
-		return Collections.unmodifiableSortedSet( ret );
+		return ret;//Collections.unmodifiableSortedSet( ret );
 	}
 
 	public static void testGetLeaves(){
@@ -3069,7 +3078,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public Set<ADDRNode> getNodes(final ADDRNode input, final boolean leaves) {
 		final TreeSet<ADDRNode> ret = new TreeSet<ADDRNode>();
 		getNodesInt( input, ret, leaves);
-		return Collections.unmodifiableSet( ret );
+		return ret;// Collections.unmodifiableSet( ret );
 	}
 
 	private void getNodesInt( final ADDRNode input, 
@@ -3294,7 +3303,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final TreeSet<ADDRNode> seen = new TreeSet<ADDRNode>();
 			final TreeSet<String> vars = new TreeSet<String>();
 			getVarsInt( input, seen, vars);
-			ret.add( Collections.unmodifiableSet( vars ) );
+			ret.add( vars );//Collections.unmodifiableSet( vars ) );
 		}
 		return ret;
 	}
@@ -3406,29 +3415,29 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			return trueBranch;
 		}
 
-		if( trueBranch.getNode() instanceof ADDINode ){
-			final String true_var = trueBranch.getTestVariable();	
-			if( _ordering.indexOf(testVariable) > _ordering.indexOf(true_var) ){
-				try{
-					throw new Exception("makeInode called out of order");
-				}catch( Exception e){
-					e.printStackTrace();
-					System.exit(1);
-				}	
-			}
-		}
-		
-		if( falseBranch.getNode() instanceof ADDINode ){
-			final String false_var = falseBranch.getTestVariable();
-			if( _ordering.indexOf( testVariable ) > _ordering.indexOf(false_var) ){
-				try{
-					throw new Exception("makeInode called out of order");
-				}catch( Exception e){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
-		}
+//		if( trueBranch.getNode() instanceof ADDINode ){
+//			final String true_var = trueBranch.getTestVariable();	
+//			if( _ordering.indexOf(testVariable) > _ordering.indexOf(true_var) ){
+//				try{
+//					throw new Exception("makeInode called out of order");
+//				}catch( Exception e){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}	
+//			}
+//		}
+//		
+//		if( falseBranch.getNode() instanceof ADDINode ){
+//			final String false_var = falseBranch.getTestVariable();
+//			if( _ordering.indexOf( testVariable ) > _ordering.indexOf(false_var) ){
+//				try{
+//					throw new Exception("makeInode called out of order");
+//				}catch( Exception e){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
+//		}
 
 		try {
 			_temp_null_inode.plugIn( _ordering.get( _ordering.indexOf( testVariable ))
@@ -3437,7 +3446,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			e.printStackTrace();
 			System.exit(1);
 		}
-		_temp_null_inode.updateMinMax();
+		
+//		_temp_null_inode.updateMinMax();
 		
 		ADDRNode ret = getRNode( ADDINode.class, true);
 //		if( !ret.isNegated() && ret.getNode() != inode ){
@@ -4107,8 +4117,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode getProductBDDFromAssignment( final NavigableMap<String, Boolean> assignments ) {
 	    ADDRNode ret = DD_ONE;
 	    for( final String key : assignments.keySet() ){
-		final boolean assign = assignments.get( key );
-		ret = BDDIntersection(ret, getIndicatorDiagram(key, assign));
+	    	final boolean assign = assignments.get( key );
+			ret = BDDIntersection(ret, getIndicatorDiagram(key, assign));
 	    }
 	    return ret;
 	}
@@ -4543,7 +4553,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				System.exit(1);
 			}
 		}
-		return Maps.unmodifiableNavigableMap( ret );
+		return ret;//Maps.unmodifiableNavigableMap( ret );
 	}
 
 	public ADDRNode getSumNegInfDDFromAssignment(

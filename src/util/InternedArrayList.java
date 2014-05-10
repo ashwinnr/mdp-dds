@@ -9,7 +9,11 @@ public class InternedArrayList<T> extends ArrayList<T> {
     	    addAll(ordering);
     	}
     	
-    	@Override
+    	public InternedArrayList() {
+    		super();
+    	}
+
+		@Override
     	public int indexOf(Object o) {
     	    Iterator<T> it = super.iterator();
     	    int idx = 0;

@@ -122,6 +122,8 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 				_constraint.checkConstraints( false );
 			} catch (Exception e1) {
 				e1.printStackTrace();
+				System.out.println( "State : " + state.getFactoredState() );
+				System.out.println( "Action : " + action.getFactoredAction() );
 				System.exit(1);
 			}
 			
