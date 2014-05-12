@@ -885,31 +885,31 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final ADDRNode states, final int depth ) {
 		//for each path in states that lead to 1
 		//initialize
-    		if( states.equals(_manager.DD_ONE) ){
-    		    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
-    		}
-		
-		final Set<NavigableMap<String, Boolean>> paths_states
-		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
-		ADDRNode weighted_states = _manager.DD_ZERO;
-		
-		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
+//    		if( states.equals(_manager.DD_ONE) ){
+//    		    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
+//    		}
 //		
-//		double max_hval = Double.NEGATIVE_INFINITY;
+//		final Set<NavigableMap<String, Boolean>> paths_states
+//		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
+//		ADDRNode weighted_states = _manager.DD_ZERO;
 //		
-		for( final NavigableMap<String, Boolean> path_state : paths_states ){
-			fs.setFactoredState(path_state);
-			final double hval = get_heuristic_value(fs, depth);
-//			max_hval = Math.max( max_hval,  hval );
-			
-			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
-//			_manager.showGraph( this_dd );
-			weighted_states = _manager.apply( weighted_states, 
-					_manager.scalarMultiply( this_dd, hval ),
-					DDOper.ARITH_PLUS );//paths will already be disjoint
-//					_manager.assign( weighted_states , path_state, hval );//assign may increase size
-		}
-		
+//		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
+////		
+////		double max_hval = Double.NEGATIVE_INFINITY;
+////		
+//		for( final NavigableMap<String, Boolean> path_state : paths_states ){
+//			fs.setFactoredState(path_state);
+//			final double hval = get_heuristic_value(fs, depth);
+////			max_hval = Math.max( max_hval,  hval );
+//			
+//			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
+////			_manager.showGraph( this_dd );
+//			weighted_states = _manager.apply( weighted_states, 
+//					_manager.scalarMultiply( this_dd, hval ),
+//					DDOper.ARITH_PLUS );//paths will already be disjoint
+////					_manager.assign( weighted_states , path_state, hval );//assign may increase size
+//		}
+//		
 //		_manager.showGraph( weighted_states );
 		
 		final ADDRNode ret = _manager.apply( _manager.BDDIntersection( value_fn, 
@@ -917,14 +917,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				_manager.BDDIntersection(states, _manager.getLeaf( (steps_lookahead-depth)*_RMAX ) ), 
 				DDOper.ARITH_PLUS );
 		
-		if( _manager.BDDIntersection(ret, states).getMin() == _manager.getNegativeInfValue() ){
-		    try{
-			throw new Exception("newly initialized state has neg inf value");
-		    }catch( Exception e  ){
-			e.printStackTrace();
-			System.exit(1);
-		    }
-		}
+//		if( _manager.BDDIntersection(ret, states).getMin() == _manager.getNegativeInfValue() ){
+//		    try{
+//			throw new Exception("newly initialized state has neg inf value");
+//		    }catch( Exception e  ){
+//			e.printStackTrace();
+//			System.exit(1);
+//		    }
+//		}
 		
 		return ret; 
 	}
