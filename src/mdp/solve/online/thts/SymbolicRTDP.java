@@ -275,14 +275,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	protected ADDRNode[] generalize_trajectory(final FactoredState<RDDLFactoredStateSpace>[] trajectory_states, 
 			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] trajectory_actions  ){
 
-		_genaralizeParameters.set_valueDD(_valueDD);
-		_genaralizeParameters.set_policyDD( _policyDD );
-		_genaralizeParameters.set_visited(_visited);
-		
-		final P inner_params = _genaralizeParameters.getParameters();
-		inner_params.set_valueDD(_valueDD);
-		inner_params.set_policyDD(_policyDD);
-		inner_params.set_visited(_visited);
+		saveValuePolicy();
 		
 //		System.out.println( "Generalizing " );
 		
@@ -337,9 +330,16 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			}
 			
 			_DPTimer.ResumeTimer();
-			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup  
-			= _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
-			do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, CONSTRAIN_NAIVELY);
+			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup = null;
+			if( _genStates ){
+				backup = _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
+						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, 
+								trajectory_states[j-1] );
+			}else{
+				backup = _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
+						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, 
+								CONSTRAIN_NAIVELY );
+			}
 			_DPTimer.PauseTimer();
 			
 			if( enableLabelling  ){
@@ -487,10 +487,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}
 			}
 			
-			_valueDD[ depth ]  =_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
-			
+			_valueDD[ depth ]  =
+					_manager.apply( 
+							_manager.BDDIntersection( new_val, current_parition ),
+							_manager.BDDIntersection( _valueDD[depth], _manager.BDDNegate(current_parition)),
+							DDOper.ARITH_PLUS );
+							
+//							
+//							_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
+//			
 			//updated state - value not = neg inf
-			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition, update_states ).getMin() 
+			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition ).getMin() 
 					== _manager.getNegativeInfValue() ){
 			    try{
 			    	throw new Exception("Updated state has value -inf");
@@ -499,7 +506,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					System.exit(1);
 			    }
 			}
-			_policyDD[ depth ] = _manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
+			_policyDD[ depth ] =
+					_manager.BDDUnion( _manager.BDDIntersection(new_policy, current_parition) ,
+							_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_parition) ) );
+			
+					//_manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
 //			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
 
 			//actual state must have new values and policy
@@ -848,7 +859,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		//this does not take into account consistency
 		final ADDRNode new_generalized_state = 
-				_generalizer.generalize_state(actual_state, cur_action, next_state, _genaralizeParameters, depth);
+				_generalizer.generalize_state(actual_state, cur_action, next_state, 
+						_genaralizeParameters, depth);
 		
 		_valueDD[ depth ] = save_value;
 		_policyDD[ depth ] = save_policy;
@@ -877,26 +889,26 @@ public class SymbolicRTDP< T extends GeneralizationType,
     		    return _manager.getLeaf((steps_lookahead-depth)*_RMAX );
     		}
 		
-//		final Set<NavigableMap<String, Boolean>> paths_states
-//		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
-//		ADDRNode weighted_states = _manager.DD_ZERO;
+		final Set<NavigableMap<String, Boolean>> paths_states
+		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
+		ADDRNode weighted_states = _manager.DD_ZERO;
 		
-//		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
+		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
 //		
 //		double max_hval = Double.NEGATIVE_INFINITY;
 //		
-//		for( final NavigableMap<String, Boolean> path_state : paths_states ){
-//			fs.setFactoredState(path_state);
-//			final double hval = get_heuristic_value(fs, depth);
+		for( final NavigableMap<String, Boolean> path_state : paths_states ){
+			fs.setFactoredState(path_state);
+			final double hval = get_heuristic_value(fs, depth);
 //			max_hval = Math.max( max_hval,  hval );
-//			
-//			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
-////			_manager.showGraph( this_dd );
-//			weighted_states = _manager.apply( weighted_states, 
-//					_manager.scalarMultiply( this_dd, hval ),
-//					DDOper.ARITH_PLUS );//paths will already be disjoint
+			
+			ADDRNode this_dd = _manager.getProductBDDFromAssignment(path_state);
+//			_manager.showGraph( this_dd );
+			weighted_states = _manager.apply( weighted_states, 
+					_manager.scalarMultiply( this_dd, hval ),
+					DDOper.ARITH_PLUS );//paths will already be disjoint
 //					_manager.assign( weighted_states , path_state, hval );//assign may increase size
-//		}
+		}
 		
 //		_manager.showGraph( weighted_states );
 		
