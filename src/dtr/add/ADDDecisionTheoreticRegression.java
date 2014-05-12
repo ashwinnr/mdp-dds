@@ -193,19 +193,9 @@ RDDLFactoredActionSpace> {
 			final APPROX_TYPE apricodd_type ,
 			final boolean makePolicy,
 			final long BIGDD ,
-			final FactoredState<RDDLFactoredStateSpace> one_state ){
-		int index = addStateConstraint( _manager.getProductBDDFromAssignment( one_state.getFactoredState() ) );
-		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> ret = backup( current_value, 
-				cur_policy, source_value_fn, from, to , backup_type, do_apricodd, 
-				apricodd_epsilon, apricodd_type, makePolicy, BIGDD, false );
-		if( !removeStateConstraint(index) ){
-			try{
-				throw new Exception("could not remove state constraint");
-			}catch( Exception e ){
-				e.printStackTrace();System.exit(1);
-			}
-		}
-		return ret;
+			final boolean constrain_naively ){
+		return backup( current_value, cur_policy, source_value_fn, from, to, backup_type, 
+				do_apricodd, apricodd_epsilon, apricodd_type, makePolicy, BIGDD, constrain_naively, true );
 	}
 
 	//from and to needs to be a BDD
@@ -221,7 +211,8 @@ RDDLFactoredActionSpace> {
 			final APPROX_TYPE apricodd_type ,
 			final boolean makePolicy,
 			final long BIGDD ,
-			final boolean constrain_naively ){
+			final boolean constrain_naively,
+			final boolean make ){
 
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			
@@ -326,6 +317,14 @@ RDDLFactoredActionSpace> {
 		//		System.out.println("Combining");
 		removeStateConstraint(idx);
 
+		if( !make ){
+			return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>(
+					backup._o1.get_valueFn(), new UnorderedPair<ADDRNode,Double>( 
+							backup._o2._addPolicy == null ? backup._o2._bddPolicy :
+								backup._o2._addPolicy, 
+								getBellmanError(backup._o1.get_valueFn(), source_value_fn) ) );
+		}
+		
 		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
 		ADDRNode saveV = _manager.BDDIntersection( current_value ,
 				_manager.BDDNegate(to) );
