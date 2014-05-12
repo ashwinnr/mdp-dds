@@ -180,6 +180,33 @@ RDDLFactoredActionSpace> {
 		System.out.println("received result");
 		manager.showGraph( result._o1, result._o2 );
 	}
+	
+	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup(
+			final ADDRNode current_value, 
+			final ADDRNode cur_policy,//BDD
+			final ADDRNode source_value_fn, 
+			final ADDRNode from, 
+			final ADDRNode to, 
+			final BACKUP_TYPE backup_type, 
+			final boolean do_apricodd,
+			final double apricodd_epsilon,
+			final APPROX_TYPE apricodd_type ,
+			final boolean makePolicy,
+			final long BIGDD ,
+			final FactoredState<RDDLFactoredStateSpace> one_state ){
+		int index = addStateConstraint( _manager.getProductBDDFromAssignment( one_state.getFactoredState() ) );
+		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> ret = backup( current_value, 
+				cur_policy, source_value_fn, from, to , backup_type, do_apricodd, 
+				apricodd_epsilon, apricodd_type, makePolicy, BIGDD, false );
+		if( !removeStateConstraint(index) ){
+			try{
+				throw new Exception("could not remove state constraint");
+			}catch( Exception e ){
+				e.printStackTrace();System.exit(1);
+			}
+		}
+		return ret;
+	}
 
 	//from and to needs to be a BDD
 	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup(
