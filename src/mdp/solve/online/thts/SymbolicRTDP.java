@@ -180,15 +180,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-			if( !is_node_visited(cur_state, num_actions) ){
-				initilialize_node(cur_state, num_actions);
-				visit_node(cur_state, num_actions);
-				if( truncateTrials ){
-					System.out.println("Truncating trial : " + num_actions );
-					System.out.println("Truncating trial : " + cur_state );
-					continue;
-				}
-			}
+//			if( !is_node_visited(cur_state, num_actions) ){
+////				initilialize_node(cur_state, num_actions);
+//				visit_node(cur_state, num_actions);
+//				if( truncateTrials ){
+//					System.out.println("Truncating trial : " + num_actions );
+//					System.out.println("Truncating trial : " + cur_state );
+//					continue;
+//				}
+//			}
 			
 			double prob_traj = 1.0d;
 			
@@ -219,7 +219,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				//				System.out.println( "Steps to go " + steps_to_go );
 				++num_actions;
 				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-				if( !is_node_visited(cur_state, num_actions) ){
+				if( num_actions == steps_lookahead-1 ){//!is_node_visited(cur_state, num_actions) ){
 					initilialize_node(cur_state, num_actions);
 					visit_node(cur_state, num_actions);
 					if( truncateTrials ){
