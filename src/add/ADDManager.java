@@ -41,6 +41,7 @@ import com.google.common.collect.Table;
 import com.google.common.collect.TreeBasedTable;
 
 import dd.DDManager;
+import dd.DDManager.DDQuantify;
 
 
 public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
@@ -4744,6 +4745,20 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 				cur = cur.getTrueChild();
 			}else{
 				cur = cur.getFalseChild();
+			}
+		}
+		return ret;
+	}
+
+	public ADDRNode quantify(final ADDRNode input, 
+			final Set<String> vars,
+			final DDQuantify quantifier) {
+		ADDRNode ret = input;
+		//do bottom up to avoid recomputation
+		for( int i = _ordering.size()-1; i >= 0 ; --i ){
+			final String thisVar = _ordering.get(i);
+			if( vars.contains( thisVar ) ) {
+				ret = quantify(ret, thisVar, quantifier);
 			}
 		}
 		return ret;

@@ -27,7 +27,7 @@ public class FactoredAction<S extends FactoredStateSpace, A extends FactoredActi
 	}
 	
 	public NavigableMap<String, Boolean> getFactoredAction( ) {
-		return factoredAction == null ? null : factoredAction; //Maps.unmodifiableNavigableMap( factoredAction );
+		return factoredAction == null ? null : Maps.unmodifiableNavigableMap( factoredAction );
 	}
 
 	@Override
