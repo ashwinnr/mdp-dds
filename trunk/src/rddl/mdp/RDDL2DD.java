@@ -3,6 +3,7 @@ package rddl.mdp;
 import java.util.ArrayList;
 import factored.mdp.define.FactoredTransition;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -50,7 +51,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	protected Set<String> _actionVars = null;
 
 	public Set<String> get_actionVars() {
-		return _actionVars;
+		return Collections.unmodifiableSet( _actionVars );
 	}
 
 	public void set_actionVars(Set<String> _actionVars) {
@@ -58,7 +59,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	}
 
 	public Set<String> get_nextStateVars() {
-		return _nextStateVars;
+		return Collections.unmodifiableSet( _nextStateVars );
 	}
 
 	public void set_nextStateVars(Set<String> _nextStateVars) {
@@ -66,7 +67,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	}
 
 	public Set<String> get_stateVars() {
-		return _stateVars;
+		return Collections.unmodifiableSet(_stateVars);
 	}
 
 	public void set_stateVars(Set<String> _stateVars) {
@@ -179,21 +180,21 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	public abstract DR enumerateAssignments(HashSet<UnorderedPair<PVAR_NAME, ArrayList<LCONST> > > vars, 
 			EXPR cpf_expr, HashMap<LVAR,LCONST> subs ) throws Exception ;
 	
-	public HashMap<String, String> getPrimeRemap() {
-		return _hmPrimeRemap;
+	public Map<String, String> getPrimeRemap() {
+		return Collections.unmodifiableMap( _hmPrimeRemap );
 	}
 	
 
 	public Map<String, String> getPrimeUnMap() {
-		return _hmPrimeUnMap;
+		return Collections.unmodifiableMap( _hmPrimeUnMap );
 	}
 	
 	public Map<Map<String, Boolean>, Map<String, DR>> getActionCpts() {
-		return _actionCpts;
+		return Collections.unmodifiableMap( _actionCpts );
 	}
 	
 	public Map<String, DR> getCpts() {
-		return _cpts;
+		return Collections.unmodifiableMap( _cpts );
 	}
 	
 	public boolean isTransitionRelationReady(final boolean withActionVars){
@@ -201,7 +202,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	}
 	
 	public List<DR> getRewards() {
-		return _rewards;
+		return Collections.unmodifiableList( _rewards );
 	}
 	
 	public ArrayList<String> getSumOrder() {
@@ -213,7 +214,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	}
 	
 	public Map<Map<String, Boolean>, ArrayList<DR>> getActionRewards() {
-		return _actionRewards;
+		return Collections.unmodifiableMap( _actionRewards );
 	}
 
 	public abstract FactoredStateSpace getFactoredStateSpace();

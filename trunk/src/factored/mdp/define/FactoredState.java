@@ -18,7 +18,7 @@ public class FactoredState<S extends FactoredStateSpace> extends State<S> {
 	protected NavigableMap<String, Boolean> factoredState = null;
 	
 	public NavigableMap<String, Boolean> getFactoredState( ){
-		return factoredState == null ? null : factoredState;//Maps.unmodifiableNavigableMap( factoredState );
+		return factoredState == null ? null :Maps.unmodifiableNavigableMap( factoredState );
 	}
 
 	@Override

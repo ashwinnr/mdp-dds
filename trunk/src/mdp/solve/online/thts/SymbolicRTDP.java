@@ -485,6 +485,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			// can be a superset
 			ADDRNode current_parition = findNewGeneralizedPartition( new_val,
 				new_policy, update_states, depth, actual_state, next_state );
+			if( _manager.getVars(current_parition).get(0).contains("delta_y_1") ){
+				try{
+					throw new Exception("Problem");
+				}catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
 			current_parition = _manager.BDDIntersection( current_parition, update_states );
 			
 //			final int terms_current_partition = _manager.countPathsBDD(current_parition);
@@ -525,15 +532,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //							_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
 //			
 			//updated state - value not = neg inf
-			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition ).getMin() 
-					== _manager.getNegativeInfValue() ){
-			    try{
-			    	throw new Exception("Updated state has value -inf");
-			    }catch( Exception e ){
-			    	e.printStackTrace();
-					System.exit(1);
-			    }
-			}
+//			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition ).getMin() 
+//					== _manager.getNegativeInfValue() ){
+//			    try{
+//			    	throw new Exception("Updated state has value -inf");
+//			    }catch( Exception e ){
+//			    	e.printStackTrace();
+//					System.exit(1);
+//			    }
+//			}
 			_policyDD[ depth ] =
 //				_manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
 					_manager.BDDUnion( _manager.BDDIntersection(new_policy, current_parition) ,
@@ -562,6 +569,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}catch( Exception e ) {
 					e.printStackTrace();
 					System.exit(1);
+				}
+			}
+			
+			if( _manager.getVars(_valueDD[depth]).get(0).contains("delta_y_1")  ){
+				try{
+					throw new Exception("Problem");
+				}catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}
@@ -1055,7 +1070,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 						null, GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
 						new Random( rand.nextLong() ) , constrain_naively,
 						Boolean.parseBoolean(cmd.getOptionValue("actionAllDepth") ),
-						UTYPE.valueOf(cmd.getOptionValue("actionType") ) );
+						UTYPE.valueOf(cmd.getOptionValue("actionType") ), null );
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			inner_params = new EBLParams(null, null, new Random( rand.nextLong()), 
 					null , constrain_naively,

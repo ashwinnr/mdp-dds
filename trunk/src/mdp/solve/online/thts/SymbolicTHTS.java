@@ -33,6 +33,7 @@ import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.EBLParams;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
+import mdp.generalize.trajectory.parameters.OptimalActionParameters;
 import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.type.GeneralizationType;
@@ -129,7 +130,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
-				init_state_prob, new CrossingTrafficDisplay(10) );
+				init_state_prob , null);//, new CrossingTrafficDisplay(10) );
 //				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
 					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
 
@@ -191,6 +192,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 							null , do_apricodd, 
 							do_apricodd ? apricodd_epsilon[steps_lookahead-1] : 0, 
 							apricodd_type) );
+		}else if( inner_params instanceof OptimalActionParameters ){
+			((OptimalActionParameters)inner_params).set_actionVars( _mdp.get_actionVars() );
 		}
 		//try {
 		//	base_line = ADDDecisionTheoreticRegression.getRebootDeadPolicy(_manager, _dtr, _mdp.get_actionVars() );

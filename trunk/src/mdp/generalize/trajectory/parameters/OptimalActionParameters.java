@@ -1,6 +1,8 @@
 package mdp.generalize.trajectory.parameters;
 
+import java.util.Collections;
 import java.util.Random;
+import java.util.Set;
 
 import add.ADDManager;
 import add.ADDRNode;
@@ -13,6 +15,7 @@ public class OptimalActionParameters extends GeneralizationParameters<OptimalAct
 		DISJUNCT, CONJUNCT, NONE
 	}
 	private UTYPE _type;
+	private Set<String> _actionVars;
 	
 	public boolean get_Alldepth(){
 		return all_depth;
@@ -24,14 +27,24 @@ public class OptimalActionParameters extends GeneralizationParameters<OptimalAct
 			Random _rand ,
 			final boolean constrain_naively , 
 			final boolean all_depth,
-			final UTYPE type ){
+			final UTYPE type,
+			final Set<String> actionVars ){
 		super(_manager, _genRule, _rand, constrain_naively );
 		this.all_depth = all_depth;
 		_type = type;
+		_actionVars = actionVars;
 	}
 	
 	public UTYPE get_type() {
 		return _type;
+	}
+	
+	public Set<String> get_actionVars() {
+		return Collections.unmodifiableSet( _actionVars );
+	}
+	
+	public void set_actionVars(Set<String> _actionVars) {
+		this._actionVars = _actionVars;
 	}
 	
 }

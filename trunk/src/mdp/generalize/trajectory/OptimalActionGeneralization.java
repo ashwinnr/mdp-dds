@@ -2,6 +2,8 @@ package mdp.generalize.trajectory;
 
 import java.util.NavigableMap;
 
+import dd.DDManager.DDQuantify;
+
 import add.ADDManager;
 import add.ADDRNode;
 import factored.mdp.define.FactoredAction;
@@ -62,9 +64,18 @@ public class OptimalActionGeneralization extends Generalization<
 					parameters.get_genRule(), manager ,
 					state.getFactoredState() );
 		}
+		
+		//factored action problem
+		//ret may have action vars
+		//since action can be partial
+		//doing maximization
+		ret = manager.quantify(ret, 
+				parameters.get_actionVars(), DDQuantify.EXISTENTIAL );
+		
 		return ret;
 		
 	}
+	
 
 	@Override
 	public ADDRNode generalize_action(
