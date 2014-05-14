@@ -24,7 +24,7 @@ non-fluents nf_crossing_traffic_inst_mdp__4 {
 		MIN-YPOS(y1);
 		MAX-YPOS(y4);
 
-		GOAL(x4,y4);
+		GOAL(x1,y1);
 
 		INPUT-RATE = 0.6;
 	};

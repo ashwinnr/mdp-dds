@@ -83,10 +83,18 @@ domain crossing_traffic_mdp {
 				then KronDelta( false )
 		
 			// Check for RHS border input cell
+			//arrive only if not already occupied
 			else if ( MAX-XPOS(?x) )
 				then Bernoulli(	INPUT-RATE )
 			
 			// Not a top or bottom row and not a border input cell -- inherits obstacle to east
+			//warning : here it causes the robot and obstacle to excahnge places - incorrect
+			else if( exists_{?x2 : xpos}[ EAST(?x,?x2) ^ obstacle-at(?x2,?y) ^ robot-at-x(?x) ^ robot-at-y(?y) ^ 
+				~delta-x-1 ^ delta-x-2 ^ ~delta-y-1 ^ ~delta-y-2 ] )
+				then KronDelta( false ) //does not inherit from east
+			else if( exists_{?x2 : xpos}[ WEST(?x,?x2) ^ obstacle-at(?x,?y) ^ robot-at-x(?x2) ^ robot-at-y(?y) ^ 
+				~delta-x-1 ^ delta-x-2 ^ ~delta-y-1 ^ ~delta-y-2 ] )
+				then KronDelta( true ) //does not vacate to east		else
 			else
 				KronDelta( exists_{?x2 : xpos} [EAST(?x,?x2) ^ obstacle-at(?x2,?y)] );//arrive from other x
 			
