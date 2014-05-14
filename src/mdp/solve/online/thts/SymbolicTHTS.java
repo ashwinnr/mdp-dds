@@ -129,8 +129,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		
 		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
-				init_state_prob, 
-				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
+				init_state_prob, new CrossingTrafficDisplay(10) );
+//				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
 					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
 
 		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
@@ -226,6 +226,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		    //to _valueDD
 		    final double value = get_heuristic_value( state, depth );
 		    _valueDD[ depth ] = set_value( state.getFactoredState(), depth, value );    
+//		    System.out.println( state.getFactoredState() + " " + depth + " "  + value );
 //		}
 		
 	}

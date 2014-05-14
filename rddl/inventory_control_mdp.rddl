@@ -42,8 +42,8 @@ domain inventory_control_mdp {
 			
 	};
   
-  	// Reward is a sum of waiting penalties for those in elevators and at floor
 	reward = 
-		[sum_{?s: shop} [ -person(?s)*empty(?s) -STORE-PENALTY(?s)*fill(?s) ]];
+		[sum_{?s: shop} [ ~empty(?s) -STORE-PENALTY(?s)*fill(?s) ]];
+		//[sum_{?s: shop} [ -person(?s)*empty(?s) -STORE-PENALTY(?s)*fill(?s) ]];
 
 }

@@ -958,20 +958,25 @@ RDDLFactoredActionSpace> {
 		//		System.out.println("Image computation");
 
 		for( final String nextState : sumOrder ){
-			//			System.out.print("Image for variable ");
-			//			System.out.print( nextState );
-			//			System.out.println();
+//						System.out.print("Image for variable ");
+//						System.out.print( nextState );
+//						System.out.println();
 			final ADDRNode theRelation = transitionRelation.get(nextState);
 			ret = _manager.apply( ret , theRelation, DDOper.ARITH_PROD );
 			//this is necessary to include action constraints
 			//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
 
-			Pair<String, String> first_lastSeen = lastSeen.get( lastSeen_index );
-			while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == nextState ) && 
-					lastSeen_index < lastSeen_size ){ //counts on interned string
-				ret = _manager.quantify( ret, first_lastSeen._o2, quantification );
-				if( ++lastSeen_index < lastSeen_size ){
-					first_lastSeen = lastSeen.get( lastSeen_index );
+			if( lastSeen_index < lastSeen_size ){
+				Pair<String, String> first_lastSeen = lastSeen.get( lastSeen_index );
+				while( ( first_lastSeen._o1 == null || first_lastSeen._o1 == nextState ) && 
+						lastSeen_index < lastSeen_size ){ //counts on interned string
+					
+//					System.out.println("Quantified " + first_lastSeen._o2 + " " + lastSeen_index );
+					
+					ret = _manager.quantify( ret, first_lastSeen._o2, quantification );
+					if( ++lastSeen_index < lastSeen_size ){
+						first_lastSeen = lastSeen.get( lastSeen_index );
+					}
 				}
 			}
 			//			ret = applyMDPConstraints(ret, null, _manager.DD_ZERO, constrain_naively, null );
