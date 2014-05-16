@@ -78,6 +78,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected boolean enableLabelling;
 	protected ADDRNode _baseLinePolicy;
 	protected int heuristic_sharing;
+	private Random _stateSelectionRand = null;
+	private Random _actionSelectionRandom = null;
 	
 //	public enum SUCCESSOR{
 //		NONE, BRTDP, FRTDP
@@ -97,7 +99,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final double epsilon,
 			final DEBUG_LEVEL debug, 
 			final ORDER order, 
-			final long seed,
 			final boolean useDiscounting, 
 			final int numStates,
 			final int numRounds,
@@ -126,14 +127,17 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			final Consistency[] cons,
 			final boolean  truncateTrials,
-			final boolean enableLabeling  ) {
+			final boolean enableLabeling ,
+			final Random topLevel ) {
 		
-		
-		super( domain, instance, FAR, debug, order, seed, useDiscounting, numStates, numRounds, init_state_conf,
+		super( domain, instance, FAR, debug, order, topLevel.nextLong(), useDiscounting, numStates, numRounds, init_state_conf,
 				init_state_prob , null);//, new CrossingTrafficDisplay(10) );
 //				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
 					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
 
+		_actionSelectionRandom = new Random( topLevel.nextLong() );
+		_stateSelectionRand = new Random( topLevel.nextLong() );
+		
 		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 
 		this.exploration = exploration; 
@@ -145,7 +149,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 
 		_genaralizeParameters = new GenericTransitionParameters<T, P, 
 				RDDLFactoredStateSpace, RDDLFactoredActionSpace>(_manager, 
-						gen_rule, new Random( _rand.nextLong() ),
+						gen_rule, topLevel.nextLong(),
 						gen_fix_states, gen_fix_actions, gen_num_actions, gen_num_states, 
 						generalizer, generalize_parameters_wo_manager, constrain_naively);
 		EPSILON = epsilon;
@@ -348,7 +352,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			FactoredState<RDDLFactoredStateSpace> state,
 			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
 			int depth) {
-		return _transition.sampleFactored(state, action);
+		return _transition.sampleFactored(state, action, _stateSelectionRand );
 	}
 	
 	@Override
@@ -375,7 +379,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			}
 		}
 		final NavigableMap<String, Boolean> partial_path = 
-				Maps.newTreeMap( _manager.sampleOneLeaf( action_dd , _rand ) );
+				Maps.newTreeMap( _manager.sampleOneLeaf( action_dd , _actionSelectionRandom ) );
 //		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> partial_action 
 //		= cur_action.setFactoredAction( path );
 		for( final String actvar : _mdp.get_actionVars() ){

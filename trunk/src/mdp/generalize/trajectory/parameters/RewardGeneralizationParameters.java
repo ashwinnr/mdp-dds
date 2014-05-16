@@ -18,9 +18,9 @@ public class RewardGeneralizationParameters extends GeneralizationParameters<Rew
 	public RewardGeneralizationParameters(
 			ADDManager _manager,
 			mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
-			Random _rand, final List<ADDRNode> rewards ,
+			final List<ADDRNode> rewards ,
 			final boolean constrain_naively, final List<ADDRNode> max_rewards ) {
-		super(_manager, _genRule, _rand, constrain_naively );
+		super(_manager, _genRule, constrain_naively );
 		_rewards = rewards;
 		_maxRewards = max_rewards;
 	}

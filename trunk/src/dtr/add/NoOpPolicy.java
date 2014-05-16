@@ -26,7 +26,7 @@ public class NoOpPolicy extends ADDPolicy {
 	public NoOpPolicy(ADDManager man, RDDLFactoredStateSpace stateSpace,
 			RDDLFactoredTransition transition, RDDLFactoredReward reward,
 			long seed ) {
-		super(man, stateSpace, transition, reward, seed);
+		super(man, stateSpace, transition, reward);
 	}
 	
 	public <T extends factored.mdp.define.FactoredState<RDDLFactoredStateSpace>, 

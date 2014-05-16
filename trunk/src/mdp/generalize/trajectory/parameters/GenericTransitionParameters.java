@@ -20,14 +20,16 @@ public class GenericTransitionParameters< T extends GeneralizationType, P extend
 	protected Generalization<S, A, T, P> inner_generalizer;
 	protected P inner_parameters;
 	
+	private Random _bddRandom;
+	
 	public GenericTransitionParameters(
 		ADDManager _manager,
 		mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
-		Random _rand, boolean fix_start_state, boolean fix_action,
+		final long seed, boolean fix_start_state, boolean fix_action,
 		int num_actions, int num_states,
 		Generalization<S, A, T, P> inner_generalizer, P inner_parameters,
 		final boolean constrain_naively ) {
-	    super(_manager, _genRule, _rand, constrain_naively);
+	    super(_manager, _genRule, constrain_naively);
 	    this.fix_start_state = fix_start_state;
 	    this.fix_action = fix_action;
 	    this.num_actions = num_actions;
@@ -35,6 +37,7 @@ public class GenericTransitionParameters< T extends GeneralizationType, P extend
 	    this.inner_generalizer = inner_generalizer;
 	    this.inner_parameters = inner_parameters;
 	    inner_parameters.set_manager(_manager);
+	    _bddRandom = new Random( seed );
 	}
 	public Generalization<S, A, T, P> getGeneralizer() {
 	    return this.inner_generalizer;
@@ -75,6 +78,9 @@ public class GenericTransitionParameters< T extends GeneralizationType, P extend
 	public void set_manager(final ADDManager manager) {
 	    this._manager = manager;
 	    this.inner_parameters.set_manager( manager );
+	}
+	public Random getSampleBDDRandom() {
+		return _bddRandom;
 	}
 	
 }

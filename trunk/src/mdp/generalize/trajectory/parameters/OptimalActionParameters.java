@@ -24,12 +24,11 @@ public class OptimalActionParameters extends GeneralizationParameters<OptimalAct
 	public OptimalActionParameters(
 			ADDManager _manager,
 			mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
-			Random _rand ,
 			final boolean constrain_naively , 
 			final boolean all_depth,
 			final UTYPE type,
 			final Set<String> actionVars ){
-		super(_manager, _genRule, _rand, constrain_naively );
+		super(_manager, _genRule, constrain_naively );
 		this.all_depth = all_depth;
 		_type = type;
 		_actionVars = actionVars;

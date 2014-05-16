@@ -61,7 +61,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	return parameters.getNum_states() == -1 ? ret : 
 		manager.BDDUnion( 
 				state_node, 
-				manager.sampleBDD(ret, parameters.get_rand(), parameters.getNum_states()-1 ) );
+				manager.sampleBDD(ret, parameters.getSampleBDDRandom(), parameters.getNum_states()-1 ) );
     }
 
     @Override
@@ -80,7 +80,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	//pick only actions that are legal
 	    
 	return parameters.getNum_actions() == -1 ? ret : 
-		parameters.get_manager().sampleBDD( ret, parameters.get_rand(), parameters.getNum_actions() );
+		parameters.get_manager().sampleBDD( ret, parameters.getSampleBDDRandom(), parameters.getNum_actions() );
     }
     
     public ADDRNode[] generalize_trajectory_forwards( 

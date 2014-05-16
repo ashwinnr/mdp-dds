@@ -46,7 +46,6 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	private TreeMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>> _rddlVars;
 	private HashMap<LVAR, LCONST>[] _groundSubs;
 	private EXPR[] _groundExpr;
-	private Random _rand;
 	private String[] _stateVars;
 	private RDDLConstrainedMDP _constraint;
 	private NavigableMap< String, Boolean > _nextStateMap = new TreeMap<String, Boolean>();
@@ -57,7 +56,6 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			RDDLFactoredStateSpace rddlStateSpace,
 			RDDLFactoredActionSpace rddlActionSpace,
 			NavigableMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST> > > groundRDDLStateVars,
-			final long seed, 
 			NavigableMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>> groundRDDLActionVars ) 
 					throws EvalException{
 		_state = rddlState;
@@ -71,7 +69,6 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 		_rddlVars.putAll( groundRDDLActionVars );
 		_groundSubs = new HashMap[ size ];
 		_groundExpr = new EXPR[ size ];
-		_rand = new Random( seed );
 		_stateVars = new String[ size ];
 		//build everything here
 		//sampleFactored() has to be light weight
@@ -104,15 +101,17 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			U extends Action<RDDLFactoredStateSpace, RDDLFactoredActionSpace> >
 				T sample(
 			final T state,
-			final U action) {
+			final U action,
+			final Random rand ) {
 		return (T) sampleFactored( (FactoredState<RDDLFactoredStateSpace>)state, 
-			(FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action );
+			(FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action, rand );
 	}
 
 	@Override
 	public FactoredState<RDDLFactoredStateSpace> sampleFactored(
 			final FactoredState<RDDLFactoredStateSpace> state,
-			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
+			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
+			final Random rand ) {
 		
 		try{
 			setStateAction( state, action );
@@ -157,7 +156,7 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 					System.out.println("Subs :  " + subs );
 					System.out.println("Prob. true : " + prob_true );
 				}
-				final boolean value = _rand.nextDouble() < prob_true ? true : false;
+				final boolean value = rand.nextDouble() < prob_true ? true : false;
 				_nextStateMap.put( _stateVars[i], value );
 			}
 		}catch( EvalException e ){
@@ -195,12 +194,12 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	}
 
 	@Override
-	public <T extends State<RDDLFactoredStateSpace>> T randomState() {
+	public <T extends State<RDDLFactoredStateSpace>> T randomState( final Random rand ) {
 		FactoredState<RDDLFactoredStateSpace> fs = null;
 		do{
 			final TreeMap<String, Boolean> assignments = new TreeMap<String, Boolean>();
 			for( final String s : _stateVars ){
-				final boolean value = _rand.nextBoolean();
+				final boolean value = rand.nextBoolean();
 				assignments.put( s, value );
 			}
 			fs = new FactoredState<RDDLFactoredStateSpace>();
@@ -235,9 +234,11 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	//by substitution
 
 	public FactoredState<RDDLFactoredStateSpace> sampleState(
-			final ADDRNode initial_state_dist  ){
+			final ADDRNode initial_state_dist,
+			final Random rand ,
+			final ADDManager manager ){
 		NavigableMap<String, Boolean> partial_state = 
-				Maps.newTreeMap( ADDManager.sampleOneLeaf( initial_state_dist, _rand ) );
+				Maps.newTreeMap( manager.sampleOneLeaf( initial_state_dist, rand ) );
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
 			if( val == null ){

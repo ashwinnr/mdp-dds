@@ -58,6 +58,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private boolean _genStates;
 //	private int generalization;
 //	private int generalization_cons;
+	private Random _actionSelectionRand;
 	
 
 	public SymbolicRTDP(
@@ -66,7 +67,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			double epsilon,
 			DEBUG_LEVEL debug,
 			ORDER order,
-			long seed,
 			boolean useDiscounting,
 			int numStates,
 			int numRounds,
@@ -94,14 +94,19 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			GENERALIZE_PATH gen_rule,
 			Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			Consistency[] cons, boolean truncateTrials, boolean enableLabelling ,
-			final double backChainThreshold ) {
-		super(domain, instance, epsilon, debug, order, seed, useDiscounting, numStates,
+			final double backChainThreshold,
+			final Random topLevel ) {
+		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, FAR, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, heuristic_type, time_heuristic_mins, steps_heuristic,
 				MB, init_state_conf, init_state_prob, dp_type, nTrials, steps_dp,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
-				gen_rule, exploration, cons, truncateTrials, enableLabelling );
+				gen_rule, exploration, cons, truncateTrials, enableLabelling,
+				new Random( topLevel.nextLong() )  );
+		
+		_actionSelectionRand = new Random( topLevel.nextLong() );
+		
 //		this.BACK_CHAIN = backChain;
 		this.backChainThreshold = backChainThreshold; 
 			
@@ -343,8 +348,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				final int index_cur_partition = _dtr.addStateConstraint( 
 //						_manager.getProductBDDFromAssignment( trajectory_states[ j-1 ].getFactoredState() ) ); 
 				
-				backup = _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
-						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB , false , false );
+				backup = _dtr.backup( target_val, target_policy, source_val, 
+						next_states, this_states, dp_type, 
+						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
+								apricodd_type, true, MB , false, true, true );
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
 //					try{
 //						throw new Exception("state constraint could not be removed");
@@ -358,7 +365,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			}else{
 				backup = _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, 
-								CONSTRAIN_NAIVELY );
+								CONSTRAIN_NAIVELY , true , false );
 			}
 			_DPTimer.PauseTimer();
 			
@@ -891,7 +898,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final FactoredState<RDDLFactoredStateSpace> actual_state, 
 			final FactoredState<RDDLFactoredStateSpace> next_state ) {
 		final ADDRNode action_dd = _manager.restrict(new_policy, actual_state.getFactoredState() );
-		cur_action.setFactoredAction( _manager.sampleOneLeaf(action_dd, _rand) );
+		cur_action.setFactoredAction( _manager.sampleOneLeaf(action_dd, _actionSelectionRand ) );
 		
 		final ADDRNode save_value = _valueDD[ depth ];
 		final ADDRNode save_policy = _policyDD[ depth ];
@@ -1057,28 +1064,29 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			generalizer = new RewardGeneralization();
 //		}
 		
-		final Random rand = new Random( Long.parseLong( cmd.getOptionValue("seed") ) );
+		
+		final Random topLevel = new Random( Long.parseLong( cmd.getOptionValue("seed") ) );
 		final boolean constrain_naively = !Boolean.parseBoolean( cmd.getOptionValue("constraintPruning") );
 				
 		GeneralizationParameters inner_params = null;
 		if( cmd.getOptionValue("generalization").equals("value") ){
 				inner_params = new ValueGeneralizationParameters( 
 			null, GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-			new Random( rand.nextLong() ), constrain_naively  );
+			 constrain_naively  );
 		}else if( cmd.getOptionValue("generalization").equals("action") ){
 				inner_params = new OptimalActionParameters(
 						null, GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-						new Random( rand.nextLong() ) , constrain_naively,
+						constrain_naively,
 						Boolean.parseBoolean(cmd.getOptionValue("actionAllDepth") ),
 						UTYPE.valueOf(cmd.getOptionValue("actionType") ), null );
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
-			inner_params = new EBLParams(null, null, new Random( rand.nextLong()), 
+			inner_params = new EBLParams(null, null, 
 					null , constrain_naively,
 					Boolean.parseBoolean(cmd.getOptionValue("EBLPolicy") ) );
 		}else if( cmd.getOptionValue("generalization").equals("reward") ){
 			inner_params = new RewardGeneralizationParameters(null, 
 					GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-					new Random( rand.nextLong() ), null, constrain_naively,
+					null, constrain_naively,
 				null );
 		}
 		
@@ -1107,7 +1115,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				cmd.getOptionValue("domain"), cmd.getOptionValue("instance"),
 				Double.parseDouble( cmd.getOptionValue("convergenceTest") ), 
 				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, 
-				Long.parseLong( cmd.getOptionValue("seed") ), 
 				Boolean.parseBoolean( cmd.getOptionValue( "discounting" ) ), 
 				Integer.parseInt( cmd.getOptionValue("testStates") ), 
 				Integer.parseInt( cmd.getOptionValue( "testRounds" ) ),
@@ -1137,7 +1144,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				consistency,
 				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ),
 				Boolean.parseBoolean( cmd.getOptionValue("enableLabelling") ),
-				Double.parseDouble( cmd.getOptionValue("backChainThreshold") ) );
+				Double.parseDouble( cmd.getOptionValue("backChainThreshold") ) ,
+				new Random( topLevel.nextLong() ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

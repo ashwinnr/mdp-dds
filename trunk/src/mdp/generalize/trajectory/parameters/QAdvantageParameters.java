@@ -17,8 +17,8 @@ public class QAdvantageParameters  extends  GeneralizationParameters<QAdvantageT
 	public QAdvantageParameters(
 			ADDManager _manager,
 			mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
-			Random _rand, double delta, final boolean constrain_naively ) {
-		super(_manager, _genRule, _rand, constrain_naively);
+			final double delta, final boolean constrain_naively ) {
+		super(_manager, _genRule, constrain_naively);
 		this.delta = delta;
 	}
 
