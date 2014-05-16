@@ -180,7 +180,8 @@ RDDLFactoredActionSpace> {
 		System.out.println("received result");
 		manager.showGraph( result._o1, result._o2 );
 	}
-	
+
+	//from and to needs to be a BDD
 	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup(
 			final ADDRNode current_value, 
 			final ADDRNode cur_policy,//BDD
@@ -193,9 +194,22 @@ RDDLFactoredActionSpace> {
 			final APPROX_TYPE apricodd_type ,
 			final boolean makePolicy,
 			final long BIGDD ,
-			final boolean constrain_naively ){
-		return backup( current_value, cur_policy, source_value_fn, from, to, backup_type, 
-				do_apricodd, apricodd_epsilon, apricodd_type, makePolicy, BIGDD, constrain_naively, true );
+			final boolean constrain_naively,
+			final boolean make ,
+			final boolean onPolicy ){
+		int idx = 0;
+		if( onPolicy ){
+			idx = addPolicyConstraint( cur_policy );
+		}
+
+		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> ret 
+		= backup( current_value, cur_policy, source_value_fn, from, to,
+				backup_type, do_apricodd, apricodd_epsilon, apricodd_type, makePolicy,
+				BIGDD, constrain_naively, true );
+		if( onPolicy ){
+			removePolicyConstraint( idx );
+		}
+		return ret;
 	}
 
 	//from and to needs to be a BDD
@@ -641,7 +655,7 @@ RDDLFactoredActionSpace> {
 				if( policy == null ){
 					policy = new ADDPolicy(
 							_manager, _mdp.getFactoredStateSpace(),
-							_mdp.getFactoredTransition(), _mdp.getFactoredReward(), _rand.nextLong() );
+							_mdp.getFactoredTransition(), _mdp.getFactoredReward() );
 				}
 				policy.updateADDPolicy(v_func, this_q, action);
 			}
@@ -1255,7 +1269,7 @@ RDDLFactoredActionSpace> {
 					if( policy == null ){
 						policy = new ADDPolicy(
 								_manager, _mdp.getFactoredStateSpace(),
-								_mdp.getFactoredTransition(), _mdp.getFactoredReward(), _rand.nextLong() );
+								_mdp.getFactoredTransition(), _mdp.getFactoredReward()  );
 					}
 					policy.updateBDDPolicy( v_func, q_func );
 				}else{ 
@@ -1712,7 +1726,7 @@ RDDLFactoredActionSpace> {
 
 				final ADDPolicy add_policy = new ADDPolicy(_manager,
 						_mdp.getFactoredStateSpace(), _mdp.getFactoredTransition(),
-						_mdp.getFactoredReward(), _rand.nextLong() );
+						_mdp.getFactoredReward()  );
 				add_policy._bddPolicy = policy;
 
 				System.out.println("Regressed MBFAR, total leaves = " + total_leaves );
@@ -2096,8 +2110,10 @@ RDDLFactoredActionSpace> {
 
 
 		//execute policy
-		naively._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
-		smartly._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
+		naively._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount(),
+				new Random(42), new Random(23), new Random(61) ).printStats();
+		smartly._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount(),
+				new Random(42), new Random(23), new Random(61) ).printStats();
 	}
 
 	public static void main(String[] args) {
@@ -2120,6 +2136,7 @@ RDDLFactoredActionSpace> {
 		//		}
 	}
 
+	@SuppressWarnings("unused")
 	private static void testEvaluatePolicy() throws EvalException {
 		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp_same.rddl",
 				"./rddl/sysadmin_uniring_1_3_0.rddl", 
@@ -2164,9 +2181,10 @@ RDDLFactoredActionSpace> {
 		manager.showGraph( newValueFn );	
 		//execute policyregre
 		ADDPolicy policy = new ADDPolicy(manager, mdp.getFactoredStateSpace(), 
-				mdp.getFactoredTransition(), mdp.getFactoredReward(), 42);
+				mdp.getFactoredTransition(), mdp.getFactoredReward() );
 		policy._bddPolicy = handCodedPolicy;
-		policy.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
+		policy.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount(),
+				new Random(42), new Random(23), new Random(61) ).printStats();
 	}
 
 	public static ADDRNode getRandomAction( 
@@ -2240,7 +2258,8 @@ RDDLFactoredActionSpace> {
 		//		manager.showGraph( (ADDRNode[])ret._o1._qFn.values().toArray() );
 		manager.showGraph( ret._o1.get_valueFn(), ret._o2._addPolicy );	
 		//execute policy
-		ret._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
+		ret._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount(),
+				new Random(42), new Random(31), new Random(63) ).printStats();
 	}
 
 	private static void testRegressAction() {
@@ -2280,7 +2299,8 @@ RDDLFactoredActionSpace> {
 		}
 		manager.showGraph( ret._o1.get_valueFn(), ret._o1.get_jointQFn(), ret._o2._bddPolicy );	
 		//execute policy
-		ret._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount()).printStats();
+		ret._o2.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount(),
+				new Random(42), new Random(21), new Random(43) ).printStats();
 	}
 
 	public double getBellmanError(final ADDRNode valueFn, final ADDRNode oldValueFn) {

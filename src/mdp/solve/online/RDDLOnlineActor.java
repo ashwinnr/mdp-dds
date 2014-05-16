@@ -30,7 +30,7 @@ import factored.mdp.define.FactoredState;
 public abstract class RDDLOnlineActor implements Runnable {
 
 	private static final boolean DISPLAY_TRAJECTORY = true;
-	protected Random _rand;
+	protected Random _actRand;
 	protected Timer _cptTimer;
 	protected RDDL2ADD _mdp;
 	protected int _nStates;
@@ -47,6 +47,9 @@ public abstract class RDDLOnlineActor implements Runnable {
 	protected ADDManager _manager;
 	private StateViz _viz;
 	
+	private Random _initStateRand;
+	private Random _rewardRand;
+	
 	public RDDLOnlineActor(
 			final String domain, 
 			final String instance,
@@ -59,13 +62,19 @@ public abstract class RDDLOnlineActor implements Runnable {
 			final INITIAL_STATE_CONF init_state_conf ,
 			final double init_state_prob,
 			final StateViz visualizer ) {
-		_rand = new Random( seed );
+		final Random topLevel = new Random( seed );
+		
+		_actRand = new Random( topLevel.nextLong() );
+		_initStateRand = new Random( topLevel.nextLong() );
+		_rewardRand = new Random( topLevel.nextLong() );
+		
 		_viz = visualizer;
 		_actionVars = actionVars;
 		
 		_cptTimer = new Timer();
-		_mdp = new RDDL2ADD(domain, instance, actionVars, debug, order, true, _rand.nextLong() );
-		_dtr = new ADDDecisionTheoreticRegression( this._mdp, _rand.nextLong() );
+		_mdp = new RDDL2ADD(domain, instance, actionVars, debug, order, true, 
+				topLevel.nextLong() );
+		_dtr = new ADDDecisionTheoreticRegression( this._mdp, topLevel.nextLong() );
 		_manager = _mdp.getManager();
 		
 		_cptTimer.StopTimer();
@@ -98,7 +107,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 		while( states_to_go --> 0 ){
 			
 			final FactoredState<RDDLFactoredStateSpace> init_state 
-			= _transition.sampleState(initial_state_add  );
+			= _transition.sampleState(initial_state_add , _initStateRand, _manager );
 			System.out.println("Initial state #" + states_to_go + " " + init_state.toString() );
 			int rounds_to_go = _nRounds;
 			
@@ -117,8 +126,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 					final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
 						action = act( cur_state );
 					final FactoredState<RDDLFactoredStateSpace> next_state 
-					= _transition.sampleFactored(cur_state, action);
-					round_reward += cur_disc * _reward.sample( cur_state, action );
+					= _transition.sampleFactored(cur_state, action, _actRand );
+					round_reward += cur_disc * _reward.sample( cur_state, action, _rewardRand  );
 				
 					if( DISPLAY_TRAJECTORY ){
 						System.out.println( "State : " + cur_state.toString() ); 

@@ -15,10 +15,10 @@ public class EBLParams extends GeneralizationParameters<EBL>{
 	public EBLParams(
 			ADDManager _manager,
 			mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH _genRule,
-			Random _rand, final ADDDecisionTheoreticRegression dtr, 
+			final ADDDecisionTheoreticRegression dtr, 
 			final boolean constrain_naively ,
 			final boolean on_policy ) {
-		super(_manager, _genRule, _rand, constrain_naively );
+		super(_manager, _genRule, constrain_naively );
 		_dtr = dtr;
 		this.on_policy = on_policy;
 	}

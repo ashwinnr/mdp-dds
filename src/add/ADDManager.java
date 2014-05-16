@@ -1230,9 +1230,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			applyCache = new EnumMap< 
 				DDOper, Table< ADDRNode, ADDRNode , ADDRNode > >( DDOper.class );
 	private int applyHit = 0;
-	public static ADDRNode DD_ZERO;
-	public static ADDRNode DD_ONE;
-	public static ADDRNode DD_NEG_INF;
+	public ADDRNode DD_ZERO;
+	public ADDRNode DD_ONE;
+	public ADDRNode DD_NEG_INF;
 
 	protected Map< String, ReferenceMap< ADDINode, ADDRNode > > 
 		madeINodes = new TreeMap< String, 
@@ -4515,7 +4515,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 	
 	//ASSUMES : input is  a BDD
-	public static NavigableMap<String, Boolean> sampleOneLeaf(
+	public NavigableMap<String, Boolean> sampleOneLeaf(
 			final ADDRNode input,
 			final Random rand ) {
 

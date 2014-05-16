@@ -308,10 +308,10 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			_rddlStateSpace.setStateVariables(_stateVars  );
 			
 			_rddlTransition = new RDDLFactoredTransition(_state, _rddlStateSpace,
-					_rddlActionSpace, _tmStateVars, _rand.nextLong(), _tmActionVars);
+					_rddlActionSpace, _tmStateVars, _tmActionVars);
 
 			_rddlReward = new RDDLFactoredReward(_state, _tmStateVars, 
-					_rand.nextLong(), _tmActionVars);
+					_rand.nextLong(), _tmActionVars);//uses rrddl sample()
 
 			initADD();
 			makePrimeRemap();

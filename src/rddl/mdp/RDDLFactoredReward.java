@@ -2,10 +2,16 @@ package rddl.mdp;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.TreeMap;
+
+import add.ADDManager;
+import add.ADDRNode;
+
+import com.google.common.base.Optional;
 
 import rddl.EvalException;
 import rddl.RDDL.LCONST;
@@ -22,7 +28,6 @@ public class RDDLFactoredReward implements FactoredReward< RDDLFactoredStateSpac
 
 	private rddl.State _state;
 	private TreeMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>> _rddlVars;
-	private Random _rand;
 	private final static HashMap<LVAR, LCONST> empty_sub = new HashMap<LVAR, LCONST>();
 
 	public RDDLFactoredReward(rddl.State rddlState, 
@@ -32,17 +37,30 @@ public class RDDLFactoredReward implements FactoredReward< RDDLFactoredStateSpac
 		_state = rddlState;
 		_rddlVars = new TreeMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST>> >( groundRDDLStateVars );
 		_rddlVars.putAll( groundRDDLActionVars );
-		_rand = new Random( seed );
 	}
 	
-	@Override
+	@Override 
+	public <T extends mdp.define.State<RDDLFactoredStateSpace>, 
+	U extends mdp.define.Action<RDDLFactoredStateSpace,
+	RDDLFactoredActionSpace>> double sample(T state, U action, Random rand) {
+		return this.sample(state, action, rand, Optional.<List<ADDRNode>>absent(),
+				Optional.<ADDManager>absent() );
+		
+	};
+	
 	public <T extends State<RDDLFactoredStateSpace>, U extends Action<RDDLFactoredStateSpace, 
 		RDDLFactoredActionSpace>> double sample(
-			T state, U action) {
+			T state, U action, 
+			final Random random,
+			final Optional<List<ADDRNode>> sum_of_reward_dds ,
+			final Optional<ADDManager> dd_man ) {
+		
+		if( sum_of_reward_dds.isPresent() )
+		
 		setStateAction( (FactoredState<RDDLFactoredStateSpace>)state, 
 				(FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action );
 		try {
-			return Double.valueOf( _state._reward.sample(empty_sub , _state, _rand).toString() );
+			return Double.valueOf( _state._reward.sample(empty_sub , _state, random).toString() );
 		} catch (EvalException e) {
 			e.printStackTrace();
 			System.exit(1);

@@ -25,11 +25,12 @@ public class RandomPolicy extends ADDPolicy {
 
 	private ADDRNode _randPolicy;
 	private final Set<String> _actionVars;
+	private Random _rand;
 
 	public RandomPolicy(ADDManager man, RDDLFactoredStateSpace stateSpace,
 			RDDLFactoredTransition transition, RDDLFactoredReward reward,
 			long seed, RDDL2ADD mdp, ADDDecisionTheoreticRegression dtr) {
-		super(man, stateSpace, transition, reward, seed);
+		super(man, stateSpace, transition, reward);
 		_rand = new Random(seed);
 		_actionVars = mdp.getFactoredActionSpace().getActionVariables();
 		final ADDRNode uniform = man.DD_ONE ;

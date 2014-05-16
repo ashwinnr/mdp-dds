@@ -45,18 +45,15 @@ public class ADDPolicy extends
 	private RDDLFactoredTransition _transition;
 	private FactoredReward<RDDLFactoredStateSpace, RDDLFactoredActionSpace> _reward;
 	private RDDLFactoredStateSpace _stateSpace;
-	protected Random _rand;
 	
 	public ADDPolicy(ADDManager man, 
 			RDDLFactoredStateSpace stateSpace,
 			RDDLFactoredTransition transition, 
-			RDDLFactoredReward reward,
-			long seed ) {
+			RDDLFactoredReward reward  ) {
 		_manager = man;
 		_transition = transition;
 		_reward = reward;
 		_stateSpace = stateSpace;
-		_rand = new Random( seed );
 	}
 	
 	@Override
@@ -130,22 +127,29 @@ public class ADDPolicy extends
 	public PolicyStatistics executePolicy( final int numRounds, final int numStates, 
 			final boolean useDiscounting, final int horizon,
 			final double discount, final StateViz visualizer ,
-			final ADDRNode initial_state_dist ){
+			final ADDRNode initial_state_dist,
+			final Random initialStateRandom,
+			final Random stateTransitionRandom,
+			final Random rewardSampleRandom ){
 		if( initial_state_dist == null ){
-			return executePolicy(numRounds, numStates, useDiscounting, horizon, discount, visualizer);
+			return executePolicy(numRounds, numStates, useDiscounting, horizon, 
+					discount, visualizer, initialStateRandom,stateTransitionRandom, 
+					rewardSampleRandom );
 		}
 		
 		PolicyStatistics stats = new PolicyStatistics(numStates, numRounds);
 		
 		for( int i = 0 ; i < numStates; ++i ){
 			FactoredState<RDDLFactoredStateSpace> init_state 
-				= _transition.sampleState( initial_state_dist ) ;
+				= _transition.sampleState( initial_state_dist , initialStateRandom, 
+						_manager ) ;
 			
 			
 			System.out.println("Initial state #" + i );
 			System.out.println( init_state );
 			runRounds( init_state, numRounds ,
-					useDiscounting, horizon, discount, visualizer, stats );
+					useDiscounting, horizon, discount, visualizer, stats,
+					stateTransitionRandom, rewardSampleRandom );
 		}
 		
 		return stats;
@@ -153,15 +157,19 @@ public class ADDPolicy extends
 	
 	public PolicyStatistics executePolicy( final int numRounds, final int numStates, 
 			final boolean useDiscounting, final int horizon,
-			final double discount, final StateViz visualizer ){
+			final double discount, final StateViz visualizer,
+			final Random initialStateRandom, Random stateTransitionRandom, 
+			Random rewardTransitionRandom ){
 		PolicyStatistics stats = new PolicyStatistics(numStates, numRounds);
 		
 		for( int i = 0 ; i < numStates; ++i ){
-			FactoredState<RDDLFactoredStateSpace> init_state = _transition.randomState();
+			FactoredState<RDDLFactoredStateSpace> init_state 
+				= _transition.randomState( initialStateRandom  );
 			System.out.println("Initial state #" + i );
 			System.out.println( init_state );
 			runRounds( init_state, numRounds ,
-					useDiscounting, horizon, discount, visualizer, stats );
+					useDiscounting, horizon, discount, visualizer, stats, 
+					stateTransitionRandom, rewardTransitionRandom );
 		}
 		
 		return stats;
@@ -175,7 +183,8 @@ public class ADDPolicy extends
 			final int horizon, 
 			final double discount ,
 			final StateViz visualizer,
-			final PolicyStatistics stats ) {
+			final PolicyStatistics stats, final Random stateTransitionRandom,
+			final Random rewardSampleRandom ) {
 		for( int j = 0 ; j < numRounds; ++j ){
 			FactoredState<RDDLFactoredStateSpace> current_state = init_state;
 			double round_reward = 0.0d;
@@ -196,7 +205,7 @@ public class ADDPolicy extends
 				FactoredState<RDDLFactoredStateSpace> new_state = null;
 				try{
 					new_state
-						= _transition.sample(current_state, act);
+						= _transition.sample(current_state, act, stateTransitionRandom );
 				}catch( Exception e ){
 					e.printStackTrace();
 					System.exit(1);
@@ -205,7 +214,7 @@ public class ADDPolicy extends
 				if( DISPLAY ){
 					System.out.println("***State : " + current_state );
 				}
-				double reward = _reward.sample(current_state, act);
+				double reward = _reward.sample(current_state, act, rewardSampleRandom );
 				round_reward += ( useDiscounting ? cur_discount*reward : reward );
 				cur_discount = ( useDiscounting ? cur_discount*discount : 0 );
 				if( DISPLAY ){
@@ -228,9 +237,14 @@ public class ADDPolicy extends
 
 	@Override
 	public PolicyStatistics executePolicy(int numRounds, int numStates,
-			boolean useDiscounting, int horizon, double discount) {
-		return executePolicy(numRounds, numStates, useDiscounting, horizon, discount, null );
+			boolean useDiscounting, int horizon, double discount,
+			final Random initial_state_random, 
+			final Random state_transition_random, 
+			final Random reward_sample_random ) {
+		return executePolicy(numRounds, numStates, useDiscounting, horizon, discount, null,
+				initial_state_random, 
+				state_transition_random, 
+				reward_sample_random );
 	}
-
 
 }
