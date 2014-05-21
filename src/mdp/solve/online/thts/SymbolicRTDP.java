@@ -350,18 +350,18 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup = null;
 			if( _genStates ){
 //				final int index_cur_partition = _dtr.addStateConstraint( 
-//						_manager.getProductBDDFromAssignment( trajectory_states[ j-1 ].getFactoredState() ) ); 
-				
+//						_manager.getRandomSubset( trajectory_states[ j-1 ].getFactoredState() ) ); 
+//				
 				if( j-1 < rollout_stage ){
 					backup = _dtr.backup( target_val, target_policy, source_val, 
 						next_states, this_states, dp_type, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-								apricodd_type, true, MB , false, true, false );
+								apricodd_type, true, MB , CONSTRAIN_NAIVELY, true, false );
 				}else{
 					backup = _dtr.backup( target_val, target_policy, source_val, 
 							next_states, this_states, dp_type, 
 							do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-									apricodd_type, true, MB , true, true, true );
+									apricodd_type, true, MB , CONSTRAIN_NAIVELY, true, true );
 				}
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
 //					try{
