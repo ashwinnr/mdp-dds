@@ -59,7 +59,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	private int generalization;
 //	private int generalization_cons;
 	private Random _actionSelectionRand;
+	private int rollout_stage = 5;
 	
+	//TODO : how important is base policy?
+	//TODO : rollout parameter and exps
+	//TODO : action sharing between levels for unvisited nodes
 
 	public SymbolicRTDP(
 			String domain,
@@ -348,10 +352,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				final int index_cur_partition = _dtr.addStateConstraint( 
 //						_manager.getProductBDDFromAssignment( trajectory_states[ j-1 ].getFactoredState() ) ); 
 				
-				backup = _dtr.backup( target_val, target_policy, source_val, 
+				if( j-1 < rollout_stage ){
+					backup = _dtr.backup( target_val, target_policy, source_val, 
 						next_states, this_states, dp_type, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-								apricodd_type, true, MB , false, true, true );
+								apricodd_type, true, MB , false, true, false );
+				}else{
+					backup = _dtr.backup( target_val, target_policy, source_val, 
+							next_states, this_states, dp_type, 
+							do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
+									apricodd_type, true, MB , true, true, true );
+				}
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
 //					try{
 //						throw new Exception("state constraint could not be removed");
