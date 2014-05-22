@@ -195,7 +195,7 @@ RDDLFactoredActionSpace> {
 			final boolean makePolicy,
 			final long BIGDD ,
 			final boolean constrain_naively,
-			final boolean make ,
+			final boolean makeVfn ,
 			final boolean onPolicy ){
 		int idx = 0;
 		if( onPolicy ){
@@ -205,7 +205,7 @@ RDDLFactoredActionSpace> {
 		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> ret 
 		= backup( current_value, cur_policy, source_value_fn, from, to,
 				backup_type, do_apricodd, apricodd_epsilon, apricodd_type, makePolicy,
-				BIGDD, constrain_naively, true );
+				BIGDD, constrain_naively, makeVfn );
 		if( onPolicy ){
 			removePolicyConstraint( idx );
 		}

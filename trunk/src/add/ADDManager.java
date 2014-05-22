@@ -138,6 +138,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//already sorted
 		Map<ADDLeaf,ADDLeaf> remaps = mergeLeaves( leaves, apricodd_epsilon, 
 				apricodd_type );
+//		System.out.println("remaps : " + remaps.toString() );
 		return remapLeaves( input, remaps );
 		
 //		final Map<ADDRNode, ADDRNode> mergedNodes = new HashMap<ADDRNode,ADDRNode>();
@@ -228,6 +229,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					System.exit(1);
 				}
 			}
+			_temp_null_leaf.plugIn( new_leaf.getLeafValues() );
+//			System.out.println("replacing : " + theNode.toString() + " w/ " + new_leaf.toString() );
 			return getRNode( ADDLeaf.class, true );
 		}else{
 			
@@ -246,33 +249,33 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 	}
 
-	private ADDRNode remapNodes(final ADDRNode input,
-			final Map<ADDRNode, ADDRNode> mergedNodes, final Map<ADDLeaf, ADDLeaf> finalDest) {
-		//always remaps to a leaf
-		//or recurse
-//		for( final Entry<ADDRNode, ADDRNode> entry : mergedNodes.entrySet() ){
-//			showGraph( entry.getKey(), entry.getValue() );
+//	private ADDRNode remapNodes(final ADDRNode input,
+//			final Map<ADDRNode, ADDRNode> mergedNodes, final Map<ADDLeaf, ADDLeaf> finalDest) {
+//		//always remaps to a leaf
+//		//or recurse
+////		for( final Entry<ADDRNode, ADDRNode> entry : mergedNodes.entrySet() ){
+////			showGraph( entry.getKey(), entry.getValue() );
+////		}
+//		
+//		final ADDRNode mergedTo = mergedNodes.get( input );
+//		if( mergedTo == null ){
+//			//recurse
+//			final ADDNode theNode = input.getNode();
+//			if( theNode instanceof ADDLeaf ){
+//				return input;
+//			}else{
+//				final ADDRNode input_true = input.getTrueChild();
+//				final ADDRNode merged_true = remapNodes(input_true, mergedNodes, finalDest);
+//				final ADDRNode input_false = input.getFalseChild();
+//				final ADDRNode merged_false = remapNodes(input_false, mergedNodes, finalDest);
+//				return getINode(input.getTestVariable(), merged_true, merged_false);
+//			}
+//		}else{
+//			final ADDLeaf leafNode = (ADDLeaf)mergedTo.getNode();
+//			final ADDLeaf finalLeaf = (finalDest == null ) ? leafNode : finalDest.get(leafNode);
+//			return getRNode( ADDLeaf.class, false);
 //		}
-		
-		final ADDRNode mergedTo = mergedNodes.get( input );
-		if( mergedTo == null ){
-			//recurse
-			final ADDNode theNode = input.getNode();
-			if( theNode instanceof ADDLeaf ){
-				return input;
-			}else{
-				final ADDRNode input_true = input.getTrueChild();
-				final ADDRNode merged_true = remapNodes(input_true, mergedNodes, finalDest);
-				final ADDRNode input_false = input.getFalseChild();
-				final ADDRNode merged_false = remapNodes(input_false, mergedNodes, finalDest);
-				return getINode(input.getTestVariable(), merged_true, merged_false);
-			}
-		}else{
-			final ADDLeaf leafNode = (ADDLeaf)mergedTo.getNode();
-			final ADDLeaf finalLeaf = (finalDest == null ) ? leafNode : finalDest.get(leafNode);
-			return getRNode( ADDLeaf.class, false);
-		}
-	}
+//	}
 
 //	private Map<ADDLeaf, ADDLeaf> fixIntervals(
 //			final Map<ADDRNode, ADDRNode> mergedNodes,
@@ -3169,6 +3172,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	//main methods of getting RNode from INode and Leaf
 	//gets the canonical copy - including negated edges
+	//MUST set temp_null_inode first / temp_null_leaf
 	protected <T extends ADDNode> ADDRNode getRNode( final Class<T> type,
 			final boolean create ){
 //		Objects.requireNonNull( obj );

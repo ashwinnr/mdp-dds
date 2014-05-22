@@ -284,6 +284,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				display(  );
 ////				dis
 //			}
+//			System.out.println( "Value of init state " + 
+//					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
 		}
 		System.out.println();
 		
@@ -377,6 +379,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				backup = _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, 
 								CONSTRAIN_NAIVELY , true , false );
+//				System.out.println( backup._o2._o2 );
 			}
 			_DPTimer.PauseTimer();
 			
