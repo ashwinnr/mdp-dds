@@ -96,7 +96,6 @@ public class ADDPolicy extends
 		ADDRNode diff = _manager.apply(v_func, jointQFunc, DDOper.ARITH_MINUS );
 //		_manager.showGraph( v_func, jointQFunc, diff );
 		_bddPolicy = _manager.threshold(diff, 0, false);
-		
 	}
 	
 	@Override

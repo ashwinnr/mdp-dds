@@ -195,7 +195,6 @@ RDDLFactoredActionSpace> {
 			final boolean makePolicy,
 			final long BIGDD ,
 			final boolean constrain_naively,
-			final boolean makeVfn ,
 			final boolean onPolicy ){
 		int idx = 0;
 		if( onPolicy ){
@@ -205,7 +204,7 @@ RDDLFactoredActionSpace> {
 		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> ret 
 		= backup( current_value, cur_policy, source_value_fn, from, to,
 				backup_type, do_apricodd, apricodd_epsilon, apricodd_type, makePolicy,
-				BIGDD, constrain_naively, makeVfn );
+				BIGDD, constrain_naively );
 		if( onPolicy ){
 			removePolicyConstraint( idx );
 		}
@@ -225,8 +224,9 @@ RDDLFactoredActionSpace> {
 			final APPROX_TYPE apricodd_type ,
 			final boolean makePolicy,
 			final long BIGDD ,
-			final boolean constrain_naively,
-			final boolean make ){
+			final boolean constrain_naively
+//			final boolean make 
+			){
 
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			
@@ -292,88 +292,99 @@ RDDLFactoredActionSpace> {
 		}
 		
 		final ADDRNode unprimed = 
-				_manager.BDDIntersection(source_value_fn, from) ;
-		//		constrain_naively ?     
-		//		    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
+//				_manager.BDDIntersection(source_value_fn, from) ;
+//				constrain_naively ?     
+				    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
 
 		final ADDRNode primed = 
 				_manager.remapVars( 
 						unprimed  ,
 						_mdp.getPrimeRemap() );
-		int idx = addStateConstraint(to);
-		UnorderedPair<ADDValueFunction, ADDPolicy> backup = null;
-		switch( backup_type ){
-		case VI_FAR : 
-			//		    	System.out.println("Regressing all actions" );
-			backup = regressAllActions( primed, false, makePolicy, constrain_naively, null,
-					do_apricodd, apricodd_epsilon, apricodd_type );
-			break;//backup will have value and policy for things not in to, 
-			//should be masked
-		case VI_SPUDD :
-			backup = regressSPUDD(primed, false, makePolicy, constrain_naively, null, 
-					do_apricodd, apricodd_epsilon, apricodd_type);
-			break;
-		case VI_MBFAR :
-			backup = regressMBFAR(unprimed, makePolicy, constrain_naively, BIGDD, null,
-					do_apricodd, apricodd_epsilon, apricodd_type);
-			break;
-		}
-
-		//		if( _manager.hasVars(backup._o1.getValueFn(), _mdp.get_actionVars() ) ){
-		//			try{
-		//				throw new Exception("Backup has action vars");
-		//			}catch( Exception e ){
-		//				e.printStackTrace();
-		//				System.exit(1);
-		//			}
-		//		}
-
-		//		System.out.println("Combining");
-		removeStateConstraint(idx);
-
-		if( !make ){
-			return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>(
-					backup._o1.get_valueFn(), new UnorderedPair<ADDRNode,Double>( 
-							backup._o2._addPolicy == null ? backup._o2._bddPolicy :
-								backup._o2._addPolicy, 
-								getBellmanError(backup._o1.get_valueFn(), source_value_fn) ) );
+		
+		
+		//5/22/2014 : changed to do FAR only
+		//but with R = max R over to 
+		if( !backup_type.equals(BACKUP_TYPE.VI_FAR) ){
+			try{
+				throw new Exception("backup type not FAR not supported yet");
+			}catch( Exception e ){
+				e.printStackTrace();
+			}
 		}
 		
-		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
-		ADDRNode saveV = _manager.BDDIntersection( current_value ,
-				_manager.BDDNegate(to) );
-		value_ret = _manager.apply( value_ret, saveV, DDOper.ARITH_PLUS );
-		final double residual = getBellmanError(value_ret, source_value_fn );
+		final List<ADDRNode> reward_dds = _mdp.getRewards();
+		final Map<String, ADDRNode> cpt_dds = _mdp.getCpts();
+		final int state_constraint = addStateConstraint(to);
 
-		ADDRNode policy_ret = null;
-		if( makePolicy ){
-			policy_ret = backup._o2._addPolicy == null ? backup._o2._bddPolicy :
-				backup._o2._addPolicy ;
-			policy_ret = _manager.BDDIntersection(policy_ret, to);//policy in 
-			//to states
-			//zero in others
-			//put input policy in others
-			policy_ret = _manager.BDDUnion( policy_ret, 
-					_manager.BDDIntersection( cur_policy, _manager.BDDNegate(to) ) );
-
-			policy_ret = applyMDPConstraints(policy_ret, null, _manager.DD_ZERO, constrain_naively, null);
-
-			policy_ret = _manager.breakTiesInBDD(policy_ret, _mdp.get_actionVars(), false);
+		int arbitrary = 0;
+		
+		ADDRNode value_ret = primed;
+		for( final String ns_var : _mdp.getSumOrder() ){
+			final ADDRNode this_cpt = cpt_dds.get( ns_var );
+			//remove inconsistent things in cpt without adding vars
+//			final ADDRNode restricted_cpt = applyMDPConstraints(this_cpt, null,
+//					_manager.DD_ZERO, constrain_naively, null);
+			
+			//multiply
+			value_ret = _manager.apply( value_ret, this_cpt, DDOper.ARITH_PROD );
+			//marginalize
+			value_ret = _manager.marginalize( value_ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
+			
+			//constrain
+			if( ++arbitrary  % 5 == 0 ){
+				value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+					constrain_naively, null);
+				arbitrary = 0;
+			}
 		}
+		value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+				constrain_naively, null);
+		
+		for( final ADDRNode rew : reward_dds ){
+//			final ADDRNode r2 = applyMDPConstraints(rew, null, _manager.DD_NEG_INF, 
+//					constrain_naively, null);
+//			System.out.println(" rew : "  + rew.getMax() + " " + r2.getMax() );
+			value_ret = _manager.apply( value_ret, rew, DDOper.ARITH_PLUS );
+			if( ++arbitrary  % 5 == 0 ){
+				value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+					constrain_naively, null);
+				arbitrary = 0;
+			}
+		}
+		value_ret = applyMDPConstraints( value_ret, null, _manager.DD_NEG_INF, 
+				constrain_naively, null);
+		
+		//has Q now
+		value_ret = do_apricodd ? 
+				_manager.doApricodd(value_ret, do_apricodd, apricodd_epsilon, apricodd_type) 
+				: value_ret;
+		final ADDRNode q_func = value_ret;
+		
+		for( final String act_var : _mdp.getElimOrder() ){
+			value_ret = _manager.marginalize(value_ret, act_var, DDMarginalize.MARGINALIZE_MAX );
+		}
+		
+		removeStateConstraint(state_constraint);
+		
+		ADDPolicy policy = new ADDPolicy(_manager, _mdp.getFactoredStateSpace(), 
+				_mdp.getFactoredTransition(), _mdp.getFactoredReward() );
+		policy.updateBDDPolicy(value_ret, q_func);
+		
+		final ADDRNode to_not = _manager.BDDNegate(to);
+		final ADDRNode new_vfn = 
+				_manager.apply(
+						_manager.BDDIntersection(value_ret, to),
+						_manager.BDDIntersection(current_value, to_not ),
+						DDOper.ARITH_PLUS );
+		
+		final ADDRNode new_policy = _manager.BDDUnion(
+				_manager.BDDIntersection(policy._bddPolicy, to),
+				_manager.BDDIntersection(cur_policy, to_not ) );
+		
+//		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 
-		//		if( _manager.hasVars( value_ret, _mdp.get_actionVars() ) ){
-		//			try{
-		//				throw new Exception("Backup has action vars");
-		//			}catch( Exception e ){
-		//				e.printStackTrace();
-		//				System.exit(1);
-		//			}
-		//		}
-
-		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-
-			if( !_manager.BDDIntersection( current_value, _manager.BDDNegate( to ) ).
-					equals(_manager.BDDIntersection( value_ret, _manager.BDDNegate( to ) )) ){
+			if( !_manager.BDDIntersection( current_value, to_not ).
+					equals(_manager.BDDIntersection( new_vfn, to_not )) ){
 				try{
 					throw new Exception("Value of un updated state has changed");
 				}catch( Exception e ){
@@ -381,17 +392,93 @@ RDDLFactoredActionSpace> {
 					System.exit(1);
 				}
 			}
+//		}
+		
+		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>(new_vfn, 
+				new UnorderedPair<>(new_policy, Double.NaN) );
+				
+//		int idx = addStateConstraint(to);
+//		UnorderedPair<ADDValueFunction, ADDPolicy> backup = null;
+//		switch( backup_type ){
+//		case VI_FAR : 
+//			//		    	System.out.println("Regressing all actions" );
+//			backup = regressAllActions( primed, false, makePolicy, constrain_naively, null,
+//					do_apricodd, apricodd_epsilon, apricodd_type );
+//			break;//backup will have value and policy for things not in to, 
+//			//should be masked
+//		case VI_SPUDD :
+//			backup = regressSPUDD(primed, false, makePolicy, constrain_naively, null, 
+//					do_apricodd, apricodd_epsilon, apricodd_type);
+//			break;
+//		case VI_MBFAR :
+//			backup = regressMBFAR(unprimed, makePolicy, constrain_naively, BIGDD, null,
+//					do_apricodd, apricodd_epsilon, apricodd_type);
+//			break;
+//		}
+//
+//		//		if( _manager.hasVars(backup._o1.getValueFn(), _mdp.get_actionVars() ) ){
+//		//			try{
+//		//				throw new Exception("Backup has action vars");
+//		//			}catch( Exception e ){
+//		//				e.printStackTrace();
+//		//				System.exit(1);
+//		//			}
+//		//		}
+//
+//		//		System.out.println("Combining");
+//		removeStateConstraint(idx);
+
+//		if( !make ){
+//			return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>(
+//					backup._o1.get_valueFn(), new UnorderedPair<ADDRNode,Double>( 
+//							backup._o2._addPolicy == null ? backup._o2._bddPolicy :
+//								backup._o2._addPolicy, 
+//								getBellmanError(backup._o1.get_valueFn(), source_value_fn) ) );
+//		}
+		
+//		ADDRNode value_ret = _manager.BDDIntersection( backup._o1.getValueFn(), to );
+//		ADDRNode saveV = _manager.BDDIntersection( current_value ,
+//				to_not );
+//		value_ret = _manager.apply( value_ret, saveV, DDOper.ARITH_PLUS );
+//		final double residual = getBellmanError(value_ret, source_value_fn );
+//
+//		ADDRNode policy_ret = null;
+//		if( makePolicy ){
+//			policy_ret = backup._o2._addPolicy == null ? backup._o2._bddPolicy :
+//				backup._o2._addPolicy ;
+//			policy_ret = _manager.BDDIntersection(policy_ret, to);//policy in 
+//			//to states
+//			//zero in others
+//			//put input policy in others
+//			policy_ret = _manager.BDDUnion( policy_ret, 
+//					_manager.BDDIntersection( cur_policy, to_not ) );
+//
+//			policy_ret = applyMDPConstraints(policy_ret, null, _manager.DD_ZERO, constrain_naively, null);
+//
+////			policy_ret = _manager.breakTiesInBDD(policy_ret, _mdp.get_actionVars(), false);
+//		}
+//
+//		//		if( _manager.hasVars( value_ret, _mdp.get_actionVars() ) ){
+//		//			try{
+//		//				throw new Exception("Backup has action vars");
+//		//			}catch( Exception e ){
+//		//				e.printStackTrace();
+//		//				System.exit(1);
+//		//			}
+//		//		}
+
+		
 
 			//			updated state - value not = neg inf
-			if( _manager.BDDIntersection(value_ret, to).getMin() == _manager.getNegativeInfValue() ){
-				try{
-					throw new Exception("Updated state has value -inf");
-				}catch( Exception e ){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
-		}
+//			if( _manager.BDDIntersection(value_ret, to).getMin() == _manager.getNegativeInfValue() ){
+//				try{
+//					throw new Exception("Updated state has value -inf");
+//				}catch( Exception e ){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
+//		}
 
 		//current value may be zero hence cause increase error
 		//		final ADDRNode diff_to = _manager.apply( 
@@ -401,8 +488,8 @@ RDDLFactoredActionSpace> {
 		//		
 		//		}
 
-		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double> >( 
-				value_ret, new UnorderedPair<ADDRNode, Double>( policy_ret , residual ) );
+//		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double> >( 
+//				value_ret, new UnorderedPair<ADDRNode, Double>( policy_ret , residual ) );
 	}
 
 	public enum INITIAL_VALUE{

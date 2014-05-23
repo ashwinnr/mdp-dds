@@ -2237,13 +2237,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			_constrainCache = new ConcurrentHashMap< 
 //					Pair< ADDRNode, ADDRNode >, ADDRNode >();
 //		}
-		Map< ADDRNode, ADDRNode > _tempUnaryCache 
-		= new HashMap<ADDRNode, ADDRNode>();// CacheBuilder.from( temp_unary_cache_spec ).build();
+		Table< ADDRNode, ADDRNode, ADDRNode > _tempBinaryCache 
+			= HashBasedTable.create();
+		//<ADDRNode, ADDRNode, ADDRNode >create();// CacheBuilder.from( temp_unary_cache_spec ).build();
 		Map<ADDRNode, ADDRNode> _tempExistCache 
 		= new HashMap<ADDRNode, ADDRNode>();
-		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempUnaryCache ,
+		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempBinaryCache ,
 				_tempExistCache );
-		_tempUnaryCache = null;
+		_tempBinaryCache = null;
 		_tempExistCache = null;
 		return ret;
 	}
@@ -2252,7 +2253,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	//replaces constrained parts of rnode with violate
 	public ADDRNode constrainInt( final ADDRNode rnode, 
 			final ADDRNode rconstrain, final ADDRNode violate,
-			Map<ADDRNode, ADDRNode> _tempUnaryCache,
+			Table<ADDRNode, ADDRNode, ADDRNode> _tempBinaryCache,
 			final Map<ADDRNode, ADDRNode> _tempExistCache ){
 //		Objects.requireNonNull( new Object[]{ rnode, rconstrain, violate } );
 		final ADDNode node = rnode.getNode();
@@ -2271,7 +2272,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			System.out.println("leaf was reached in input ADD " + rnode);
 			ret = rnode;
 		}else{
-			ADDRNode lookup = _tempUnaryCache.get( rnode );
+			ADDRNode lookup = _tempBinaryCache.contains( rnode, rconstrain ) ? 
+					_tempBinaryCache.get( rnode, rconstrain ) :  null;
 
 			if( lookup == null ){
 				if( node instanceof ADDINode && constr instanceof ADDINode ){
@@ -2284,14 +2286,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 							final ADDRNode rconstrain_true = rconstrain.getTrueChild();
 							final ADDRNode rconstrain_false = rconstrain.getFalseChild();
 							trueAns = constrainInt(rnode_true, 
-									rconstrain_true, violate, _tempUnaryCache , _tempExistCache);
+									rconstrain_true, violate, _tempBinaryCache , _tempExistCache);
 //								System.out.println( rnode.getTestVariable() + " true " 
 //										+ trueAns );
 							falseAns = constrainInt( rnode_false, 
-									rconstrain_false, violate, _tempUnaryCache, _tempExistCache );
+									rconstrain_false, violate, _tempBinaryCache, _tempExistCache );
 //								System.out.println( rnode.getTestVariable() + " false " 
 //										+ falseAns );
 							final ADDRNode ans = getINode(rnode.getTestVariable(), trueAns, falseAns);
+							_tempBinaryCache.put( rnode, rconstrain, ans );
 							return ans;
 					}else{
 							//descend just one
@@ -2300,14 +2303,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //									System.out.println("descend rnode " + rnode.getTestVariable() + " "
 //											+ rconstrain.getTestVariable() );
 								trueAns = constrainInt(rnode.getTrueChild(), 
-										rconstrain, violate, _tempUnaryCache , _tempExistCache );
+										rconstrain, violate, _tempBinaryCache , _tempExistCache );
 //									System.out.println( rnode.getTestVariable() + " true " 
 //											+ trueAns );
 								falseAns = constrainInt( rnode.getFalseChild(), 
-										rconstrain, violate, _tempUnaryCache, _tempExistCache );
+										rconstrain, violate, _tempBinaryCache, _tempExistCache );
 //									System.out.println( rnode.getTestVariable() + " false " 
 //											+ falseAns );
 								final ADDRNode ans = getINode(rnode.getTestVariable(), trueAns, falseAns);
+								_tempBinaryCache.put( rnode, rconstrain, ans );
 								return ans;
 							}else{
 								//descend on rconstrain
@@ -2332,7 +2336,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 									common = _tempExistCache.get( rconstrain );
 								}
 								final ADDRNode ans = constrainInt( rnode, 
-									common, violate, _tempUnaryCache , _tempExistCache );
+									common, violate, _tempBinaryCache , _tempExistCache );
+								_tempBinaryCache.put( rnode, rconstrain, ans );
 								return ans;
 							}
 					}
