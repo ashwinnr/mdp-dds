@@ -507,6 +507,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			// can be a superset
 			ADDRNode current_parition = findNewGeneralizedPartition( new_val,
 				new_policy, update_states, depth, actual_state, next_state );
+			
+//			final ADDRNode diff = _manager.BDDIntersection( update_states, 
+//					_manager.BDDNegate(current_parition) );
+			
 			if( _manager.getVars(current_parition).get(0).contains("delta_y_1") ){
 				try{
 					throw new Exception("Problem");
@@ -515,6 +519,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}
 			}
 			current_parition = _manager.BDDIntersection( current_parition, update_states );
+			//check to see wasteful work
+			//update ^ ~current_part
 			
 //			final int terms_current_partition = _manager.countPathsBDD(current_parition);
 //			generalization += terms_current_partition;
