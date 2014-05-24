@@ -314,42 +314,43 @@ RDDLFactoredActionSpace> {
 		
 		final List<ADDRNode> reward_dds = _mdp.getRewards();
 		final Map<String, ADDRNode> cpt_dds = _mdp.getCpts();
-		final int state_constraint = addStateConstraint(to);
+//		final int state_constraint = addStateConstraint(to);
 
-		int arbitrary = 0;
+//		int arbitrary = 0;
 		
 		ADDRNode value_ret = primed;
 		for( final String ns_var : _mdp.getSumOrder() ){
 			final ADDRNode this_cpt = cpt_dds.get( ns_var );
 			//remove inconsistent things in cpt without adding vars
-//			final ADDRNode restricted_cpt = applyMDPConstraints(this_cpt, null,
-//					_manager.DD_ZERO, constrain_naively, null);
+			final ADDRNode restricted_cpt = _manager.constrain(this_cpt,
+					to, _manager.DD_ZERO );
 			
 			//multiply
-			value_ret = _manager.apply( value_ret, this_cpt, DDOper.ARITH_PROD );
+			value_ret = _manager.apply( value_ret, restricted_cpt, DDOper.ARITH_PROD );
 			//marginalize
 			value_ret = _manager.marginalize( value_ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
 			
 			//constrain
-			if( ++arbitrary  % 5 == 0 ){
-				value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-					constrain_naively, null);
-				arbitrary = 0;
-			}
+//			if( ++arbitrary  % 5 == 0 ){
+//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+//				constrain_naively, null);
+//				arbitrary = 0;
+//			}
 		}
 		value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
 				constrain_naively, null);
 		
 		for( final ADDRNode rew : reward_dds ){
-//			final ADDRNode r2 = applyMDPConstraints(rew, null, _manager.DD_NEG_INF, 
+			final ADDRNode r2 = _manager.constrain(rew, to, _manager.DD_NEG_INF );
+//			, _manager.DD_NEG_INF, 
 //					constrain_naively, null);
 //			System.out.println(" rew : "  + rew.getMax() + " " + r2.getMax() );
-			value_ret = _manager.apply( value_ret, rew, DDOper.ARITH_PLUS );
-			if( ++arbitrary  % 5 == 0 ){
-				value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-					constrain_naively, null);
-				arbitrary = 0;
-			}
+			value_ret = _manager.apply( value_ret, r2, DDOper.ARITH_PLUS );
+//			if( ++arbitrary  % 5 == 0 ){
+//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+//				constrain_naively, null);
+//				arbitrary = 0;
+//			}
 		}
 		value_ret = applyMDPConstraints( value_ret, null, _manager.DD_NEG_INF, 
 				constrain_naively, null);
@@ -364,7 +365,7 @@ RDDLFactoredActionSpace> {
 			value_ret = _manager.marginalize(value_ret, act_var, DDMarginalize.MARGINALIZE_MAX );
 		}
 		
-		removeStateConstraint(state_constraint);
+//		removeStateConstraint(state_constraint);
 		
 		ADDPolicy policy = new ADDPolicy(_manager, _mdp.getFactoredStateSpace(), 
 				_mdp.getFactoredTransition(), _mdp.getFactoredReward() );
