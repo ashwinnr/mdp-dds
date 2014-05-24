@@ -127,7 +127,8 @@ domain traffic_mdp {
 
 	// Minimize congestion: this reward penalizes congested traffic defined as pairs 
 	// of *consecutive* occupied cells
-	reward = sum_{?c : cell} -[occupied(?c) ^ exists_{?c2 : cell} (FLOWS-INTO-CELL(?c2, ?c) ^ occupied(?c2))];
+	reward = sum_{?c:cell}-[ exists_{?i:intersection}[ FLOWS-INTO-INTERSECTION-NS(?c,?i) | FLOWS-INTO-INTERSECTION-EW(?c,?i) ] ^ occupied(?c) ];
+	//sum_{?c : cell} -[occupied(?c) ^ exists_{?c2 : cell} (FLOWS-INTO-CELL(?c2, ?c) ^ occupied(?c2))];
 	
 //	state-action-constraints {
 //		// Make sure probabilities are in correct range
