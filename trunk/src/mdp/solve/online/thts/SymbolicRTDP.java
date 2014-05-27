@@ -48,7 +48,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private FactoredState[] trajectory_states;
 	private FactoredAction[] trajectory_actions;
 	
-	public final static boolean  DISPLAY_TRAJECTORY = false;
+	public final static boolean  DISPLAY_TRAJECTORY = true;
 //	public boolean BACK_CHAIN;
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
@@ -133,6 +133,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		do_sRTDP( state );
 //			display(  );//_valueDD, _policyDD );
 //		}
+//		display();
 		
 		final ADDRNode action_dd 
 			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
@@ -143,26 +144,26 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		cur_action.setFactoredAction(action);
 		
-		System.out.println( "#updates to value " + (double)_successful_update / nTrials );
-		_successful_update = 0;
-		
-		System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
-		successful_policy_update = 0;
-		
-		System.out.println("Heuristic sharing " + heuristic_sharing );
-		heuristic_sharing = 0;
-		
-		System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials) ) );
-		good_updates = 0;
-		
-		System.out.println( "#Truncated trajectories " + (double)truncated_backup / ( steps_lookahead * (nTrials) ) );
-		truncated_backup = 0;
-		
-		System.out.println( "Value of init state " + 
-				_manager.evaluate(_valueDD[0], state.getFactoredState() ).toString() );
-		
-		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
-		
+//		System.out.println( "#updates to value " + (double)_successful_update / nTrials );
+//		_successful_update = 0;
+//		
+//		System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
+//		successful_policy_update = 0;
+//		
+////		System.out.println("Heuristic sharing " + heuristic_sharing );
+//////		heuristic_sharing = 0;
+//		
+//		System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials) ) );
+//		good_updates = 0;
+//		
+//		System.out.println( "#Truncated trajectories " + (double)truncated_backup / ( steps_lookahead * (nTrials) ) );
+//		truncated_backup = 0;
+//		
+//		System.out.println( "Value of init state " + 
+//				_manager.evaluate(_valueDD[0], state.getFactoredState() ).toString() );
+//		
+//		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+//		
 //		System.out.println("Generalization #terms " + generalization / 
 //				(double)( (steps_lookahead-1) * (nTrials) ) );
 //		System.out.println("Generalization after consistency #terms " + 
@@ -271,19 +272,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
 //			display();
-//			if( trials_to_go % 100 == 0 ){
-//				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
-//				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
+			if( trials_to_go % 100 == 0 ){
+				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
+				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
 //				System.out.println( "Heuristic sharing " + this.heuristic_sharing );
-//				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
-//				System.out.println( "#Truncated backups " + (double)truncated_backup / ( steps_lookahead * (nTrials-trials_to_go) ) );
-//				
-//				System.out.println( "Value of init state " + 
-//						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
-//				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
-//				display(  );
-////				dis
-//			}
+				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
+				
+				System.out.println( "Value of init state " + 
+						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+				display(  );
+			}
 //			System.out.println( "Value of init state " + 
 //					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
 		}

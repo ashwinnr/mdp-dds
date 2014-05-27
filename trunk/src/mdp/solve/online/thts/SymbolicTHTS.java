@@ -77,7 +77,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected double _RMAX;
 	protected boolean enableLabelling;
 	protected ADDRNode _baseLinePolicy;
-	protected int heuristic_sharing;
+//	protected int heuristic_sharing;
 	private Random _stateSelectionRand = null;
 	private Random _actionSelectionRandom = null;
 	
@@ -255,7 +255,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //				System.out.println( reward + " + " + _RMAX*(d-depth) );
 			}
 			else if( is_node_visited( state_assign, d ) ){
-				++heuristic_sharing;
+//				++heuristic_sharing;
 				final double that_value = get_value( state_assign, d );
 				if( that_value == _manager.getNegativeInfValue() ){
 				    try{
@@ -470,7 +470,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			System.out.println("#Minterms of Value fn. " + _manager.countPathsADD(vfn) );
 			System.out.println("Size of policy " + _manager.countPathsBDD( plcy ) );
 			System.out.println("Size of visited " + _manager.countPathsBDD( _visited[i] ) );
-			System.out.println("Size of solved " + _manager.countPathsBDD( _solved[i] ) );
+//			System.out.println("Size of ?solved " + _manager.countPathsBDD( _solved[i] ) );
 		}
 	}
 }
