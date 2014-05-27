@@ -239,6 +239,9 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 			final ADDManager manager ){
 		NavigableMap<String, Boolean> partial_state = 
 				Maps.newTreeMap( manager.sampleOneLeaf( initial_state_dist, rand ) );
+		
+		//HACK : GOAL fluent in crossing traffic
+		
 		for( final String svar : _stateVars ){
 			final Boolean val = partial_state.get(svar);
 			if( val == null ){
