@@ -80,6 +80,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //	protected int heuristic_sharing;
 	private Random _stateSelectionRand = null;
 	private Random _actionSelectionRandom = null;
+	private List<ADDRNode>  max_rewards = null;
 	
 //	public enum SUCCESSOR{
 //		NONE, BRTDP, FRTDP
@@ -183,6 +184,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_RMAX = _mdp.getRMax();
 		
+		max_rewards  = _dtr.maxActionVariables(_mdp.getRewards(), _mdp.getElimOrder(), 
+				null , do_apricodd, 
+				do_apricodd ? apricodd_epsilon[steps_lookahead-1] : 0, 
+				apricodd_type) ;
+		
 		final P inner_params = _genaralizeParameters.getParameters();
 		inner_params.set_manager(_manager);
 		
@@ -191,14 +197,12 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}else if( inner_params instanceof RewardGeneralizationParameters ){
 			final List<ADDRNode> rewards = _mdp.getRewards();
 			((RewardGeneralizationParameters)inner_params).set_rewards( rewards );
-			((RewardGeneralizationParameters)inner_params).set_max_rewards(
-					_dtr.maxActionVariables(rewards, _mdp.getElimOrder(), 
-							null , do_apricodd, 
-							do_apricodd ? apricodd_epsilon[steps_lookahead-1] : 0, 
-							apricodd_type) );
+			((RewardGeneralizationParameters)inner_params).set_maxRewards(
+					max_rewards );
 		}else if( inner_params instanceof OptimalActionParameters ){
 			((OptimalActionParameters)inner_params).set_actionVars( _mdp.get_actionVars() );
 		}
+		
 		//try {
 		//	base_line = ADDDecisionTheoreticRegression.getRebootDeadPolicy(_manager, _dtr, _mdp.get_actionVars() );
 		//} catch (EvalException e) {
@@ -206,6 +210,21 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		//}
 		//display(_valueDD, _policyDD);
 
+	}
+	
+	//always the same without regard to specified generalization type
+	protected ADDRNode generalize_leaf(
+			final FactoredState<RDDLFactoredStateSpace> state, final int depth ) {
+		NavigableMap<String, Boolean> state_path = state.getFactoredState();
+		return _manager.get_path(max_rewards, state_path);
+	}
+	
+	protected void initialize_leaf( final FactoredState<RDDLFactoredStateSpace> state, final int depth,
+			final ADDRNode gen_leaf ){
+		_valueDD[depth] = _manager.apply( 
+				_manager.BDDIntersection(_valueDD[depth], _manager.BDDNegate(gen_leaf) ),
+				_manager.scalarMultiply( gen_leaf, _mdp.getReward( state.getFactoredState() ) ), 
+				DDOper.ARITH_PLUS );
 	}
 	
 	@Override
@@ -397,6 +416,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}
 		
 		return cur_action.setFactoredAction( partial_path );
+	}
+	
+	public void visit_node(final ADDRNode path,
+			int depth) {
+		_visited[depth] = _manager.BDDUnion(_visited[depth], path);
 	}
 	
 	@Override

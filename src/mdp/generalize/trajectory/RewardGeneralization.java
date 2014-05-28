@@ -27,27 +27,33 @@ RewardGeneralizationType, RewardGeneralizationParameters>{
 			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
 			FactoredState<RDDLFactoredStateSpace> next_state,
 			RewardGeneralizationParameters parameters, int depth) {
-		final ADDManager manager = parameters.get_manager();
-		
-
-		final NavigableMap<String, Boolean> state_assign = state.getFactoredState();
-		final NavigableMap<String, Boolean> action_assign = 
-				action != null ? action.getFactoredAction() : null;
-		
-		final List<ADDRNode> rewards = parameters.get_rewards();
-		final List<ADDRNode> source = depth == parameters.get_valueDD().length-1 ? 
-				parameters.get_max_rewards() : parameters.get_rewards();
-
-		ADDRNode ret = manager.DD_ONE; 
-		for( final ADDRNode rew :  source ){
-			final ADDRNode gen_path = 
-					generalize( rew, parameters.get_genRule(), manager, state_assign, 
-							action_assign );
-			ret = manager.BDDUnion(gen_path, ret);
-		}
-		
-		return ret;//generalize(sum, parameters.get_genRule(), manager, state_assign, action_assign );
-				
+		 final ADDManager manager = parameters.get_manager();
+		 //get path of the state
+		 
+		 NavigableMap<String, Boolean> state_path = state.getFactoredState();
+		 ADDRNode output_path = null;
+		 switch( parameters.get_genRule() ){
+		 case  PATH : output_path = manager.get_path(parameters.get_max_rewards()
+				 , state_path);
+		 	break;
+		 case ALL_PATHS : 
+			 for( final ADDRNode rew : parameters.get_max_rewards() ){
+				 final double this_r = manager.evaluate(rew, state_path).getMax();
+				 final ADDRNode this_paths = manager.all_paths_to_leaf(rew, this_r);
+				 output_path = manager.BDDUnion(output_path == null ?
+						 manager.DD_ZERO : output_path, this_paths );
+			 }
+			 break;
+		 default :
+			 try{
+				 throw new Exception("not implemented reward gen type");
+			 }catch(Exception e ){
+				 e.printStackTrace();
+				 System.exit(1);
+			 }
+		 }
+		 
+		 return output_path;
 	}
 
 	@Override

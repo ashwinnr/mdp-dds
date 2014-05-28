@@ -10,6 +10,7 @@ import mdp.generalize.trajectory.EBLGeneralization;
 import mdp.generalize.trajectory.Generalization;
 import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.OptimalActionGeneralization;
+import mdp.generalize.trajectory.RewardGeneralization;
 import mdp.generalize.trajectory.ValueGeneralization;
 import mdp.generalize.trajectory.parameters.EBLParams;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
@@ -48,7 +49,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private FactoredState[] trajectory_states;
 	private FactoredAction[] trajectory_actions;
 	
-	public final static boolean  DISPLAY_TRAJECTORY = true;
+	public final static boolean  DISPLAY_TRAJECTORY = false;
 //	public boolean BACK_CHAIN;
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
@@ -230,13 +231,23 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				++num_actions;
 				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
 				if( num_actions == steps_lookahead-1 ){//!is_node_visited(cur_state, num_actions) ){
-					initilialize_node(cur_state, num_actions);
-					visit_node(cur_state, num_actions);
-					if( truncateTrials ){
-//						System.out.println("Truncating trial : " + num_actions );
-//						System.out.println("Truncating trial : " + cur_state );
-						break;
+					if( _genStates ){
+						//changed 5/27/014
+						//find states that have the same reward
+						//not possible to find all
+						//only finding the BDD traversed by state in \sum_R
+						final ADDRNode gen_leaf = generalize_leaf( cur_state, num_actions);
+						initialize_leaf( cur_state, num_actions, gen_leaf );
+						visit_node( gen_leaf, num_actions );
+					}else{
+						initilialize_node(cur_state, num_actions);
+						visit_node(cur_state, num_actions);
 					}
+//					if( truncateTrials ){
+////						System.out.println("Truncating trial : " + num_actions );
+////						System.out.println("Truncating trial : " + cur_state );
+//						break;
+//					}
 				}
 //				if( prob_traj < 0.01d ){
 //					break;
@@ -289,7 +300,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		System.out.println();
 		
 	}
-	
+
+
 	protected ADDRNode[] generalize_trajectory(final FactoredState<RDDLFactoredStateSpace>[] trajectory_states, 
 			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] trajectory_actions  ){
 
@@ -1080,9 +1092,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			generalizer = new EBLGeneralization();
 		}
-//		else if( cmd.getOptionValue("generalization").equals("reward") ){
-//			generalizer = new RewardGeneralization();
-//		}
+		else if( cmd.getOptionValue("generalization").equals("reward") ){
+			generalizer = new RewardGeneralization();
+		}
 		
 		
 		final Random topLevel = new Random( Long.parseLong( cmd.getOptionValue("seed") ) );
@@ -1106,8 +1118,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}else if( cmd.getOptionValue("generalization").equals("reward") ){
 			inner_params = new RewardGeneralizationParameters(null, 
 					GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-					null, constrain_naively,
-				null );
+					null, constrain_naively, null );
 		}
 		
 		double[] epsilons = null;

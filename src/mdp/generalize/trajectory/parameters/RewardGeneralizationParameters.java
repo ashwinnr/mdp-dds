@@ -32,13 +32,13 @@ public class RewardGeneralizationParameters extends GeneralizationParameters<Rew
 	public void set_rewards(List<ADDRNode> _rewards) {
 		this._rewards = _rewards;
 	}
-	
+
+	public void set_maxRewards(List<ADDRNode> _maxRewards) {
+		this._maxRewards = _maxRewards;
+	}
+
 	public List<ADDRNode> get_max_rewards() {
 		return _maxRewards;
-	}
-	
-	public void set_max_rewards(List<ADDRNode> _maxRewards) {
-		this._maxRewards = _maxRewards;
 	}
 	
 }
