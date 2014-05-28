@@ -292,7 +292,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.println( "Value of init state " + 
 						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
 				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
-				display(  );
+//				display(  );
 			}
 //			System.out.println( "Value of init state " + 
 //					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
