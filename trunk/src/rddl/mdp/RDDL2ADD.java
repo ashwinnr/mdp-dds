@@ -35,6 +35,7 @@ import rddl.RDDL.LCONST;
 import rddl.RDDL.LVAR;
 import rddl.RDDL.NONFLUENTS;
 import rddl.RDDL.OPER_EXPR;
+import rddl.RDDL.PVAR_INST_DEF;
 import rddl.RDDL.PVAR_NAME;
 import rddl.RDDL.REAL_CONST_EXPR;
 import rddl.State;
@@ -436,6 +437,16 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		
 	}
 
+	public NavigableMap<String, Boolean> getInitialState(){
+		final NavigableMap<String, Boolean> ret = new TreeMap<String, Boolean>();
+		ArrayList<PVAR_INST_DEF> init_state = this._i._alInitState;
+		for( final PVAR_INST_DEF pdef : init_state ){
+			final ArrayList<LCONST> terms = pdef._alTerms;
+			ret.put( CleanFluentName( pdef._sPredName.toString() + terms ),
+					(Boolean)pdef._oValue );
+		}
+		return ret;
+	}
 
 	private void buildCPTs(boolean withActionVars) throws Exception {
 

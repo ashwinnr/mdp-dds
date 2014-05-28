@@ -73,7 +73,7 @@ RDDLFactoredActionSpace> {
 	private ADDRNode _hsReward = null;
 
 	public enum INITIAL_STATE_CONF{
-		UNIFORM, BERNOULLI, CONJUNCTIVE
+		UNIFORM, BERNOULLI, CONJUNCTIVE, RDDL
 	}
 
 	private class Heuristic_Compute implements Callable< UnorderedPair<ADDRNode, ADDRNode> >{
@@ -2080,6 +2080,9 @@ RDDLFactoredActionSpace> {
 			break;
 		case UNIFORM :
 			ret = _mdp.getIIDUniformDistribution( state_vars );
+			break;
+		case RDDL : 
+			ret = _manager.getProductBDDFromAssignment( _mdp.getInitialState() );
 			break;
 		}
 		final ADDRNode constr = _manager.productDD(this.__state_constraints);
