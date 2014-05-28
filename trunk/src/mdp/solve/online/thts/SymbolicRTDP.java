@@ -929,8 +929,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final int depth,
 			final FactoredState<RDDLFactoredStateSpace> actual_state, 
 			final FactoredState<RDDLFactoredStateSpace> next_state ) {
-		final ADDRNode action_dd = _manager.restrict(new_policy, actual_state.getFactoredState() );
-		cur_action.setFactoredAction( _manager.sampleOneLeaf(action_dd, _actionSelectionRand ) );
+//		final ADDRNode action_dd = _manager.restrict(new_policy, actual_state.getFactoredState() );
+//		cur_action.setFactoredAction( _manager.sampleOneLeaf(action_dd, _actionSelectionRand ) );
 		
 		final ADDRNode save_value = _valueDD[ depth ];
 		final ADDRNode save_policy = _policyDD[ depth ];
@@ -941,8 +941,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		saveValuePolicy();
 		
 		//this does not take into account consistency
+		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
+			new_action = pick_successor_node(actual_state, depth);
+		
 		final ADDRNode new_generalized_state = 
-				_generalizer.generalize_state(actual_state, cur_action, next_state, 
+				_generalizer.generalize_state(actual_state, new_action, next_state, 
 						_genaralizeParameters, depth);
 		
 		_valueDD[ depth ] = save_value;
