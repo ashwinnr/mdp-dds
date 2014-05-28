@@ -4773,6 +4773,17 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
+	public ADDRNode get_path(
+			final List<ADDRNode> list_dd,
+			final NavigableMap<String, Boolean>... assigns) {
+		ADDRNode ret = DD_ONE;
+		for( final ADDRNode dd : list_dd ){
+			ret = BDDIntersection( ret, get_path( dd, assigns ) );
+		}
+		return ret;
+	}
+	
+
 //	public void clearNodes() {
 //		madeLeaf = new ReferenceMap<ADDLeaf, ADDRNode>();
 //		madeINodes = new TreeMap<String, 
