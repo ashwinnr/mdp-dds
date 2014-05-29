@@ -26,10 +26,10 @@ non-fluents nf_recon_inst_mdp__1 {
 		objAt(o2,x0,y0);
 		objAt(o3,x1,y0);
 		HAZARD(x1,y0);
-		DAMAGE_PROB(w1) = 0.29898286;
-		DAMAGE_PROB(l1) = 0.3058349;
-		GOOD_PIC_WEIGHT = 0.18377236;
-		BAD_PIC_WEIGHT = 0.7311116;
+		DAMAGE_PROB(w1) = 0.3;
+		DAMAGE_PROB(l1) = 0.3;
+		GOOD_PIC_WEIGHT = 0.2;
+		BAD_PIC_WEIGHT = 0.8;
 	};
 }
 instance recon_inst_mdp__1 { 
