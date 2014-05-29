@@ -28,8 +28,8 @@ non-fluents nf_recon_inst_mdp__1 {
 		HAZARD(x1,y0);
 		DAMAGE_PROB(w1) = 0.3;
 		DAMAGE_PROB(l1) = 0.3;
-		GOOD_PIC_WEIGHT = 0.2;
-		BAD_PIC_WEIGHT = 0.8;
+		GOOD_PIC_WEIGHT = 1;
+		BAD_PIC_WEIGHT = 0.4;
 	};
 }
 instance recon_inst_mdp__1 { 
