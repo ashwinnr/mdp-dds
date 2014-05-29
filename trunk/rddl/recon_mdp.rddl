@@ -188,17 +188,9 @@ domain recon_mdp {
     	
 	//we may want to change the way lifeDetected works because right now the same domain has different possible rewards
 	// Only get rewarded for a good or bad picture the first time the action is *taken*
-	reward = [ sum_{?o : obj}( GOOD_PIC_WEIGHT*pictureTaken(?o)
-		+ lifeDetected(?o) ) ];
-	//reward = [sum_{?o : obj}  
-		//		 (GOOD_PIC_WEIGHT * 
-		//		  [ ~pictureTaken(?o) ^ lifeDetected(?o) ^ exists_{?x //: x_pos, ?y : y_pos, ?a: agent, ?t: tool} [agentAt(?a, ?x, //?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ //CAMERA_TOOL(?t) ^ ~damaged(?t)]])
-		//	 ] +
-		//	 [sum_{?o : obj} 
-		//		 -(BAD_PIC_WEIGHT * 
-		//		  [ ~lifeDetected(?o) ^ exists_{?x : x_pos, ?y : //y_pos, ?a: agent, ?t: tool} [agentAt(?a, ?x, ?y) ^ objAt(?o, //?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ CAMERA_TOOL(?t)]])
-		//	 ]; 
-
+	//reward = [ sum_{?o : obj}( lifeDetected(?o)  ];
+	reward = [ sum_{?o : obj}   (  [ pictureTaken(?o) * lifeDetected(?o) ] )  ];
+			 
 //	//only 1 of each kind of tool -- actually might be more fun if there were multiple of each one 	
 //	state-action-constraints {
 //		(sum_{?t: tool}[WATER_TOOL(?t)])  >= 1;
