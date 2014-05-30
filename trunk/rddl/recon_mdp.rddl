@@ -175,7 +175,7 @@ domain recon_mdp {
 
 		//inhibits reward for future pictures of this object
 		pictureTaken'(?o) =
-			KronDelta( exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [CAMERA_TOOL(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ ~damaged(?t)] );
+			KronDelta( pictureTaken(?o) | exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [CAMERA_TOOL(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ ~damaged(?t)] );
 
 		agentAt'(?a, ?x, ?y) = 
 			KronDelta(
@@ -189,7 +189,8 @@ domain recon_mdp {
 	//we may want to change the way lifeDetected works because right now the same domain has different possible rewards
 	// Only get rewarded for a good or bad picture the first time the action is *taken*
 	//reward = [ sum_{?o : obj}( lifeDetected(?o)  ];
-	reward = [ sum_{?o : obj}   (  [ pictureTaken(?o) * lifeDetected(?o) ] )  ];
+	//possibly add bringing back to base?
+	reward = [ sum_{?o : obj, ?a :agent, ?x : x_pos, ?y : y_pos}   [ BASE(?x,?y) * agentAt(?a,?x,?y) * pictureTaken(?o) * lifeDetected(?o) ] ];
 			 
 //	//only 1 of each kind of tool -- actually might be more fun if there were multiple of each one 	
 //	state-action-constraints {
