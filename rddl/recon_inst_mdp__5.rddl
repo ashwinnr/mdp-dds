@@ -4,7 +4,7 @@ non-fluents nf_recon_inst_mdp__5 {
 		x_pos : {x0,x1,x2,x3};
 		y_pos : {y0,y1,y2,y3};
 		obj : {o0,o1,o2,o3,o4,o5};
-		agent : {a1,a2};
+		agent : {a1};
 		tool : {l1,w1,p1};
 
 	}; 
@@ -31,7 +31,7 @@ non-fluents nf_recon_inst_mdp__5 {
 		
 		HAS-TOOL(a1,w1);
 		HAS-TOOL(a1,p1);
-		HAS-TOOL(a2,l1);
+		HAS-TOOL(a1,l1);
 		
 		BASE(x1,y0);
 		objAt(o0,x0,y0);
@@ -53,10 +53,8 @@ instance recon_inst_mdp__5 {
 	init-state { 
 		agentAt-X(a1,x1);
 		agentAt-Y(a1,y0);
-		agentAt-X(a2,x1);
-		agentAt-Y(a2,y0);
 	};
-	max-nondef-actions = 5;
+	max-nondef-actions = 1;
 	horizon = 40;
 	discount = 1.0;
 } 
