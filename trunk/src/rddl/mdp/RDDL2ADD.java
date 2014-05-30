@@ -321,12 +321,18 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			for( EXPR constraint : _state._alConstraints ){
 				if( constraint instanceof BOOL_EXPR ){
 					BOOL_EXPR be = (BOOL_EXPR)constraint;
+					if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+						System.out.println(be);
+				    }
 					addConstraint(be);
 					_manager.flushCaches( );
 				}else{
 					System.err.println("Constraint not tpye of bool expr");
 					System.exit(1);
 				}
+			}
+			if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+				System.out.println("state constraints built");
 			}
 			if( buildADDs ){
 				buildCPTs(withActionVars);
@@ -418,7 +424,21 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		    if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			System.out.println(a);
 		    }
+		    if( sum.getMax() > _i._nNonDefActions ){
+		    	try{
+		    		throw new Exception("Error in incremental constraint building");
+		    	}catch( Exception e ){
+		    		e.printStackTrace();
+		    		System.exit(1);
+		    	}
+		    }
 		    sum = _manager.apply( sum, _manager.getIndicatorDiagram(a, true) , DDOper.ARITH_PLUS );
+		    //incremental pruning
+		    ADDRNode cur_sum_bdd = _manager.threshold(sum, _i._nNonDefActions, false);
+		    sum = _manager.BDDIntersection(cur_sum_bdd, sum);
+		    if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+				System.out.println(sum.getMax());
+		    }
 		}
 		
 		//threshold
@@ -427,6 +447,10 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		_action_constraints.add( zeroOneDD );
 		
 		_concurrencyConstraint = zeroOneDD;
+		
+		if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println("concurrency built");
+	    }
 		
 		if( __debug_level.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 			System.out.println("\nDisplaying concurrency constraint");

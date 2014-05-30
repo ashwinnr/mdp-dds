@@ -45,7 +45,7 @@
 domain recon_mdp {
   	
 	requirements = { 
-//		constrained-state,
+		constrained-state,
 		reward-deterministic  
 	};
 
@@ -87,6 +87,10 @@ domain recon_mdp {
 		//weights for the reward function, good pics are one where you detected life, bad pics are where you did not
 		GOOD_PIC_WEIGHT : { non-fluent, real, default = 1.0 };
 		BAD_PIC_WEIGHT  : { non-fluent, real, default = 2.0 };
+		
+		//support for multiple agents
+		//who has what tools
+		HAS-TOOL(agent, tool) : { non-fluent, boolean, default = false };
 
 		damaged(tool) : { state-fluent, bool, default = false };
 		
@@ -102,7 +106,10 @@ domain recon_mdp {
 		lifeDetected(obj) : { state-fluent, bool, default = false };
 
 		pictureTaken(obj) : { state-fluent, bool, default = false };
-		agentAt(agent, x_pos, y_pos) : { state-fluent, bool, default = false };
+		
+		//product of chain graphs
+		agentAt-X(agent, x_pos) : { state-fluent, bool, default = false };
+		agentAt-Y(agent, y_pos) : { state-fluent, bool, default = false };
 
 		//actions
 		up(agent) : {action-fluent, bool, default = false};
@@ -120,13 +127,13 @@ domain recon_mdp {
 		//      if the hazard is only in an adjacent cell, you are subject to half the full damage probability,
 		//      however, the chance is not cumulative (you are subject to one of {full,half,zero} damage probability) 
 		damaged'(?t) = 
-			if (damaged(?t) ^ ~(exists_{?x : x_pos, ?y : y_pos, ?a: agent} [agentAt(?a, ?x, ?y) ^ BASE(?x, ?y) ^ repair(?a, ?t)])) 
+			if (damaged(?t) ^ ~(exists_{?x : x_pos, ?y : y_pos, ?a: agent} [HAS-TOOL(?a,?t) ^ agentAt-X(?a,?x) ^ agentAt-Y(?a,?y) ^ BASE(?x, ?y) ^ repair(?a, ?t)])) 
 				then KronDelta( true )
-			else if (exists_{?x : x_pos, ?y : y_pos, ?a: agent} [agentAt(?a, ?x, ?y) ^ ~BASE(?x, ?y) ^ HAZARD(?x, ?y) ])  
+			else if (exists_{?x : x_pos, ?y : y_pos, ?a: agent} [HAS-TOOL(?a,?t) ^ agentAt-X(?a,?x) ^ agentAt-Y(?a,?y) ^ ~BASE(?x, ?y) ^ HAZARD(?x, ?y) ])  
 				then Bernoulli( DAMAGE_PROB(?t) )
-			else if (exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?x2 :x_pos} [agentAt(?a, ?x, ?y) ^ ~BASE(?x, ?y) ^ HAZARD(?x2, ?y) ^ (ADJACENT-LEFT(?x, ?x2) | ADJACENT-RIGHT(?x, ?x2)) ])  
+			else if (exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?x2 :x_pos} [HAS-TOOL(?a,?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ ~BASE(?x, ?y) ^ HAZARD(?x2, ?y) ^ (ADJACENT-LEFT(?x, ?x2) | ADJACENT-RIGHT(?x, ?x2)) ])  
 				then Bernoulli( DAMAGE_PROB(?t) / 2.0 )
-			else if (exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?y2 :y_pos} [agentAt(?a, ?x, ?y) ^  ~BASE(?x, ?y) ^ HAZARD(?x, ?y2) ^ (ADJACENT-UP(?y, ?y2) | ADJACENT-DOWN(?y, ?y2)) ])  
+			else if (exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?y2 :y_pos} [HAS-TOOL(?a,?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^  ~BASE(?x, ?y) ^ HAZARD(?x, ?y2) ^ (ADJACENT-UP(?y, ?y2) | ADJACENT-DOWN(?y, ?y2)) ])  
 				then Bernoulli( DAMAGE_PROB(?t) / 2.0 )
 			else 
 				KronDelta( false );  //silly else structure needed because of the way adjacency is encoded
@@ -134,7 +141,7 @@ domain recon_mdp {
 		//keeps track of whether you checked for water (which fixes the value, even if you used the damaged tool).
 		waterChecked'(?o) = 
 			KronDelta( waterChecked(?o) 
-				|  exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ WATER_TOOL(?t)]);
+				|  exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [HAS-TOOL(?a,?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ WATER_TOOL(?t)]);
 
 		//first 2 cases are if you have found water and whether it has been checked, the next two are based on the tool being damaged or not
 		waterDetected'(?o) = 
@@ -142,9 +149,9 @@ domain recon_mdp {
 				then KronDelta( true ) 
 			else if (waterChecked(?o)) // Only one chance to detect water
 				then KronDelta( false ) 
-			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [WATER_TOOL(?t) ^ damaged(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o)]) 
+			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [HAS-TOOL(?a,?t) ^ WATER_TOOL(?t) ^ damaged(?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o)]) 
 				then Bernoulli(DETECT_PROB_DAMAGED)
-			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [WATER_TOOL(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o)]) 
+			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [HAS-TOOL(?a,?t) ^ WATER_TOOL(?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o)]) 
 				then Bernoulli(DETECT_PROB)
 			else
 				KronDelta( false );
@@ -153,12 +160,12 @@ domain recon_mdp {
 		lifeChecked'(?o) = 
 			KronDelta( 
 				lifeChecked(?o) 
-				|  exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ LIFE_TOOL(?t)]);
+				|  exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [ HAS-TOOL(?a,?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ LIFE_TOOL(?t)]);
 		
 		lifeChecked2'(?o) = 
 			KronDelta( 
 				lifeChecked2(?o) 
-				|  lifeChecked(?o) ^ exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ LIFE_TOOL(?t)]);
+				|  lifeChecked(?o) ^ exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [ HAS-TOOL(?a,?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ LIFE_TOOL(?t)]);
 
 		//similar to waterDetected
 		lifeDetected'(?o) = 
@@ -166,38 +173,46 @@ domain recon_mdp {
 				then KronDelta( true ) 
 			else if (lifeChecked2(?o) | ~waterDetected(?o)) // Never detect life after 2nd try or if no water
 				then KronDelta( false )
-			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [ LIFE_TOOL(?t) ^ damaged(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ]) 
+			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [ HAS-TOOL(?a,?t) ^ LIFE_TOOL(?t) ^ damaged(?t) ^ agentAt-X(?a, ?x) ^
+				agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ]) 
 				then Bernoulli(DETECT_PROB_DAMAGED)
-			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [ LIFE_TOOL(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ]) 
+			else if (exists_{?t : tool, ?x : x_pos, ?y : y_pos, ?a: agent} [ HAS-TOOL(?a,?t) ^ LIFE_TOOL(?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ]) 
 				then Bernoulli(DETECT_PROB)
 			else
 				KronDelta( false );	
 
 		//inhibits reward for future pictures of this object
 		pictureTaken'(?o) =
-			KronDelta( pictureTaken(?o) | exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [CAMERA_TOOL(?t) ^ agentAt(?a, ?x, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ ~damaged(?t)] );
+			KronDelta( pictureTaken(?o) | exists_{?x : x_pos, ?y : y_pos, ?a: agent, ?t: tool} [ HAS-TOOL(?a,?t) ^ CAMERA_TOOL(?t) ^ agentAt-X(?a, ?x) ^ agentAt-Y(?a, ?y) ^ objAt(?o, ?x, ?y) ^ useToolOn(?a, ?t, ?o) ^ ~damaged(?t)] );
 
-		agentAt'(?a, ?x, ?y) = 
+		agentAt-X'(?a, ?x) =
 			KronDelta(
-				[agentAt(?a, ?x, ?y) ^ ~(up(?a) | down(?a) | right(?a) | left(?a))] |
-				[left(?a) ^ exists_{?x2 : x_pos} [agentAt(?a, ?x2, ?y) ^ ADJACENT-LEFT(?x2, ?x)]] |
-				[right(?a) ^ exists_{?x2 : x_pos} [agentAt(?a, ?x2, ?y) ^ ADJACENT-RIGHT(?x2, ?x)]] |
-				[up(?a) ^ exists_{?y2 : y_pos} [agentAt(?a, ?x, ?y2) ^ ADJACENT-UP(?y2, ?y)]] |
-				[down(?a) ^ exists_{?y2 : y_pos} [agentAt(?a, ?x, ?y2) ^ ADJACENT-DOWN(?y2, ?y)]] );
+				[agentAt-X(?a, ?x) ^ ~(right(?a) | left(?a))] |
+				[left(?a) ^ exists_{?x2 : x_pos} [agentAt-X(?a, ?x2) ^ ADJACENT-LEFT(?x2, ?x)]] |
+				[right(?a) ^ exists_{?x2 : x_pos} [agentAt-X(?a, ?x2) ^ ADJACENT-RIGHT(?x2, ?x)]] );
+				
+		agentAt-Y'(?a, ?y) =
+			KronDelta(
+				[agentAt-Y(?a, ?y) ^ ~(up(?a) | down(?a))] |
+				[up(?a) ^ exists_{?y2 : y_pos} [agentAt-Y(?a, ?y2) ^ ADJACENT-UP(?y2, ?y)]] |
+				[down(?a) ^ exists_{?y2 : y_pos} [agentAt-Y(?a, ?y2) ^ ADJACENT-DOWN(?y2, ?y)]] );
 	};
     	
 	//we may want to change the way lifeDetected works because right now the same domain has different possible rewards
 	// Only get rewarded for a good or bad picture the first time the action is *taken*
 	//reward = [ sum_{?o : obj}( lifeDetected(?o)  ];
 	//possibly add bringing back to base?
-	reward = [ sum_{?o : obj, ?a :agent, ?x : x_pos, ?y : y_pos}   [ BASE(?x,?y) * agentAt(?a,?x,?y) * pictureTaken(?o) * lifeDetected(?o) ] ];
+	reward = [ sum_{?o : obj, ?x : x_pos, ?y : y_pos}[ pictureTaken(?o) * lifeDetected(?o) ] ];
 			 
-//	//only 1 of each kind of tool -- actually might be more fun if there were multiple of each one 	
-//	state-action-constraints {
-//		(sum_{?t: tool}[WATER_TOOL(?t)])  >= 1;
-//		(sum_{?t: tool}[CAMERA_TOOL(?t)]) >= 1;
-//		(sum_{?t: tool}[LIFE_TOOL(?t)])   >= 1;
-//	};
+	state-action-constraints {
+		forall_{?a:agent}[ ( sum_{?x:x_pos} [ agentAt-X(?a,?x) ] ) == 1 ];
+		forall_{?a:agent}[ ( sum_{?y:y_pos} [ agentAt-Y(?a, ?y) ] ) == 1 ];
+		forall_{?a:agent}[ up(?a) + down(?a) + left(?a) + right(?a) <= 1 ];
+		//forall_{?a:agent,?t:tool}[ ~HAS-TOOL(?a,?t) => ~repair(?a,?t) ];
+		//forall_{?a:agent,?t:tool}[ ~HAS-TOOL(?a,?t) => ~exists_{?o:obj}[ useToolOn(?a,?t,?o) ] ];
+		//forall_{?a:agent}[ (up(?a) | down(?a) | left(?a) | right(?a)) => ~[exists_{?t : tool, ?o:obj}[HAS-TOOL(?a,?t) ^ useToolOn(?a,?t,?o)] ] ];
+		//forall_{?a:agent, ?t : tool}[ HAS-TOOL(?a,?t) ^ (up(?a) | down(?a) | left(?a) | right(?a)) => ~[repair(?a,?t)] ];
+	};
 }
 
 
