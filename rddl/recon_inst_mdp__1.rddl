@@ -20,6 +20,11 @@ non-fluents nf_recon_inst_mdp__1 {
 		WATER_TOOL(w1);
 		LIFE_TOOL(l1);
 		CAMERA_TOOL(p1);
+		
+		HAS-TOOL(a1,w1);
+		HAS-TOOL(a1,p1);
+		HAS-TOOL(a1,l1);
+		
 		BASE(x0,y1);
 		objAt(o0,x1,y1);
 		objAt(o1,x1,y0);
@@ -36,9 +41,10 @@ instance recon_inst_mdp__1 {
 	domain = recon_mdp; 
  	non-fluents = nf_recon_inst_mdp__1;
 	init-state { 
-		agentAt(a1,x0,y1);
+		agentAt-X(a1,x0);
+		agentAt-Y(a1,y1);
 	};
-	max-nondef-actions = 1;
+	max-nondef-actions = 4;
 	horizon = 40;
 	discount = 1.0;
 } 

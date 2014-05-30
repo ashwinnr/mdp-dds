@@ -1144,7 +1144,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		    consistency[i] = Consistency.valueOf(const_options[i]);
 		}
 		 
-		
 		return new SymbolicRTDP(
 				cmd.getOptionValue("domain"), cmd.getOptionValue("instance"),
 				Double.parseDouble( cmd.getOptionValue("convergenceTest") ), 
