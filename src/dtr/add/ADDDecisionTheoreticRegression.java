@@ -336,13 +336,15 @@ RDDLFactoredActionSpace> {
 			
 			//constrain
 //			if( ++arbitrary  % 5 == 0 ){
-//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-//				constrain_naively, null);
+			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+				constrain_naively, null);
 //				arbitrary = 0;
 //			}
 		}
-//		value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-//				constrain_naively, null);
+		
+		value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+				constrain_naively, null);
+		value_ret = _manager.scalarMultiply(value_ret, _mdp.getDiscount() );
 		
 		for( final ADDRNode rew : reward_dds ){
 			final ADDRNode r2 = _manager.constrain(rew, to, _manager.DD_NEG_INF );
@@ -351,8 +353,8 @@ RDDLFactoredActionSpace> {
 //			System.out.println(" rew : "  + rew.getMax() + " " + r2.getMax() );
 			value_ret = _manager.apply( value_ret, r2, DDOper.ARITH_PLUS );
 //			if( ++arbitrary  % 5 == 0 ){
-//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-//				constrain_naively, null);
+			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+				constrain_naively, null);
 //				arbitrary = 0;
 //			}
 		}
@@ -1553,7 +1555,7 @@ RDDLFactoredActionSpace> {
 		return ret;
 	}
 
-	private ArrayList<ADDRNode> convertToNegInfDD(final ArrayList<ADDRNode> input) {
+	public ArrayList<ADDRNode> convertToNegInfDD(final ArrayList<ADDRNode> input) {
 		final ArrayList<ADDRNode>  ret = new ArrayList<ADDRNode>(input.size());
 		for( final ADDRNode in : input ){
 			final ADDRNode inter = _manager.remapLeaf(in, _manager.DD_ZERO, _manager.DD_NEG_INF );

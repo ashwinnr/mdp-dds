@@ -54,13 +54,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
 	private double backChainThreshold;
-	private int good_updates;
+//	private int good_updates;
 	private int truncated_backup;
 	private boolean _genStates;
 //	private int generalization;
 //	private int generalization_cons;
 	private Random _actionSelectionRand;
 	private int rollout_stage = 5;
+	private int _onPolicyDepth;
 	
 	//TODO : how important is base policy?
 	//TODO : rollout parameter and exps
@@ -100,7 +101,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			Consistency[] cons, boolean truncateTrials, boolean enableLabelling ,
 			final double backChainThreshold,
-			final Random topLevel ) {
+			final Random topLevel,
+			final int onPolicyDepth ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, FAR, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, heuristic_type, time_heuristic_mins, steps_heuristic,
@@ -109,6 +111,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, exploration, cons, truncateTrials, enableLabelling,
 				new Random( topLevel.nextLong() )  );
+		
+		_onPolicyDepth = onPolicyDepth;
 		
 		_actionSelectionRand = new Random( topLevel.nextLong() );
 		
@@ -287,7 +291,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
 				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
 //				System.out.println( "Heuristic sharing " + this.heuristic_sharing );
-				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
+//				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
 				
 				System.out.println( "Value of init state " + 
 						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
@@ -1178,7 +1182,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ),
 				Boolean.parseBoolean( cmd.getOptionValue("enableLabelling") ),
 				Double.parseDouble( cmd.getOptionValue("backChainThreshold") ) ,
-				new Random( topLevel.nextLong() ) );
+				new Random( topLevel.nextLong() ),
+				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
