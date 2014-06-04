@@ -1859,10 +1859,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//which would violate our `abuse' of notation
 		//ok if not multiply, i guess
 		//otjerwise this need to be moved to leaf level
-		else if( is_neg_inf && !op.equals(DDOper.ARITH_PROD) ){
-			return DD_NEG_INF;
+		else if( is_neg_inf && op.equals(DDOper.ARITH_MIN) ){
+			return op1_neg_inf ? op1 : op2;
+		}else if( is_neg_inf && op.equals(DDOper.ARITH_PROD) && (op1_zero || op2_zero) ){
+			return DD_ZERO;
 		}
-
+		
 		final ADDNode node1 = op1.getNode();
 		final ADDNode node2 = op2.getNode();
 		
@@ -1970,6 +1972,20 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			break;
 
 		case ARITH_PROD : 
+			final boolean node1_neg_inf = leaf1.equals(getNegativeInfValue());
+			final boolean node2_neg_inf = leaf2.equals(getNegativeInfValue());
+			
+			final boolean node1_zero = leaf1.equals(0.0d);
+			final boolean node2_zero = leaf2.equals(0.0d);
+			
+			if( node1_neg_inf || node2_neg_inf ){
+				if( node1_zero || node2_zero ){
+					return DD_ZERO;
+				}else{
+					return DD_NEG_INF;
+				}
+			}
+			
 			result = leaf1*leaf2;
 //			
 //			result_2 = Math.max( 

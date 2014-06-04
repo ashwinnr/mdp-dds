@@ -202,7 +202,7 @@ domain recon_mdp {
 	// Only get rewarded for a good or bad picture the first time the action is *taken*
 	//reward = [ sum_{?o : obj}( lifeDetected(?o)  ];
 	//possibly add bringing back to base?
-	reward = [ sum_{?o : obj, ?x : x_pos, ?y : y_pos}[ pictureTaken(?o) * lifeDetected(?o) ] ];
+	reward = [ sum_{?o : obj}[ pictureTaken(?o) * lifeDetected(?o) ] ];
 			 
 	state-action-constraints {
 		forall_{?a:agent}[ ( sum_{?x:x_pos} [ agentAt-X(?a,?x) ] ) == 1 ];

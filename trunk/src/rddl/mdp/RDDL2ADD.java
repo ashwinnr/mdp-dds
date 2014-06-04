@@ -435,7 +435,11 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		    sum = _manager.apply( sum, _manager.getIndicatorDiagram(a, true) , DDOper.ARITH_PLUS );
 		    //incremental pruning
 		    ADDRNode cur_sum_bdd = _manager.threshold(sum, _i._nNonDefActions, false);
-		    sum = _manager.BDDIntersection(cur_sum_bdd, sum);
+		    //set violated to -inf in sum
+		    //so that threshold will put it in zero
+		    ADDRNode cur_sum_add = _manager.remapLeaf(cur_sum_bdd, _manager.DD_ZERO, _manager.DD_NEG_INF);
+		    		
+		    sum = _manager.BDDIntersection(sum , cur_sum_add );
 		    if( __debug_level.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 				System.out.println(sum.getMax());
 		    }
