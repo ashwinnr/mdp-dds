@@ -195,37 +195,7 @@ RDDLFactoredActionSpace> {
 			final boolean makePolicy,
 			final long BIGDD ,
 			final boolean constrain_naively,
-			final boolean onPolicy ){
-		int idx = 0;
-		if( onPolicy ){
-			idx = addPolicyConstraint( cur_policy );
-		}
-
-		UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> ret 
-		= backup( current_value, cur_policy, source_value_fn, from, to,
-				backup_type, do_apricodd, apricodd_epsilon, apricodd_type, makePolicy,
-				BIGDD, constrain_naively );
-		if( onPolicy ){
-			removePolicyConstraint( idx );
-		}
-		return ret;
-	}
-
-	//from and to needs to be a BDD
-	public UnorderedPair< ADDRNode, UnorderedPair< ADDRNode , Double > > backup(
-			final ADDRNode current_value, 
-			final ADDRNode cur_policy,//BDD
-			final ADDRNode source_value_fn, 
-			final ADDRNode from, 
-			final ADDRNode to, 
-			final BACKUP_TYPE backup_type, 
-			final boolean do_apricodd,
-			final double apricodd_epsilon,
-			final APPROX_TYPE apricodd_type ,
-			final boolean makePolicy,
-			final long BIGDD ,
-			final boolean constrain_naively
-//			final boolean make 
+			final ADDRNode policy_constraint 
 			){
 
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
@@ -291,6 +261,9 @@ RDDLFactoredActionSpace> {
 	    	}
 		}
 		
+		final ADDRNode theConstraint = policy_constraint == null ? to : 
+			_manager.constrain(policy_constraint, to, _manager.DD_ZERO);
+		
 		final ADDRNode unprimed = 
 //				_manager.BDDIntersection(source_value_fn, from) ;
 //				constrain_naively ?     
@@ -314,20 +287,16 @@ RDDLFactoredActionSpace> {
 		
 		final List<ADDRNode> reward_dds = _mdp.getRewards();
 		final Map<String, ADDRNode> cpt_dds = _mdp.getCpts();
-		final int state_constraint = addStateConstraint(to);
+		
+		final int state_constraint = addStateConstraint(theConstraint);
 
 		
-//		int arbitrary = 0;
-		
 		ADDRNode value_ret = primed;
-//		value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-//				constrain_naively, null);
-		
 		for( final String ns_var : _mdp.getSumOrder() ){
 			final ADDRNode this_cpt = cpt_dds.get( ns_var );
 			//remove inconsistent things in cpt without adding vars
 			final ADDRNode restricted_cpt = _manager.constrain(this_cpt,
-					to, _manager.DD_ZERO );
+					theConstraint, _manager.DD_ZERO );
 			
 			//multiply
 			value_ret = _manager.apply( value_ret, restricted_cpt, DDOper.ARITH_PROD );
@@ -336,8 +305,8 @@ RDDLFactoredActionSpace> {
 			
 			//constrain
 //			if( ++arbitrary  % 5 == 0 ){
-			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-				constrain_naively, null);
+//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+//				constrain_naively, null);
 //				arbitrary = 0;
 //			}
 		}
@@ -347,14 +316,14 @@ RDDLFactoredActionSpace> {
 		value_ret = _manager.scalarMultiply(value_ret, _mdp.getDiscount() );
 		
 		for( final ADDRNode rew : reward_dds ){
-			final ADDRNode r2 = _manager.constrain(rew, to, _manager.DD_NEG_INF );
+			final ADDRNode r2 = _manager.constrain(rew, theConstraint, _manager.DD_NEG_INF );
 //			, _manager.DD_NEG_INF, 
 //					constrain_naively, null);
 //			System.out.println(" rew : "  + rew.getMax() + " " + r2.getMax() );
 			value_ret = _manager.apply( value_ret, r2, DDOper.ARITH_PLUS );
 //			if( ++arbitrary  % 5 == 0 ){
-			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-				constrain_naively, null);
+//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+//				constrain_naively, null);
 //				arbitrary = 0;
 //			}
 		}

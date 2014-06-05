@@ -60,7 +60,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	private int generalization;
 //	private int generalization_cons;
 	private Random _actionSelectionRand;
-	private int rollout_stage = 5;
 	private int _onPolicyDepth;
 	
 	//TODO : how important is base policy?
@@ -369,17 +368,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				final int index_cur_partition = _dtr.addStateConstraint( 
 //						_manager.getRandomSubset( trajectory_states[ j-1 ].getFactoredState() ) ); 
 //				
-				if( j-1 < rollout_stage ){
+				if( j-1 < _onPolicyDepth ){
 					backup = _dtr.backup( 
 							target_val, target_policy, source_val, 
 						next_states, this_states, dp_type, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-								apricodd_type, true, MB , CONSTRAIN_NAIVELY, false  );
+								apricodd_type, true, MB , CONSTRAIN_NAIVELY, null  );
 				}else{
 					backup = _dtr.backup( target_val, target_policy, source_val, 
 							next_states, this_states, dp_type, 
 							do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-									apricodd_type, true, MB , CONSTRAIN_NAIVELY, true );
+									apricodd_type, true, MB , CONSTRAIN_NAIVELY, target_policy );
 				}
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
 //					try{
@@ -394,7 +393,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			}else{
 				backup = _dtr.backup( target_val, target_policy, source_val, next_states, this_states, dp_type, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, 
-								CONSTRAIN_NAIVELY , false  );
+								CONSTRAIN_NAIVELY , null  );
 //				System.out.println( backup._o2._o2 );
 			}
 			_DPTimer.PauseTimer();
