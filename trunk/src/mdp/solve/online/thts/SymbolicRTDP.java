@@ -59,7 +59,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private boolean _genStates;
 //	private int generalization;
 //	private int generalization_cons;
-	private Random _actionSelectionRand;
 	private int _onPolicyDepth;
 	
 	//TODO : how important is base policy?
@@ -112,8 +111,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				new Random( topLevel.nextLong() )  );
 		
 		_onPolicyDepth = onPolicyDepth;
-		
-		_actionSelectionRand = new Random( topLevel.nextLong() );
 		
 //		this.BACK_CHAIN = backChain;
 		this.backChainThreshold = backChainThreshold; 

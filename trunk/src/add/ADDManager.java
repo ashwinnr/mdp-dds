@@ -1778,14 +1778,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //		Objects.requireNonNull( op );
 //		invalidateApplyCache();
 		final ADDRNode ret = applyInt( op1, op2, op );
-		if( ret.getMax() == Double.NaN ){
-			try{
-				throw new Exception("Nan produced");
-			}catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
+//		if( ret.getMax() == Double.NaN ){
+//			try{
+//				throw new Exception("Nan produced");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
 		throwAwayApplyCache();
 //		System.gc();
 		return ret;
@@ -1879,40 +1879,40 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		if( node1 instanceof ADDLeaf && node2 instanceof ADDLeaf ){
 			//we're done here
 			ret = applyLeafOp( op1, op2, op);
-			if( ret.getMax() == Double.NaN  ){
-				try{
-					throw new Exception("Nan produced");
-				}catch( Exception e  ){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if( ret.getMax() == Double.NaN  ){
+//				try{
+//					throw new Exception("Nan produced");
+//				}catch( Exception e  ){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 //			System.out.println("Leaf op : " + node1 + " " + op + " " + node2 + " = " + ret);
 		}
-		else if( op.equals(DDOper.ARITH_MAX ) &&
-				( ( node1 instanceof ADDLeaf && node1.getMax() >= node2.getMax() )
-				|| ( node2 instanceof ADDLeaf && node2.getMax() >= node1.getMax() ) ) ){
-				return node1 instanceof ADDLeaf ? op1 : op2;
-		}
-		else if( op.equals(DDOper.ARITH_MIN) &&
-				( ( node1 instanceof ADDLeaf && node1.getMin() <= node2.getMin() )
-				|| ( node2 instanceof ADDLeaf && node2.getMin() <= node1.getMin() ) ) ){
-			return node1 instanceof ADDLeaf ? op1 : op2;
-					
-		}
-		else if( op.equals(DDOper.ARITH_MAX) && 
-				node1.getMin() >= node2.getMax() ){
-			return op1;
-		}else if( op.equals(DDOper.ARITH_MAX) &&
-				node2.getMin() >= node1.getMax() ){
-			return op2;
-		}else if( op.equals(DDOper.ARITH_MIN) && 
-				node1.getMax() <= node2.getMin() ){
-			return op1;
-		}else if( op.equals(DDOper.ARITH_MIN) && 
-				node2.getMax() <= node1.getMin() ){
-			return op2;
-		}
+//		else if( op.equals(DDOper.ARITH_MAX ) &&
+//				( ( node1 instanceof ADDLeaf && node1.getMax() >= node2.getMax() )
+//				|| ( node2 instanceof ADDLeaf && node2.getMax() >= node1.getMax() ) ) ){
+//				return node1 instanceof ADDLeaf ? op1 : op2;
+//		}
+//		else if( op.equals(DDOper.ARITH_MIN) &&
+//				( ( node1 instanceof ADDLeaf && node1.getMin() <= node2.getMin() )
+//				|| ( node2 instanceof ADDLeaf && node2.getMin() <= node1.getMin() ) ) ){
+//			return node1 instanceof ADDLeaf ? op1 : op2;
+//					
+//		}
+//		else if( op.equals(DDOper.ARITH_MAX) && 
+//				node1.getMin() >= node2.getMax() ){
+//			return op1;
+//		}else if( op.equals(DDOper.ARITH_MAX) &&
+//				node2.getMin() >= node1.getMax() ){
+//			return op2;
+//		}else if( op.equals(DDOper.ARITH_MIN) && 
+//				node1.getMax() <= node2.getMin() ){
+//			return op1;
+//		}else if( op.equals(DDOper.ARITH_MIN) && 
+//				node2.getMax() <= node1.getMin() ){
+//			return op2;
+//		}
 		else{
 			final ADDRNode lookup = lookupPair(op1, op2, op);
 			if( lookup != null ){
@@ -4547,14 +4547,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		NavigableMap<String, Boolean> ret = new TreeMap<String, Boolean>();
 		ADDRNode curNode = input; 
 		while( curNode.getNode() instanceof ADDINode ){
-			if( curNode.getMax() == 0.0d ){
-				try {
-					throw new Exception("No non zero leaf but Inode in BDD");
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if( curNode.getMax() == 0.0d ){
+//				try {
+//					throw new Exception("No non zero leaf but Inode in BDD");
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 			final ADDRNode cur_true_child = curNode.getTrueChild();
 			final ADDRNode cur_false_child = curNode.getFalseChild();
 			final double cur_true_max = cur_true_child.getMax();
