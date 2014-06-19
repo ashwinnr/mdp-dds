@@ -125,15 +125,15 @@ public class SPUDDFAR implements Runnable{
 			size_change.clear();
 //			_manager.cacheSummary();
 			
-			if( !do_apricodd && Double.isNaN( prev_error ) 
-					&& Double.isNaN(error) && error > prev_error ){
-				try{
-					throw new Exception("BE increased here");
-				}catch( Exception e ){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if( !do_apricodd && Double.isNaN( prev_error ) 
+//					&& Double.isNaN(error) && error > prev_error ){
+//				try{
+//					throw new Exception("BE increased here");
+//				}catch( Exception e ){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 			
 			prev_error = error;
 
