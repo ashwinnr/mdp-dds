@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import dd.DDManager.APPROX_TYPE;
@@ -156,10 +157,15 @@ public class SPUDDFAR implements Runnable{
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetTimeSoFarAndResetInMinutes() );
 		System.out.println("Final BE = " + prev_error );
-		System.out.println("Size of value fn. = " + _manager.countNodes(_valueDD) );
-		System.out.println("Size of policy = " + 
-				_manager.countNodes( _FAR ? _policy._bddPolicy : _policy._addPolicy ) );
-		System.out.println( "No. of leaves = " + Arrays.toString( _manager.countLeaves(_valueDD) ) );
+		System.out.println( "Nodes of value, policy = " + 
+				_manager.countNodes(_valueDD ).toString() + " " +
+				( _FAR ? _manager.countNodes( _policy._bddPolicy ).toString()
+						: _manager.countNodes( _policy._addPolicy ).toString() ) );
+		System.out.println("Paths of value, policy = " + 
+				_manager.countPathsADD( _valueDD ) + " " + 
+				( _FAR ? _manager.countPathsBDD(_policy._bddPolicy ) : 
+					_manager.countPathsADD( _policy._addPolicy ) ) );
+//		System.out.println( "No. of leaves = " + Arrays.toString( _manager.countLeaves(_valueDD) ) );
 //		_manager.showGraph( _valueDD );//,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
@@ -172,8 +178,11 @@ public class SPUDDFAR implements Runnable{
 		final int nRounds = Integer.parseInt(args[6]);
 		final boolean useDisc = Boolean.parseBoolean( args[4] );
 		
+		final long seed = Long.parseLong(args[3]);
+		final Random topLevel = new Random( seed );
+		
 		final SPUDDFAR worker = new SPUDDFAR(args[0], args[1], Double.parseDouble(args[2]), null, 
-				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
+				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, topLevel.nextLong(), 
 				useDisc , nStates , 
 				nRounds, Boolean.parseBoolean(args[7]),
 				Boolean.parseBoolean( args[8] ), Boolean.parseBoolean( args[9] ),
@@ -195,7 +204,11 @@ public class SPUDDFAR implements Runnable{
 		try{
 			policy.executePolicy( nRounds, nStates, useDisc, 
 					worker.getHorizon(), worker.getDiscount(), null, 
-					init_state ).printStats();
+					init_state, 
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() )
+					).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
