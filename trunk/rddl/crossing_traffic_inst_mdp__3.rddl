@@ -33,6 +33,11 @@ non-fluents nf_crossing_traffic_inst_mdp__3 {
 instance crossing_traffic_inst_mdp__3 {
 	domain = crossing_traffic_mdp;
 	non-fluents = nf_crossing_traffic_inst_mdp__3;
+	init-state {
+		robot-at-x(x4);
+		robot-at-y(y4);
+	};
+	
 	max-nondef-actions = 1;
 	horizon = 40;
 	discount = 1.0;
