@@ -42,7 +42,7 @@ non-fluents nf_crossing_traffic_8_8 {
 
 		GOAL(x8,y8);
 
-		INPUT-RATE = 0.4;
+		INPUT-RATE = 0.3;
 	};
 }
 
