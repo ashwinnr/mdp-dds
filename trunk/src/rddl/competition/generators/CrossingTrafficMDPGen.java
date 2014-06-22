@@ -115,7 +115,7 @@ public class CrossingTrafficMDPGen {
 		sb.append("\tinit-state {\n");
 		
 //        robot-at(x1,y1);
-		sb.append("\t\trobot-at-x(x" + size_x +");\n" );
+		sb.append("\t\trobot-at-x(x1);\n");//" + size_x +");\n" );
 		sb.append("\t\trobot-at-y(y1);\n");
 		
 //        obstacle-at(x1,y2);
