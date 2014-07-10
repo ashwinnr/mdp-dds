@@ -305,8 +305,8 @@ RDDLFactoredActionSpace> {
 			
 			//constrain
 //			if( ++arbitrary  % 5 == 0 ){
-//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-//				constrain_naively, null);
+			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
+				constrain_naively, null);
 //				arbitrary = 0;
 //			}
 		}
