@@ -1023,11 +1023,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		final Set<NavigableMap<String, Boolean>> paths_states
 //		= _manager.enumeratePaths(states, false, true, _manager.DD_ONE, false);
 //		ADDRNode weighted_states = _manager.DD_ZERO;
+		final ADDRNode neg_inf_states = _dtr.convertToNegInfDD(states)[0];
 	
 		final List<ADDRNode> rewards = _mdp.getRewards();
 		double hval = 0;
 		for( final ADDRNode rew : rewards ){
-			final double this_h = _manager.constrain(rew, states, _manager.DD_NEG_INF ).getMax();
+			final double this_h = _manager.apply(rew, neg_inf_states, DDOper.ARITH_PLUS ).getMax();
 			hval += this_h;
 		}
 		
