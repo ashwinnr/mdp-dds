@@ -64,5 +64,5 @@ instance traffic_inst_mdp__1 {
 
 	max-nondef-actions = 4;
 	horizon  = 10;
-	discount = 1.0;
+	discount = 0.9;
 }
