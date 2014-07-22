@@ -1533,7 +1533,7 @@ RDDLFactoredActionSpace> {
 		return ret;
 	}
 
-	private ADDRNode[] convertToNegInfDD(final ADDRNode... input) {
+	public ADDRNode[] convertToNegInfDD(final ADDRNode... input) {
 		final ADDRNode[]  ret = new ADDRNode[input.length];
 		int i = 0;
 		for( final ADDRNode in : input ){
