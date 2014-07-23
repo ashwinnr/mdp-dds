@@ -73,14 +73,14 @@ domain traffic_mdp {
   		// Note: a light signal that is red *must* advance to the next state...
   		//       there would be no reason to hold a red signal indefinitely. 
   		light-signal1'(?i) = 
-  			if (advance(?i) | (light-signal1(?i) ^ light-signal2(?i)) | (~light-signal1(?i) ^ ~light-signal2(?i)))
+  			if ( advance(?i) )
  			then // Advance to next state (see table above)
   				KronDelta( light-signal2(?i) )
   			else // No change 
   				KronDelta( light-signal1(?i) );
  
   		light-signal2'(?i) = 
-  			if (advance(?i) | (light-signal1(?i) ^ light-signal2(?i)) | (~light-signal1(?i) ^ ~light-signal2(?i)))
+  			if ( advance(?i) )
   			then // Advance to next state (see table above)
   				KronDelta( ~light-signal1(?i) )
   			else // No change 
