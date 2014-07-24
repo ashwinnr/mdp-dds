@@ -63,6 +63,6 @@ instance traffic_inst_mdp__1 {
 	};
 
 	max-nondef-actions = 4;
-	horizon  = 10;
+	horizon  = 40;
 	discount = 1.0;
 }
