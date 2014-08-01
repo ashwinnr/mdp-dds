@@ -25,10 +25,10 @@ public class ValueGeneralization extends
 		final NavigableMap<String, Boolean> state_assign = state.getFactoredState();
 		final ADDManager manager = parameters.get_manager();
 		
-		if( depth == 0 ){
-			return manager.getProductBDDFromAssignment(state_assign);
-			//so that init state is always same
-		}
+//		if( depth == 0 ){
+//			return manager.getProductBDDFromAssignment(state_assign);
+//			//so that init state is always same
+//		}
 		
 		final ADDRNode ret = generalize( (parameters.get_valueDD())[ depth ] , 
 				parameters.get_genRule(),

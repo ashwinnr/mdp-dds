@@ -89,11 +89,7 @@ domain traffic_mdp {
   		// Update a cell's occupation status according to CTM rules
   		occupied'(?c) = // Check for perimeter cell
   						if (PERIMETER-INPUT-CELL(?c))
-  						then [if (~occupied(?c))
-  								then Bernoulli(	PERIMETER-INPUT-RATE(?c) ) // Empty
-  							else if (exists_{?c2 : cell} [FLOWS-INTO-CELL(?c, ?c2) ^ ~occupied(?c2)])
-  								then KronDelta(	false ) // Vacated  
-  							else KronDelta( true )] // Stopped
+  						then Bernoulli(	PERIMETER-INPUT-RATE(?c) )
   							
   						// Check for cell entering intersection on green light
   						else if ([exists_{?i : intersection} [light-signal2(?i) ^ ~light-signal1(?i) ^ FLOWS-INTO-INTERSECTION-NS(?c,?i) ^ exists_{?c2 : cell} [FLOWS-INTO-CELL(?c, ?c2) ^ ~occupied(?c2)]]]

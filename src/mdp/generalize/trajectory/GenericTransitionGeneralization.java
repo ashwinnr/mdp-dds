@@ -31,7 +31,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     private Consistency[] _cons;
     public enum Consistency{
 	WEAK_POLICY, WEAK_ACTION, VISITED, BACKWARDS_WEAK_POLICY, BACKWARDS_WEAK_ACTION,
-	NONE, BACKWARDS_STRONG, NOT_VISITED
+	NONE, BACKWARDS_STRONG, NOT_VISITED, TREE
     }
     
     public GenericTransitionGeneralization( final ADDDecisionTheoreticRegression dtr ,
@@ -50,7 +50,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	
 	
 	final ADDManager manager = parameters.get_manager();
-	if( depth == 0 || parameters.getFix_start_state() || parameters.getNum_states() == 1 ){
+	if( parameters.getFix_start_state() || parameters.getNum_states() == 1 ){
 	    return manager.getProductBDDFromAssignment(state.getFactoredState());
 	}
 	
@@ -204,6 +204,11 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			break;
 		    case BACKWARDS_WEAK_POLICY:
 			break;
+		    case TREE : 
+		    	final ADDRNode bddImage = _dtr.BDDImage(prev_gen_state, true, DDQuantify.EXISTENTIAL);
+
+		    	consistent_cur_gen_state = 
+							manager.BDDIntersection( consistent_cur_gen_state, bddImage  );		    		
 			}
 		}
 		
@@ -235,11 +240,16 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     public ADDRNode[] generalize_trajectory(final FactoredState<RDDLFactoredStateSpace>[] states,
     		final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] actions,
     		final GenericTransitionParameters<T,P,RDDLFactoredStateSpace,RDDLFactoredActionSpace> parameters) {
-    	if( containsBackwards(_cons) ) {
-    		return generalize_trajectory_backwards(states, actions, parameters);
+    	ADDRNode[] ret;
+		if( containsBackwards(_cons) ) {
+    		ret =  generalize_trajectory_backwards(states, actions, parameters);
     	}else{
-    		return generalize_trajectory_forwards(states, actions, parameters);
+    		ret =  generalize_trajectory_forwards(states, actions, parameters);
     	}
+		for( int i = 0 ; i < ret.length; ++i ){ 
+			System.out.println( i + " " + parameters.get_manager().enumeratePathsBDD(ret[i]).toString() );
+		}
+    	return ret;
     }
     
     private boolean containsBackwards(Consistency[] cons) {
