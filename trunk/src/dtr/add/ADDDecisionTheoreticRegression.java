@@ -797,11 +797,11 @@ RDDLFactoredActionSpace> {
 		if( !_mdp.isTransitionRelationReady(withActionVars) ){
 			_mdp.makeTransitionRelation( withActionVars );
 		}
-		final boolean constrain_naively = true;
+//		final boolean constrain_naively = true;
 
 		ADDRNode ret_ns = null; 
 		if( withActionVars ){
-			ret_ns =  BDDImageFAR( reachable_states, action_quantification, constrain_naively );
+			ret_ns =  BDDImageFAR( reachable_states, action_quantification, false );
 		}
 		//		else {
 		//			ret_ns =  BDDImageSPUDD( reachable_states, action_quantification, constrain_naively );

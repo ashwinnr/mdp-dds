@@ -10,7 +10,10 @@ import dtr.add.ADDDecisionTheoreticRegression;
 
 public class HandCodedPolicies {
 
-    public static ADDRNode get( final String domain_file, final ADDDecisionTheoreticRegression dtr, ADDManager manager, Set<String> actionVars ){
+    public static ADDRNode get( final String domain_file, 
+    		final ADDDecisionTheoreticRegression dtr, ADDManager manager, 
+    		Set<String> actionVars ){
+    	
 //	if( domain_file.contains("sysadmin") ){
 //	    try {
 //		return dtr.getRebootDeadPolicy( );

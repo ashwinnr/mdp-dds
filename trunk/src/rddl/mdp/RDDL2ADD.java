@@ -175,8 +175,9 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 				//       overloaded... need to consider whether there will be
 				//       any problems arising from this overloading.  -Scott
 				prob_true = ((REAL_CONST_EXPR)((DiracDelta)e)._exprRealValue)._dValue;
-			} else
+			} else{
 				throw new EvalException("Unhandled distribution type: " + e.getClass());
+			}
 			
 //			for( Pair p : vars ) {
 //				PVAR_NAME pvar = (PVAR_NAME)p._o1;

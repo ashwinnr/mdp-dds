@@ -68,13 +68,7 @@ public class InstantiateArgs {
 		.create("consistencyRule") );
 	ret.addOption("enableLabelling", true, "enable labelling states as solved" );
 	ret.addOption("convergenceTest", true, "convergence test for labelling nodes - double" );
-	ret.addOption("actionAllDepth", true, "whether to aggrate over level as well - boolean" );
-	ret.addOption("actionType", true, "type of aggregate - " + Arrays.toString( UTYPE.values() ) );
-	ret.addOption("EBLPolicy", true, "EBL region on policy- bool" );
 	ret.addOption("onPolicyDepth", true, "depth from which policy constraint is added");
-	
-	ret.addOption("backChainThreshold", true, 
-			"Whether to remeber the updates for univisted nodes- double - change in value wrt heuristic" );
 	
 	return ret;
     }   

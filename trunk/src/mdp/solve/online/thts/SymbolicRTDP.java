@@ -53,7 +53,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	public boolean BACK_CHAIN;
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
-	private double backChainThreshold;
 //	private int good_updates;
 	private int truncated_backup;
 	private boolean _genStates;
@@ -98,7 +97,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			GENERALIZE_PATH gen_rule,
 			Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			Consistency[] cons, boolean truncateTrials, boolean enableLabelling ,
-			final double backChainThreshold,
 			final Random topLevel,
 			final int onPolicyDepth ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
@@ -113,7 +111,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_onPolicyDepth = onPolicyDepth;
 		
 //		this.BACK_CHAIN = backChain;
-		this.backChainThreshold = backChainThreshold; 
 			
 		trajectory_states = new FactoredState[ steps_lookahead ];
 		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
@@ -191,17 +188,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-//			if( !is_node_visited(cur_state, num_actions) ){
-////				initilialize_node(cur_state, num_actions);
-//				visit_node(cur_state, num_actions);
-//				if( truncateTrials ){
-//					System.out.println("Truncating trial : " + num_actions );
-//					System.out.println("Truncating trial : " + cur_state );
-//					continue;
-//				}
-//			}
+			if( !is_node_visited(cur_state, num_actions)  && truncateTrials ){
+				initilialize_node(cur_state, num_actions);
+				visit_node(cur_state, num_actions);
+//				System.out.println("Truncating trial : " + num_actions );
+//				System.out.println("Truncating trial : " + cur_state );
+				continue;
+			}
 			
-			double prob_traj = 1.0d;
 			
 			while( num_actions < steps_lookahead-1 ){
 				if( DISPLAY_TRAJECTORY ){
@@ -225,30 +219,35 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 				final FactoredState<RDDLFactoredStateSpace> next_state 
 				= pick_successor_node(cur_state, trajectory_actions[ num_actions ], num_actions);
-				prob_traj *= _dtr.get_prob_transition( cur_state, cur_action, next_state );
 				cur_state = next_state;
 				//				System.out.println( "Steps to go " + steps_to_go );
 				++num_actions;
 				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-				if( num_actions == steps_lookahead-1 ){//!is_node_visited(cur_state, num_actions) ){
+				if( num_actions == steps_lookahead-1 ){
 					if( _genStates ){
 						//changed 5/27/014
 						//find states that have the same reward
 						//not possible to find all
 						//only finding the BDD traversed by state in \sum_R
 						final ADDRNode gen_leaf = generalize_leaf( cur_state, num_actions);
+						
+						System.out.println("leaf node : depth "  + num_actions + " " 
+						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
+						
 						initialize_leaf( cur_state, num_actions, gen_leaf );
 						visit_node( gen_leaf, num_actions );
 					}else{
 						initilialize_node(cur_state, num_actions);
 						visit_node(cur_state, num_actions);
 					}
-//					if( truncateTrials ){
-////						System.out.println("Truncating trial : " + num_actions );
-////						System.out.println("Truncating trial : " + cur_state );
-//						break;
-//					}
+				}else if( truncateTrials && !is_node_visited(cur_state, num_actions) ){
+					initilialize_node(cur_state, num_actions);
+					visit_node( cur_state, num_actions );
+//					System.out.println("Truncating trial : " + num_actions );
+//					System.out.println("Truncating trial : " + cur_state );
+					break;
 				}
+				
 //				if( prob_traj < 0.01d ){
 //					break;
 //				}
@@ -320,6 +319,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		int i = (num_states-1)*2;//-1;
 		int j = num_states-1;
+//		System.out.println("num states " + num_states );
 		ADDRNode visit_save_j = null;// Arrays.copyOf(_visited, _visited.length);
 			
 		while( i >= 2 ){
@@ -529,7 +529,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					e.printStackTrace();
 				}
 			}
+			
+			System.out.println( "gen state " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
+			System.out.println( "updated state " + depth + " " + _manager.enumeratePathsBDD(update_states).toString() );
 			current_parition = _manager.BDDIntersection( current_parition, update_states );
+			System.out.println( "gen state* " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
 			//check to see wasteful work
 			//update ^ ~current_part
 			
@@ -1031,6 +1035,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final double this_h = _manager.apply(rew, neg_inf_states, DDOper.ARITH_PLUS ).getMax();
 			hval += this_h;
 		}
+		System.out.println( "depth " + depth + " init value " + hval  );
 		
 //		final FactoredState<RDDLFactoredStateSpace> fs = new FactoredState< RDDLFactoredStateSpace >();
 ////		
@@ -1112,9 +1117,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}else if( cmd.getOptionValue("generalization").equals("action") ){
 				inner_params = new OptimalActionParameters(
 						null, GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-						constrain_naively,
-						Boolean.parseBoolean(cmd.getOptionValue("actionAllDepth") ),
-						UTYPE.valueOf(cmd.getOptionValue("actionType") ), null );
+						constrain_naively, null );
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			inner_params = new EBLParams(null, null, 
 					null , constrain_naively,
@@ -1178,7 +1181,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				consistency,
 				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ),
 				Boolean.parseBoolean( cmd.getOptionValue("enableLabelling") ),
-				Double.parseDouble( cmd.getOptionValue("backChainThreshold") ) ,
 				new Random( topLevel.nextLong() ),
 				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ) );
 		
