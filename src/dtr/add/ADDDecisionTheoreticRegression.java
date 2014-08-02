@@ -71,6 +71,8 @@ RDDLFactoredActionSpace> {
 	private final ArrayList<ADDRNode> __state_constraints_neginf = new ArrayList<ADDRNode>();
 
 	private ADDRNode _hsReward = null;
+	private ADDRNode domain_constraints;
+	private ADDRNode domain_constraints_neg_inf;
 
 	public enum INITIAL_STATE_CONF{
 		UNIFORM, BERNOULLI, CONJUNCTIVE, RDDL
@@ -111,7 +113,7 @@ RDDLFactoredActionSpace> {
 
 		@Override
 		public UnorderedPair<ADDRNode, ADDRNode> call() throws Exception {
-			final ADDRNode Vmax = _mdp.getVMax();
+			final ADDRNode Vmax = _mdp.getVMax(-1,-1);
 			if( heuristic_type.equals(BACKUP_TYPE.VMAX) ){
 				ret._o1 = Vmax;
 				ret._o2 = null;
@@ -186,7 +188,7 @@ RDDLFactoredActionSpace> {
 			final ADDRNode current_value, 
 			final ADDRNode cur_policy,//BDD
 			final ADDRNode source_value_fn, 
-			final ADDRNode from, 
+//			final ADDRNode from, 
 			final ADDRNode to, 
 			final BACKUP_TYPE backup_type, 
 			final boolean do_apricodd,
@@ -200,7 +202,7 @@ RDDLFactoredActionSpace> {
 
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			
-		    if( _manager.BDDIntersection(source_value_fn, from).getMin() == _manager.getNegativeInfValue() ){
+		    if( source_value_fn.getMin() == _manager.getNegativeInfValue() ){
 			try{
 			    throw new Exception("has -inf value in state that is being backed up");//THIS SI HAPPENING
 			}catch( Exception e ){
@@ -211,7 +213,7 @@ RDDLFactoredActionSpace> {
 		}
 		//	    	System.out.println("Backup");
 		//	    	System.out.println("From, To = " + _manager.countNodes(from, to).toString() );
-		if( from.equals(_manager.DD_ONE) && to.equals(_manager.DD_ONE) ){
+		if( to.equals(_manager.DD_ONE) ){
 			System.out.println("WARNING : VI backup! Check generalization" );
 		}
 
@@ -232,15 +234,15 @@ RDDLFactoredActionSpace> {
 		}
 
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-	    	if( _manager.hasVars(from, _mdp.get_actionVars()) ){
-	    		try{
-	    			throw new Exception("From has action vars");
-	    		}catch( Exception e ){
-	    			e.printStackTrace();
-	    			System.exit(1);
-	    		}
-	    	}
-	    	
+//	    	if( _manager.hasVars(from, _mdp.get_actionVars()) ){
+//	    		try{
+//	    			throw new Exception("From has action vars");
+//	    		}catch( Exception e ){
+//	    			e.printStackTrace();
+//	    			System.exit(1);
+//	    		}
+//	    	}
+//	    	
 	    	if( _manager.hasVars(source_value_fn, _mdp.get_actionVars()) ){
 	    		try{
 	    			throw new Exception("Source vfn has action vars");
@@ -261,22 +263,26 @@ RDDLFactoredActionSpace> {
 	    	}
 		}
 		
-		final ADDRNode theConstraint = policy_constraint == null ? to : 
-			_manager.constrain(policy_constraint, to, _manager.DD_ZERO);
+		final ADDRNode this_constraint =
+				policy_constraint == null ? to : _manager.BDDIntersection(policy_constraint, to);
+		final ADDRNode all_constraints = _manager.BDDIntersection( domain_constraints, this_constraint );
+		final ADDRNode all_constraints_neg_inf = convertToNegInfDD(all_constraints)[0];
 		
-		final ADDRNode unprimed = 
+		final ADDRNode unprimed = source_value_fn;
 //				_manager.BDDIntersection(source_value_fn, from) ;
 //				constrain_naively ?     
-				    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
+//				    _manager.constrain(source_value_fn, from, _manager.DD_ZERO);
 
-		final ADDRNode primed = 
-				_manager.remapVars( 
-						unprimed  ,
-						_mdp.getPrimeRemap() );
+		final ADDRNode primed = _manager.remapVars( unprimed  , _mdp.getPrimeRemap() );
 		
+//		if( primed.getMin() == _manager.getNegativeInfValue() ){
+//			try{
+//				throw new Exception("source has -inf value");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//			}
+//		}
 		
-		//5/22/2014 : changed to do FAR only
-		//but with R = max R over to 
 		if( !backup_type.equals(BACKUP_TYPE.VI_FAR) ){
 			try{
 				throw new Exception("backup type not FAR not supported yet");
@@ -288,47 +294,40 @@ RDDLFactoredActionSpace> {
 		final List<ADDRNode> reward_dds = _mdp.getRewards();
 		final Map<String, ADDRNode> cpt_dds = _mdp.getCpts();
 		
-		final int state_constraint = addStateConstraint(theConstraint);
+//		final int state_constraint = addStateConstraint(theConstraint);
 
 		
-		ADDRNode value_ret = primed;
+		ADDRNode value_ret = constrain_naively ? 
+				_manager.apply( primed, all_constraints_neg_inf, DDOper.ARITH_PLUS ): primed;
+				
 		for( final String ns_var : _mdp.getSumOrder() ){
 			final ADDRNode this_cpt = cpt_dds.get( ns_var );
 			//remove inconsistent things in cpt without adding vars
 			final ADDRNode restricted_cpt = _manager.constrain(this_cpt,
-					theConstraint, _manager.DD_ZERO );
+					this_constraint, _manager.DD_ZERO );
 			
 			//multiply
 			value_ret = _manager.apply( value_ret, restricted_cpt, DDOper.ARITH_PROD );
 			//marginalize
+
 			value_ret = _manager.marginalize( value_ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
+
+			value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) :
+				_manager.constrain( value_ret, all_constraints, _manager.DD_NEG_INF );
 			
-			//constrain
-//			if( ++arbitrary  % 5 == 0 ){
-			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-				constrain_naively, null);
-//				arbitrary = 0;
-//			}
 		}
 		
-		value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-				constrain_naively, null);
 		value_ret = _manager.scalarMultiply(value_ret, _mdp.getDiscount() );
 		
 		for( final ADDRNode rew : reward_dds ){
-			final ADDRNode r2 = _manager.constrain(rew, theConstraint, _manager.DD_NEG_INF );
-//			, _manager.DD_NEG_INF, 
-//					constrain_naively, null);
-//			System.out.println(" rew : "  + rew.getMax() + " " + r2.getMax() );
+			final ADDRNode r2 = _manager.constrain(rew, this_constraint, _manager.DD_NEG_INF );
+
 			value_ret = _manager.apply( value_ret, r2, DDOper.ARITH_PLUS );
-//			if( ++arbitrary  % 5 == 0 ){
-//			value_ret = applyMDPConstraints(value_ret, null, _manager.DD_NEG_INF, 
-//				constrain_naively, null);
-//				arbitrary = 0;
-//			}
+			
+			value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS) :
+				_manager.constrain(value_ret, all_constraints, _manager.DD_NEG_INF );
+			
 		}
-		value_ret = applyMDPConstraints( value_ret, null, _manager.DD_NEG_INF, 
-				constrain_naively, null);
 		
 		//has Q now
 		value_ret = do_apricodd ? 
@@ -340,7 +339,7 @@ RDDLFactoredActionSpace> {
 			value_ret = _manager.marginalize(value_ret, act_var, DDMarginalize.MARGINALIZE_MAX );
 		}
 		
-		removeStateConstraint(state_constraint);
+//		removeStateConstraint(state_constraint);
 		
 		ADDPolicy policy = new ADDPolicy(_manager, _mdp.getFactoredStateSpace(), 
 				_mdp.getFactoredTransition(), _mdp.getFactoredReward() );
@@ -352,6 +351,10 @@ RDDLFactoredActionSpace> {
 						_manager.BDDIntersection(value_ret, to),
 						_manager.BDDIntersection(current_value, to_not ),
 						DDOper.ARITH_PLUS );
+		
+//		if( new_vfn.getMin() == _manager.getNegativeInfValue() ){
+//			Syst
+//		}
 		
 		final ADDRNode new_policy = _manager.BDDUnion(
 				_manager.BDDIntersection(policy._bddPolicy, to),
@@ -528,6 +531,10 @@ RDDLFactoredActionSpace> {
 			__action_precondition_neginf.add( convertToNegInfDD( action_precon )[0] );
 		}
 
+		domain_constraints = _manager.productDD( 
+				__action_precondition, __state_constraints, __policy_constraints, __action_constraints );
+		domain_constraints_neg_inf = convertToNegInfDD(domain_constraints)[0];
+		
 		_rand = new Random( seed );
 		setupMBFAR();
 	}

@@ -34,7 +34,7 @@ non-fluents nf_crossing_traffic_6_6 {
 
 		GOAL(x6,y6);
 
-		INPUT-RATE = 0.4;
+		INPUT-RATE = 0.3;
 	};
 }
 

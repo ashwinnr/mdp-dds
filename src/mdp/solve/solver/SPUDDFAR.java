@@ -87,7 +87,7 @@ public class SPUDDFAR implements Runnable{
 		this.apricodd_epsilon = apricodd_epsilon;
 		this.apricodd_type = apricodd_type;
 		_valueDD = ( init_value.equals( INITIAL_VALUE.ZERO ) ?
-				_manager.DD_ZERO : _mdp.getVMax() );
+				_manager.DD_ZERO : _mdp.getVMax(-1,-1) );
 	}
 
 	/* (non-Javadoc)
