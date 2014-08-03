@@ -220,13 +220,22 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		return _manager.get_path(max_rewards, state_path);
 	}
 	
-//	protected void initialize_leaf( final FactoredState<RDDLFactoredStateSpace> state, final int depth,
-//			final ADDRNode gen_leaf ){
-//		_valueDD[depth] = _manager.apply( 
-//				_manager.BDDIntersection(_valueDD[depth], _manager.BDDNegate(gen_leaf) ),
-//				_manager.scalarMultiply( gen_leaf, _mdp.getReward( state.getFactoredState() ) ), 
-//				DDOper.ARITH_PLUS );
-//	}
+	protected void initialize_leaf( final  FactoredState<RDDLFactoredStateSpace> state, final int depth ){
+		final ADDRNode flat_state_assign = _manager.getProductBDDFromAssignment(state.getFactoredState() );
+		_valueDD[depth] = _manager.apply( 
+				_manager.BDDIntersection(_valueDD[depth], _manager.BDDNegate(
+						flat_state_assign ) ),
+				_manager.scalarMultiply( flat_state_assign, _mdp.getReward( state.getFactoredState() ) ), 
+				DDOper.ARITH_PLUS );
+	}
+	
+	protected void initialize_leaf( final FactoredState<RDDLFactoredStateSpace> state, final int depth,
+			final ADDRNode gen_leaf ){
+		_valueDD[depth] = _manager.apply( 
+				_manager.BDDIntersection(_valueDD[depth], _manager.BDDNegate(gen_leaf) ),
+				_manager.scalarMultiply( gen_leaf, _mdp.getReward( state.getFactoredState() ) ), 
+				DDOper.ARITH_PLUS );
+	}
 	
 //	@Override
 //	public void initilialize_node(final FactoredState<RDDLFactoredStateSpace> state,
@@ -466,21 +475,21 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int i = 0 ; i < steps_lookahead; ++i ){
-			if( i == steps_lookahead-1 ){
-				final List<ADDRNode> rews = _mdp.getRewards();
-				_valueDD[i] = _manager.DD_ZERO;
-				for( final ADDRNode rew : rews ){
-					_valueDD[i] = _manager.apply(_valueDD[i], rew, DDOper.ARITH_PLUS);
-				}
-				_valueDD[i] = _dtr.applyMDPConstraints(_valueDD[i], null, _manager.DD_NEG_INF, CONSTRAIN_NAIVELY, null);
-				if( do_apricodd ){
-					_valueDD[i] = _manager.doApricodd(_valueDD[i], do_apricodd, apricodd_epsilon[i], apricodd_type);
-				}
-				_valueDD[i] = _dtr.maxActionVariables(_valueDD[i], _mdp.getElimOrder(), null, 
-														do_apricodd, do_apricodd ? apricodd_epsilon[i] : 0, apricodd_type);
-			}else{
+//			if( i == steps_lookahead-1 ){
+//				final List<ADDRNode> rews = _mdp.getRewards();
+//				_valueDD[i] = _manager.DD_ZERO;
+//				for( final ADDRNode rew : rews ){
+//					_valueDD[i] = _manager.apply(_valueDD[i], rew, DDOper.ARITH_PLUS);
+//				}
+//				_valueDD[i] = _dtr.applyMDPConstraints(_valueDD[i], null, _manager.DD_NEG_INF, CONSTRAIN_NAIVELY, null);
+//				if( do_apricodd ){
+//					_valueDD[i] = _manager.doApricodd(_valueDD[i], do_apricodd, apricodd_epsilon[i], apricodd_type);
+//				}
+//				_valueDD[i] = _dtr.maxActionVariables(_valueDD[i], _mdp.getElimOrder(), null, 
+//														do_apricodd, do_apricodd ? apricodd_epsilon[i] : 0, apricodd_type);
+//			}else{
 				_valueDD[i] = _mdp.getVMax(i, steps_lookahead);
-			}
+//			}
 		}
 		
 		_solved = new ADDRNode[ steps_lookahead ];

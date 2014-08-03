@@ -190,13 +190,13 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-			if( truncateTrials && !is_node_visited(cur_state, num_actions)   ){
-				initilialize_node(cur_state, num_actions);
-				visit_node(cur_state, num_actions);
-//				System.out.println("Truncating trial : " + num_actions );
-//				System.out.println("Truncating trial : " + cur_state );
-				continue;
-			}
+//			if( truncateTrials && !is_node_visited(cur_state, num_actions)   ){
+////				initilialize_node(cur_state, num_actions);
+////				visit_node(cur_state, num_actions);
+////				System.out.println("Truncating trial : " + num_actions );
+////				System.out.println("Truncating trial : " + cur_state );
+//				continue;
+//			}
 			
 			
 			while( num_actions < steps_lookahead-1 ){
@@ -236,19 +236,20 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //						System.out.println("leaf node : depth "  + num_actions + " " 
 //						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
 						
-//						initialize_leaf( cur_state, num_actions, gen_leaf );
+						initialize_leaf( cur_state, num_actions, gen_leaf );
 //						visit_node( gen_leaf, num_actions );
 					}else{
-//						initilialize_node(cur_state, num_actions);
+						initialize_leaf(cur_state, num_actions);
 //						visit_node(cur_state, num_actions);
 					}
-				}else if( truncateTrials && !is_node_visited(cur_state, num_actions) ){
-					initilialize_node(cur_state, num_actions);
-					visit_node( cur_state, num_actions );
-//					System.out.println("Truncating trial : " + num_actions );
-//					System.out.println("Truncating trial : " + cur_state );
-					break;
 				}
+//					else if( truncateTrials && !is_node_visited(cur_state, num_actions) ){
+//					initilialize_node(cur_state, num_actions);
+//					visit_node( cur_state, num_actions );
+////					System.out.println("Truncating trial : " + num_actions );
+////					System.out.println("Truncating trial : " + cur_state );
+//					break;
+//				}
 				
 //				if( prob_traj < 0.01d ){
 //					break;
