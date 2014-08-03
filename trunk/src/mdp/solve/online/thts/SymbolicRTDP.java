@@ -302,9 +302,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.print("description of init state ");
 				
 				System.out.println(  
-								_manager.enumeratePathsBDD( 
+								(_manager.enumeratePathsBDD( 
 										_manager.get_path(
-												_valueDD[0], init_state.getFactoredState() )).iterator().next().size()/(1.0d*_mdp.getNumStateVars()) );
+												_valueDD[0], init_state.getFactoredState() )).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
 				
 				
 				System.out.println( "Value : " + 
