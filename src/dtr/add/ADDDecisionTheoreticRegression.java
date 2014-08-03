@@ -71,8 +71,8 @@ RDDLFactoredActionSpace> {
 	private final ArrayList<ADDRNode> __state_constraints_neginf = new ArrayList<ADDRNode>();
 
 	private ADDRNode _hsReward = null;
-	private ADDRNode domain_constraints;
-	private ADDRNode domain_constraints_neg_inf;
+	protected ADDRNode domain_constraints;
+	protected ADDRNode domain_constraints_neg_inf;
 
 	public enum INITIAL_STATE_CONF{
 		UNIFORM, BERNOULLI, CONJUNCTIVE, RDDL
@@ -372,6 +372,16 @@ RDDLFactoredActionSpace> {
 				}
 			}
 //		}
+			
+			if( _manager.hasVars(new_vfn, _mdp.get_actionVars()) ){
+	    		try{
+	    			throw new Exception("new vfn has action vars");
+	    		}catch( Exception e ){
+	    			e.printStackTrace();
+	    			System.exit(1);
+	    		}
+	    	}
+	    	
 		
 		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>(new_vfn, 
 				new UnorderedPair<>(new_policy, Double.NaN) );
@@ -581,18 +591,15 @@ RDDLFactoredActionSpace> {
 		if( size_chage != null ){
 			size_chage.addAll( _manager.countNodes( input ) ) ;
 		}
-		ADDRNode all_constraints = _manager.sumDD( 
-				__action_precondition_neginf, __state_constraints_neginf,
-				__policy_constraints_neginf, 
-				__action_constraints_neginf );
 
+		ADDRNode constraints = domain_constraints_neg_inf;
 		if( action != null ){
-			all_constraints = _manager.restrict(all_constraints, action);
+			constraints = _manager.restrict(constraints, action);
 		}
 		//		all_constraints = convertToNegInfDD( Lists.newArrayList( all_constraints ) ).get(0);
-		ADDRNode ret = _manager.apply(input, all_constraints, DDOper.ARITH_PLUS );
+		ADDRNode ret = _manager.apply(input, constraints, DDOper.ARITH_PLUS );
 		if( ! violate.equals(_manager.DD_NEG_INF) ){
-			ret = _manager.remapLeaf(ret, _manager.DD_NEG_INF, violate);
+			ret = _manager.remapLeaf(ret, _manager.DD_NEG_INF, violate);//EXPENSIVE
 		}
 
 		if( size_chage != null ){
@@ -641,18 +648,14 @@ RDDLFactoredActionSpace> {
 		if( size_change != null ){
 			size_change.addAll( _manager.countNodes( input ) ) ;
 		}
-
-		ADDRNode all_constraints = _manager.productDD( 
-				__action_precondition, __state_constraints,
-				__policy_constraints, 
-				__action_constraints );
-
+		
+		ADDRNode constraints = domain_constraints;
 		if( action != null ){
-			all_constraints = _manager.restrict(all_constraints, action);
+			constraints = _manager.restrict(constraints, action);
 		}
 
 		ADDRNode ret = input;
-		ret = _manager.constrain(ret, all_constraints, violate);
+		ret = _manager.constrain(ret, constraints, violate);
 		if( size_change != null ){
 			size_change.addAll( _manager.countNodes( ret ) ) ;
 		}
