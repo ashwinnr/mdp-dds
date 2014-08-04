@@ -38,7 +38,7 @@ public class InstantiateArgs {
 	ret.addOption("doApricodd", true, "enable APRICODD for value functions" );
 	ret.addOption("apricoddError", true, "error for ADD approximation - double" );
 	ret.addOption("apricoddType", true, "APRICODD type - " + Arrays.toString( DDManager.APPROX_TYPE.values() ) );
-	ret.addOption("apricoddGP", true, "geometric error progression with depth > 1" );
+
 	ret.addOption("heuristicType", true, "backups to use for computing heuristic " +
 	"- " + Arrays.toString( BACKUP_TYPE.values() ) );
 	ret.addOption("heuristicMins",  true, "max. minutes to run heuristic computation - double" );
