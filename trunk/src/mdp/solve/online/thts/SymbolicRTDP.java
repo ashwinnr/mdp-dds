@@ -135,12 +135,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		}
 //		display();
 		
-		final ADDRNode action_dd 
-			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
+//		final ADDRNode action_dd 
+//			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
 		final NavigableMap<String, Boolean> action 
 			= pick_successor_node(state, 0).getFactoredAction();//ADDManager.sampleOneLeaf(action_dd, _rand );
 		
-		_manager.flushCaches();
+//		_manager.flushCaches();
 		
 		cur_action.setFactoredAction(action);
 		
