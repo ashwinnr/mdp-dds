@@ -14,14 +14,9 @@ public class HandCodedPolicies {
     		final ADDDecisionTheoreticRegression dtr, ADDManager manager, 
     		Set<String> actionVars ){
     	
-//	if( domain_file.contains("sysadmin") ){
-//	    try {
-//		return dtr.getRebootDeadPolicy( );
-//	    } catch (EvalException e) {
-//		e.printStackTrace();
-//		System.exit(1);
-//	    }
-//	}
+	if( domain_file.contains("crossing_traffic") ){
+		return manager.getIndicatorDiagram("delta_y_2".intern(), true);
+	}
 //	else if( domain_file.contains("grid") ){
 //		return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
 //	}
