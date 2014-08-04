@@ -1164,11 +1164,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		if( Boolean.parseBoolean( cmd.getOptionValue("doApricodd") ) ){
 			epsilons = new double[ Integer.parseInt( cmd.getOptionValue("stepsLookahead") ) ];
 			double epsilon = Double.parseDouble( cmd.getOptionValue("apricoddError") );
-			double factor = Double.parseDouble( cmd.getOptionValue("apricoddGP") );
-			
 			for( int i = 0 ; i < epsilons.length; ++i ){
 				epsilons[i] = epsilon;
-				epsilon = epsilon*factor ;
 			}
 		}
 		

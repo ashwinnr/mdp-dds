@@ -382,6 +382,14 @@ RDDLFactoredActionSpace> {
 	    		}
 	    	}
 	    	
+			if( _manager.hasVars(new_vfn, _mdp.get_nextStateVars() ) ){
+	    		try{
+	    			throw new Exception("new vfn has primed vars");
+	    		}catch( Exception e ){
+	    			e.printStackTrace();
+	    			System.exit(1);
+	    		}
+	    	}
 		
 		return new UnorderedPair<ADDRNode, UnorderedPair<ADDRNode,Double>>(new_vfn, 
 				new UnorderedPair<>(new_policy, Double.NaN) );

@@ -49,8 +49,8 @@ domain crossing_traffic_mdp {
 	
 	cpfs {
 	
-		collision-x'(?x) = KronDelta( collision-x(?x) | ( robot-at-x(?x) ^ exists_{?y:ypos}[ robot-at-y(?y) ^ obstacle-at(?x,?y) ] ) );
-		collision-y'(?y) = KronDelta( collision-y(?y) | ( robot-at-y(?y) ^ exists_{?x:xpos}[ robot-at-x(?x) ^ obstacle-at(?x,?y) ] ) );
+		collision-x'(?x) = KronDelta( collision-x(?x) | ( robot-at-x(?x) ^ exists_{?y:ypos}[ robot-at-y(?y) ^ obstacle-at(?x,?y) ] ) | exists_{?x2:xpos}[ collision-x(?x2) ]  );
+		collision-y'(?y) = KronDelta( collision-y(?y) | ( robot-at-y(?y) ^ exists_{?x:xpos}[ robot-at-x(?x) ^ obstacle-at(?x,?y) ] ) | exists_{?y2:ypos}[ collision-y(?y2) ] );
 		
 		robot-at-x'(?x) =
 			if ( ~robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ^ delta-x-1 ^ ~delta-x-2 ^ robot-at-x(?x2) ^ ~collision-x(?x2) ] 
@@ -103,7 +103,7 @@ domain crossing_traffic_mdp {
 	};
 	
 	// 0 reward for reaching goal, -1 in all other cases
-	reward = sum_{?x : xpos, ?y : ypos}[ GOAL(?x,?y) * robot-at-x(?x) * robot-at-y(?y) ];
+	reward = sum_{?x : xpos, ?y : ypos}[ GOAL(?x,?y) * robot-at-x(?x) * robot-at-y(?y) * ~collision-x(?x) ];
 	
 	state-action-constraints {
 //	

@@ -1,15 +1,18 @@
 package mdp.solve.online;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.NavigableMap;
 import java.util.Random;
 
 import mdp.define.Action;
 import mdp.define.PolicyStatistics;
-
 import add.ADDManager;
 import add.ADDRNode;
-
 import rddl.RDDL.DOMAIN;
+import rddl.RDDL.LCONST;
+import rddl.RDDL.PVAR_INST_DEF;
+import rddl.RDDL.PVAR_NAME;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
@@ -49,6 +52,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 	
 	private Random _initStateRand;
 	private Random _rewardRand;
+	private String _domainFile;
 	
 	public RDDLOnlineActor(
 			final String domain, 
@@ -74,6 +78,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 		_cptTimer = new Timer();
 		_mdp = new RDDL2ADD(domain, instance, actionVars, debug, order, true, 
 				topLevel.nextLong() );
+		_domainFile = domain;
+		
 		_dtr = new ADDDecisionTheoreticRegression( this._mdp, topLevel.nextLong() );
 		_manager = _mdp.getManager();
 		
@@ -111,6 +117,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 			System.out.println("Initial state #" + states_to_go + " " + init_state.toString() );
 			int rounds_to_go = _nRounds;
 			
+			
 			while( rounds_to_go --> 0 ){
 				System.out.println("Round #" + rounds_to_go );
 				
@@ -121,8 +128,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 				double cur_disc = 1;
 				Timer roundTimer = new Timer();
 				
-				
-				while( horizon_to_go --> 0 ){
+				boolean trial_is_over = false;
+				while( horizon_to_go --> 0 && !trial_is_over  ){
 					final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
 						action = act( cur_state );
 					final FactoredState<RDDLFactoredStateSpace> next_state 
@@ -139,6 +146,39 @@ public abstract class RDDLOnlineActor implements Runnable {
 					cur_state = next_state;
 //					System.out.print( horizon_to_go );
 					cur_disc = ( _useDiscounting ) ? cur_disc * DISCOUNT : cur_disc;
+					
+					if( _domainFile.contains("crossing_traffic") ){
+						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
+							if( nfs._sPredName._sPVarName.contains("GOAL") ){
+								ArrayList<LCONST> goal_params = nfs._alTerms;
+								ArrayList<LCONST> x_param = new ArrayList<LCONST>();
+								x_param.add( goal_params.get(0) );
+								
+								ArrayList<LCONST> y_param = new ArrayList<LCONST>();
+								y_param.add( goal_params.get(1) );
+								
+								if( ((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("robot-at-x"), x_param )).equals(Boolean.TRUE)
+										&& ((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("robot-at-y"), y_param )).equals(Boolean.TRUE) ){
+									System.out.println("goal reached - terminating");
+									round_reward += horizon_to_go;
+									trial_is_over = true;
+									break;
+								}
+							}
+						}
+						
+						for( final String svar : _mdp.get_stateVars() ){
+							if( svar.contains("collision") ){
+								if( cur_state.getFactoredState().get(svar) == true ){
+									System.out.println("collision detected... terminating");
+									trial_is_over = true;
+									break;
+								}
+							}
+						}
+						//check for collision
+					}
+					
 				}
 				_transition.displayState( _viz, cur_state, null, horizon_to_go);
 				System.out.println();

@@ -153,7 +153,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 
 	protected TreeMap<PVAR_NAME, ArrayList<ArrayList<LCONST>>>	_observ_vars;
 	
-	protected State _state;
+	public State _state;
 
 	public boolean	_bRewardActionDependent = false;
 
@@ -169,7 +169,7 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 
 	public INSTANCE	_i;
 
-	protected NONFLUENTS	_n;
+	public NONFLUENTS	_n;
 
 	protected DOMAIN	_d;
 

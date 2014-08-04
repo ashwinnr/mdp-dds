@@ -137,6 +137,14 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //				null );//domain.contains("sysadmin") ? new SysAdminScreenDisplay() : 
 					//domain.contains("crossing_traffic") ? new CrossingTrafficDisplay(50) : null  );
 
+		if( do_apricodd ){
+			double cur_error = apricodd_epsilon[0];
+			for( int i = 0 ; i < apricodd_epsilon.length; ++i ){
+				apricodd_epsilon[i] = cur_error;
+				cur_error = cur_error / _mdp.getDiscount();
+			}
+		}
+		
 		_actionSelectionRandom = new Random( topLevel.nextLong() );
 		_stateSelectionRand = new Random( topLevel.nextLong() );
 		
@@ -475,21 +483,21 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int i = 0 ; i < steps_lookahead; ++i ){
-//			if( i == steps_lookahead-1 ){
-//				final List<ADDRNode> rews = _mdp.getRewards();
-//				_valueDD[i] = _manager.DD_ZERO;
-//				for( final ADDRNode rew : rews ){
-//					_valueDD[i] = _manager.apply(_valueDD[i], rew, DDOper.ARITH_PLUS);
-//				}
-//				_valueDD[i] = _dtr.applyMDPConstraints(_valueDD[i], null, _manager.DD_NEG_INF, CONSTRAIN_NAIVELY, null);
-//				if( do_apricodd ){
-//					_valueDD[i] = _manager.doApricodd(_valueDD[i], do_apricodd, apricodd_epsilon[i], apricodd_type);
-//				}
-//				_valueDD[i] = _dtr.maxActionVariables(_valueDD[i], _mdp.getElimOrder(), null, 
-//														do_apricodd, do_apricodd ? apricodd_epsilon[i] : 0, apricodd_type);
-//			}else{
+			if( i == steps_lookahead-1 ){
+				final List<ADDRNode> rews = _mdp.getRewards();
+				_valueDD[i] = _manager.DD_ZERO;
+				for( final ADDRNode rew : rews ){
+					_valueDD[i] = _manager.apply(_valueDD[i], rew, DDOper.ARITH_PLUS);
+				}
+				_valueDD[i] = _dtr.applyMDPConstraints(_valueDD[i], null, _manager.DD_NEG_INF, CONSTRAIN_NAIVELY, null);
+				if( do_apricodd ){
+					_valueDD[i] = _manager.doApricodd(_valueDD[i], do_apricodd, apricodd_epsilon[i], apricodd_type);
+				}
+				_valueDD[i] = _dtr.maxActionVariables(_valueDD[i], _mdp.getElimOrder(), null, 
+														do_apricodd, do_apricodd ? apricodd_epsilon[i] : 0, apricodd_type);
+			}else{
 				_valueDD[i] = _mdp.getVMax(i, steps_lookahead);
-//			}
+			}
 		}
 		
 		_solved = new ADDRNode[ steps_lookahead ];
