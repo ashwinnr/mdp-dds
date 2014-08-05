@@ -56,7 +56,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected long MB;
 	protected BACKUP_TYPE dp_type;
 	protected int nTrials;
-	private int steps_dp;
+	protected int timeOutMins;
 	protected int steps_lookahead;
 	
 	protected ADDRNode[] _valueDD;
@@ -116,7 +116,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final double init_state_prob,
 			final BACKUP_TYPE dp_type,
 			final int nTrials,
-			final int steps_dp,
+			final int timeOutMins,
 			final int steps_lookahead ,
 			final Generalization< RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P > generalizer, 
 			final P generalize_parameters_wo_manager ,
@@ -163,7 +163,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 						gen_fix_states, gen_fix_actions, gen_num_actions, gen_num_states, 
 						generalizer, generalize_parameters_wo_manager, constrain_naively);
 		EPSILON = epsilon;
-		this.steps_dp = steps_dp;
+		this.timeOutMins = timeOutMins;
 		this.steps_lookahead = steps_lookahead;
 
 		this.nTrials = nTrials;

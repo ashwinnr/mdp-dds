@@ -26,6 +26,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
+import com.google.common.collect.Maps;
 import com.sun.org.apache.xml.internal.utils.UnImplNode;
 
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
@@ -33,6 +34,7 @@ import rddl.mdp.RDDL2DD.ORDER;
 import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredStateSpace;
 import util.InstantiateArgs;
+import util.Timer;
 import util.UnorderedPair;
 import add.ADDLeaf;
 import add.ADDRNode;
@@ -43,6 +45,7 @@ import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
+import factored.mdp.define.FactoredStateSpace;
 
 public class SymbolicRTDP< T extends GeneralizationType, 
 	P extends GeneralizationParameters<T> > extends SymbolicTHTS< T, P >  {
@@ -87,8 +90,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			INITIAL_STATE_CONF init_state_conf,
 			double init_state_prob,
 			BACKUP_TYPE dp_type,
-			int nTrials,
-			int steps_dp,
+			final int nTrials,
+			final int timeOutMins, 
 			int steps_lookahead,
 			Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P> generalizer,
 			P generalize_parameters_wo_manager,
@@ -104,8 +107,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, FAR, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, heuristic_type, time_heuristic_mins, steps_heuristic,
-				MB, init_state_conf, init_state_prob, dp_type, nTrials, steps_dp,
-				steps_lookahead, generalizer, generalize_parameters_wo_manager,
+				MB, init_state_conf, init_state_prob, dp_type, nTrials, 
+				timeOutMins, steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, exploration, cons, truncateTrials, enableLabelling,
 				new Random( topLevel.nextLong() )  );
@@ -144,7 +147,55 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		cur_action.setFactoredAction(action);
 		
+		
 		//remember root node description of policy?
+		//options : testing on/off
+		//testingRule : decision list of actions at root node/
+		//value of root node, value of all nodes/ linear FA option(+TD)
+		//testingTraj ratio : between training and testing samples from new state
+		//0 for only act - 1 for training again
+		//put back rule - 0/1 after testing - add back to d'list? - same rule as testingRule
+		
+//		System.out.println("testing hypothesis" );
+//		final NavigableMap<String, Boolean> state_descr = Maps.unmodifiableNavigableMap( _manager.enumeratePathsBDD( 
+//				_manager.get_path(_valueDD[0], state.getFactoredState() ) ).iterator().next() );
+//		
+//		final Random _flipRandom = new Random();
+//		int count = 0;
+//		
+//		for( int test = 0 ; test < 10; ++test ){
+//			
+//			final NavigableMap<String, Boolean> descr = 
+//					Maps.newTreeMap( );
+//		
+//			for( final String svar : _mdp.get_stateVars() ){
+//				if( state_descr.get( svar ) == null ){
+//					descr.put( svar, _flipRandom.nextBoolean() );
+//				}else{
+//					descr.put( svar, state_descr.get( svar ) );
+//				}
+//			}
+//			
+//			System.out.println( "test #" + test + " = " + descr.toString() );
+//			
+//			throwAwayEverything();
+//			saveValuePolicy();
+//			
+//			final FactoredState<RDDLFactoredStateSpace> this_state 
+//				= new FactoredState<RDDLFactoredStateSpace>().setFactoredState(descr);
+//			do_sRTDP( this_state );
+//			
+//			final NavigableMap<String, Boolean> new_descr = _manager.enumeratePathsBDD( 
+//					_manager.get_path(_valueDD[0], this_state.getFactoredState() ) ).iterator().next();
+//			System.out.println( "Result " + new_descr );
+//			final int this_count = state_descr.equals(new_descr) ? 1 : 0;
+//			System.out.println("This count " +  this_count );
+//			count += this_count;
+//		}
+//		
+//		System.out.println("Count positive tests = " + count );
+//		
+		
 		
 		throwAwayEverything();
 		saveValuePolicy();
@@ -157,8 +208,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 		int trials_to_go = nTrials;
 		boolean solved = false;
+		boolean timeOut = false;
+		final Timer act_time = new Timer();
 		
-		while( trials_to_go --> 0 && !solved ){
+		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) && ( !enableLabelling || !solved ) ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
 			int num_actions = 0;//steps_lookahead;
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
@@ -304,6 +357,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			}
 //			System.out.println( "Value of init state " + 
 //					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+			act_time.PauseTimer();
+			if( act_time.GetElapsedTimeInMinutes() >= timeOutMins ){
+				timeOut = true;
+			}else{
+				act_time.ResumeTimer();
+			}
 		}
 		System.out.println();
 		
@@ -1179,7 +1238,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Double.parseDouble( cmd.getOptionValue("initialStateProb") ),
 				BACKUP_TYPE.valueOf( cmd.getOptionValue("backupType") ),
 				Integer.parseInt( cmd.getOptionValue("numTrajectories") ),
-				Integer.parseInt( cmd.getOptionValue("stepsDP") ),
+				Integer.parseInt( cmd.getOptionValue("timeOutMins") ),
 				Integer.parseInt( cmd.getOptionValue("stepsLookahead") ),
 				generalizer, 
 				inner_params, 
