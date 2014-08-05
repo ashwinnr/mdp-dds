@@ -49,7 +49,7 @@ public class InstantiateArgs {
 	ret.addOption("initialStateProb", true, "IID parameter - double in [0,1]" );
 	ret.addOption("backupType", true, "backups for RTDP " +  Arrays.toString( BACKUP_TYPE.values() ) );
 	ret.addOption("numTrajectories", true, "number of trajectories to sample - int");
-	ret.addOption("stepsDP", true, "number of trajectory replays -int " );
+	ret.addOption("timeOutMins", true, "time in mins for making one decision - use -1 to disable ");
 	ret.addOption("stepsLookahead", true, "number of states in trajectories - int");
 	ret.addOption("generalizeStates", true, "whether to generalize states in trajectory" );
 	ret.addOption("generalizeActions", true, "whether to generalize actions in trajectory" );
