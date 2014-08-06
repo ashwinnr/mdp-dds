@@ -59,7 +59,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private int _successful_update = 0;
 	private int successful_policy_update = 0;
 //	private int good_updates;
-	private int truncated_backup;
+//	private int truncated_backup;
 	private boolean _genStates;
 //	private int generalization;
 //	private int generalization_cons;
@@ -78,20 +78,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			boolean useDiscounting,
 			int numStates,
 			int numRounds,
-			boolean FAR,
 			boolean constrain_naively,
 			boolean do_apricodd,
 			double[] apricodd_epsilon,
 			APPROX_TYPE apricodd_type,
-			BACKUP_TYPE heuristic_type,
-			double time_heuristic_mins,
-			int steps_heuristic,
-			long MB,
 			INITIAL_STATE_CONF init_state_conf,
 			double init_state_prob,
-			BACKUP_TYPE dp_type,
 			final int nTrials,
-			final int timeOutMins, 
+			final double timeOutMins, 
 			int steps_lookahead,
 			Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P> generalizer,
 			P generalize_parameters_wo_manager,
@@ -100,17 +94,17 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			int gen_num_states,
 			int gen_num_actions,
 			GENERALIZE_PATH gen_rule,
-			Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
-			Consistency[] cons, boolean truncateTrials, boolean enableLabelling ,
+			Consistency[] cons, 
 			final Random topLevel,
 			final int onPolicyDepth ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
-				numRounds, FAR, constrain_naively, do_apricodd, apricodd_epsilon,
-				apricodd_type, heuristic_type, time_heuristic_mins, steps_heuristic,
-				MB, init_state_conf, init_state_prob, dp_type, nTrials, 
+				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
+				apricodd_type,
+				BACKUP_TYPE.VI_FAR, 10, 1, -1, 
+				init_state_conf, init_state_prob, BACKUP_TYPE.VI_FAR, nTrials, 
 				timeOutMins, steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
-				gen_rule, exploration, cons, truncateTrials, enableLabelling,
+				gen_rule, cons, false, false , 
 				new Random( topLevel.nextLong() )  );
 		
 		_onPolicyDepth = onPolicyDepth;
@@ -211,7 +205,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		boolean timeOut = false;
 		final Timer act_time = new Timer();
 		
-		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) && ( !enableLabelling || !solved ) ){
+		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) ){// && ( !enableLabelling || !solved ) ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
 			int num_actions = 0;//steps_lookahead;
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
@@ -235,9 +229,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			    
 //				System.out.println( cur_state.toString() );
 
-				if( enableLabelling && is_node_solved(cur_state, num_actions) ){
-					break;
-				}
+//				if( enableLabelling && is_node_solved(cur_state, num_actions) ){
+//					break;
+//				}
 
 				trajectory_actions[ num_actions ].setFactoredAction( 
 						pick_successor_node(cur_state, num_actions).getFactoredAction() );
@@ -313,8 +307,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			System.out.print("*");			
 //			System.out.println("Trials to go  " + trials_to_go );
 			
-			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
+//			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
 //			display();
+			
+			act_time.PauseTimer();
+			if( act_time.GetElapsedTimeInMinutes() >= timeOutMins ){
+				timeOut = true;
+			}
+			
 			if( trials_to_go % 100 == 0 ){
 				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
 				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
@@ -355,14 +355,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 //				display(  );
 			}
-//			System.out.println( "Value of init state " + 
-//					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
-			act_time.PauseTimer();
-			if( act_time.GetElapsedTimeInMinutes() >= timeOutMins ){
-				timeOut = true;
-			}else{
+			
+			if( !timeOut ){
 				act_time.ResumeTimer();
 			}
+			
+//			System.out.println( "Value of init state " + 
+//					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+			
 		}
 		System.out.println();
 		
@@ -437,14 +437,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				if( j-1 < _onPolicyDepth ){
 					backup = _dtr.backup( 
 							target_val, target_policy, source_val, 
-						this_states, dp_type, 
+						this_states, BACKUP_TYPE.VI_FAR, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-								apricodd_type, true, MB , CONSTRAIN_NAIVELY, null  );
+								apricodd_type, true, -1 , CONSTRAIN_NAIVELY, null  );
 				}else{
 					backup = _dtr.backup( target_val, target_policy, source_val, 
-							this_states, dp_type, 
+							this_states, BACKUP_TYPE.VI_FAR, 
 							do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
-									apricodd_type, true, MB , CONSTRAIN_NAIVELY, target_policy );
+									apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy );
 				}
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
 //					try{
@@ -457,8 +457,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 				
 			}else{
-				backup = _dtr.backup( target_val, target_policy, source_val, this_states, dp_type, 
-						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, MB, 
+				backup = _dtr.backup( target_val, target_policy, source_val, this_states, BACKUP_TYPE.VI_FAR, 
+						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, -1, 
 								CONSTRAIN_NAIVELY , null  );
 //				System.out.println( backup._o2._o2 );
 			}
@@ -467,36 +467,36 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, j-1 , 
 					trajectory_states[j-1], trajectory_states[j] );
 			
-			if( enableLabelling  ){
-				final ADDRNode diff = _manager.apply( target_val, backup._o1, DDOper.ARITH_MINUS );
-				final ADDRNode threshed 
-				= _manager.BDDIntersection( this_states, _manager.threshold( diff, EPSILON, false) );
-				//remove from threshed those that were not updated
-				
-				//for state s, thresh = 1 ^ solved = 1 for image(s)
-				final Set<NavigableMap<String, Boolean>> small_error_paths 
-				= _manager.enumeratePaths(threshed, false, true, _manager.DD_ONE, false);
-				if( small_error_paths.isEmpty() ){
-					final NavigableMap<String, Boolean> state_path = trajectory_states[j-1].getFactoredState();
-					final ADDRNode this_path 
-					= _manager.getProductBDDFromAssignment(state_path);
-					final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
-					final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
-					if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-						mark_node_solved(state_path, j-1);
-					}
-				}else{
-					for( final NavigableMap<String, Boolean> path : small_error_paths ){
-						final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
-						final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
-						final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
-						if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-							mark_node_solved(path, j-1);
-						}
-					}	
-				}
-				
-			}
+//			if( enableLabelling  ){
+//				final ADDRNode diff = _manager.apply( target_val, backup._o1, DDOper.ARITH_MINUS );
+//				final ADDRNode threshed 
+//				= _manager.BDDIntersection( this_states, _manager.threshold( diff, EPSILON, false) );
+//				//remove from threshed those that were not updated
+//				
+//				//for state s, thresh = 1 ^ solved = 1 for image(s)
+//				final Set<NavigableMap<String, Boolean>> small_error_paths 
+//				= _manager.enumeratePaths(threshed, false, true, _manager.DD_ONE, false);
+//				if( small_error_paths.isEmpty() ){
+//					final NavigableMap<String, Boolean> state_path = trajectory_states[j-1].getFactoredState();
+//					final ADDRNode this_path 
+//					= _manager.getProductBDDFromAssignment(state_path);
+//					final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
+//					final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
+//					if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
+//						mark_node_solved(state_path, j-1);
+//					}
+//				}else{
+//					for( final NavigableMap<String, Boolean> path : small_error_paths ){
+//						final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
+//						final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
+//						final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
+//						if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
+//							mark_node_solved(path, j-1);
+//						}
+//					}	
+//				}
+//				
+//			}
 			
 			//even though the backup is assigned to v[j-1]
 			//the backup for v[j-2] will not use these values if visited=0
@@ -1225,20 +1225,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Boolean.parseBoolean( cmd.getOptionValue( "discounting" ) ), 
 				Integer.parseInt( cmd.getOptionValue("testStates") ), 
 				Integer.parseInt( cmd.getOptionValue( "testRounds" ) ),
-				Boolean.parseBoolean( cmd.getOptionValue( "actionVars" ) ), 
 				constrain_naively,
 				Boolean.parseBoolean( cmd.getOptionValue("doApricodd") ), 
 				epsilons,
 				APPROX_TYPE.valueOf( cmd.getOptionValue("apricoddType") ), 
-				BACKUP_TYPE.valueOf( cmd.getOptionValue("heuristicType") ),
-				Double.parseDouble( cmd.getOptionValue("heuristicMins") ),
-				Integer.parseInt( cmd.getOptionValue("heuristicSteps") ),
-				Long.parseLong( cmd.getOptionValue("memoryBoundNodes") ),
 				INITIAL_STATE_CONF.valueOf( cmd.getOptionValue("initialStateConf") ),
 				Double.parseDouble( cmd.getOptionValue("initialStateProb") ),
-				BACKUP_TYPE.valueOf( cmd.getOptionValue("backupType") ),
 				Integer.parseInt( cmd.getOptionValue("numTrajectories") ),
-				Integer.parseInt( cmd.getOptionValue("timeOutMins") ),
+				Double.parseDouble( cmd.getOptionValue("timeOutMins") ),
 				Integer.parseInt( cmd.getOptionValue("stepsLookahead") ),
 				generalizer, 
 				inner_params, 
@@ -1247,10 +1241,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedStates") ),
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedActions") ),
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-				exploration,
 				consistency,
-				Boolean.parseBoolean( cmd.getOptionValue("truncateTrials") ),
-				Boolean.parseBoolean( cmd.getOptionValue("enableLabelling") ),
 				new Random( topLevel.nextLong() ),
 				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ) );
 		
@@ -1295,6 +1286,18 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			e.printStackTrace();
 			System.exit(1);
 		}		
+	}
+
+	@Override
+	public boolean is_node_solved(FactoredState<RDDLFactoredStateSpace> state,
+			int depth) {
+		try{
+			throw new UnsupportedOperationException();
+		}catch( Exception e ){
+			e.printStackTrace();
+			System.exit(1);
+		}
+		return false;
 	}
 
 }

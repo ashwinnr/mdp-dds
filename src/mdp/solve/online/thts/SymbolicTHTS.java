@@ -53,29 +53,29 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected double[] apricodd_epsilon;
 	protected boolean do_apricodd;
 	
-	protected long MB;
-	protected BACKUP_TYPE dp_type;
+//	protected long MB;
+//	protected BACKUP_TYPE dp_type;
 	protected int nTrials;
-	protected int timeOutMins;
+	protected double timeOutMins;
 	protected int steps_lookahead;
 	
 	protected ADDRNode[] _valueDD;
 	protected ADDRNode[] _policyDD;
 //	protected ADDRNode[] _visited; 
-	protected ADDRNode[] _solved;
+//	protected ADDRNode[] _solved;
 //	private ADDRNode _baseLinePolicy;
 	
-	protected static final FactoredAction[] EMPTY_ACTION_ARRAY = {};
+//	protected static final FactoredAction[] EMPTY_ACTION_ARRAY = {};
 	
 	protected GenericTransitionGeneralization<T, P> _generalizer;
 	protected GenericTransitionParameters<T, P, RDDLFactoredStateSpace, RDDLFactoredActionSpace> _genaralizeParameters;
-	private Exploration< RDDLFactoredStateSpace, RDDLFactoredActionSpace > exploration;  
+//	private Exploration< RDDLFactoredStateSpace, RDDLFactoredActionSpace > exploration;  
 	protected static FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action 
 		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( );
 	
-	protected boolean truncateTrials;
+//	protected boolean truncateTrials;
 	protected double _RMAX;
-	protected boolean enableLabelling;
+//	protected boolean enableLabelling;
 	protected ADDRNode _baseLinePolicy;
 //	protected int heuristic_sharing;
 	private Random _stateSelectionRand = null;
@@ -116,7 +116,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final double init_state_prob,
 			final BACKUP_TYPE dp_type,
 			final int nTrials,
-			final int timeOutMins,
+			final double timeOutMins,
 			final int steps_lookahead ,
 			final Generalization< RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P > generalizer, 
 			final P generalize_parameters_wo_manager ,
@@ -125,7 +125,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final int gen_num_states,
 			final int gen_num_actions, 
 			final GENERALIZE_PATH gen_rule,
-			final Exploration<RDDLFactoredStateSpace, RDDLFactoredActionSpace> exploration,
 			final Consistency[] cons,
 			final boolean  truncateTrials,
 			final boolean enableLabeling ,
@@ -150,10 +149,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 
-		this.exploration = exploration; 
-		
-		this.truncateTrials = truncateTrials;
-		this.enableLabelling = enableLabeling;
+//		this.exploration = exploration; 
+//		
+//		this.truncateTrials = truncateTrials;
+//		this.enableLabelling = enableLabeling;
 		
 		_generalizer = new GenericTransitionGeneralization<T, P>( _dtr, cons );
 
@@ -172,8 +171,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		this.do_apricodd = do_apricodd;
 		this.apricodd_epsilon = apricodd_epsilon;
 		this.apricodd_type = apricodd_type;
-		this.MB = MB;
-		this.dp_type = dp_type;
+//		this.MB = MB;
+//		this.dp_type = dp_type;
 		//heuristic too bad anyways
 		//final UnorderedPair<ADDRNode, ADDRNode> init 
 		//	= _dtr.computeLAOHeuristic( steps_heuristic, heuristic_type, CONSTRAIN_NAIVELY,
@@ -217,6 +216,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		//} catch (EvalException e) {
 		//	e.printStackTrace();
 		//}
+//		this.dp_type = dp_type;
 		//display(_valueDD, _policyDD);
 
 	}
@@ -360,29 +360,29 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		return _manager.restrict( _valueDD[depth], state.getFactoredState() ).getMax();
 	}
 	
-	@Override
-	public boolean is_node_solved(
-			final FactoredState<RDDLFactoredStateSpace> assign,
-			final int depth) {
-		return is_node_solved( assign.getFactoredState() , depth );
-	}
+//	@Override
+//	public boolean is_node_solved(
+//			final FactoredState<RDDLFactoredStateSpace> assign,
+//			final int depth) {
+//		return is_node_solved( assign.getFactoredState() , depth );
+//	}
 	
-	public boolean is_node_solved(
-			final NavigableMap<String, Boolean> assign,
-			final int depth) {
-		return _manager.restrict( _solved[depth], assign ).equals(_manager.DD_ONE);
-	}
+//	public boolean is_node_solved(
+//			final NavigableMap<String, Boolean> assign,
+//			final int depth) {
+//		return _manager.restrict( _solved[depth], assign ).equals(_manager.DD_ONE);
+//	}
 	
-	public void mark_node_solved( final FactoredState<RDDLFactoredStateSpace> assign,
-			final int depth ){
-		mark_node_solved(assign.getFactoredState(), depth);
-	}
+//	public void mark_node_solved( final FactoredState<RDDLFactoredStateSpace> assign,
+//			final int depth ){
+//		mark_node_solved(assign.getFactoredState(), depth);
+//	}
 
-	public void mark_node_solved( final NavigableMap<String, Boolean> assign,
-			final int depth ){
-		_solved[depth] = _manager.BDDUnion( _solved[depth], 
-				_manager.getProductBDDFromAssignment(assign) );
-	}
+//	public void mark_node_solved( final NavigableMap<String, Boolean> assign,
+//			final int depth ){
+//		_solved[depth] = _manager.BDDUnion( _solved[depth], 
+//				_manager.getProductBDDFromAssignment(assign) );
+//	}
 
 	@Override
 	public FactoredState<RDDLFactoredStateSpace> pick_successor_node(
@@ -500,9 +500,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			}
 		}
 		
-		_solved = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _solved, _manager.DD_ZERO );
-		_solved[ _solved.length-1 ] = _manager.DD_ONE;
+//		_solved = new ADDRNode[ steps_lookahead ];
+//		Arrays.fill( _solved, _manager.DD_ZERO );
+//		_solved[ _solved.length-1 ] = _manager.DD_ONE;
 		
 //		_visited = new ADDRNode[ steps_lookahead ];
 //		Arrays.fill( _visited, _manager.DD_ZERO );
