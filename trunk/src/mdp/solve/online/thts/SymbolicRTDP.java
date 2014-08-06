@@ -1218,6 +1218,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		    consistency[i] = Consistency.valueOf(const_options[i]);
 		}
 		 
+		final double timeOut = Double.parseDouble( cmd.getOptionValue("timeOutMins") );
+		System.out.println("Timeout " + timeOut );
+		
 		return new SymbolicRTDP(
 				cmd.getOptionValue("domain"), cmd.getOptionValue("instance"),
 				Double.parseDouble( cmd.getOptionValue("convergenceTest") ), 
@@ -1232,7 +1235,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				INITIAL_STATE_CONF.valueOf( cmd.getOptionValue("initialStateConf") ),
 				Double.parseDouble( cmd.getOptionValue("initialStateProb") ),
 				Integer.parseInt( cmd.getOptionValue("numTrajectories") ),
-				Double.parseDouble( cmd.getOptionValue("timeOutMins") ),
+				timeOut,
 				Integer.parseInt( cmd.getOptionValue("stepsLookahead") ),
 				generalizer, 
 				inner_params, 
