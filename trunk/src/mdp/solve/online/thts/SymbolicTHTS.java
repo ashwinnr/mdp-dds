@@ -79,7 +79,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected ADDRNode _baseLinePolicy;
 //	protected int heuristic_sharing;
 	private Random _stateSelectionRand = null;
-	private Random _actionSelectionRandom = null;
+	protected Random _actionSelectionRandom = null;
 	private List<ADDRNode>  max_rewards = null;
 	
 //	public enum SUCCESSOR{
