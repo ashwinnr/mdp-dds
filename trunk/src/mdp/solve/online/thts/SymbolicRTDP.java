@@ -153,6 +153,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.println("#Rules : " + numRules );
 			}
 		}else{
+			System.out.println("Reacting");
 			if( _learningRule.equals( LearningRule.DECISION_LIST )  ){
 				final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
 					lookup = lookupRule( state );
@@ -160,6 +161,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					cur_action.setFactoredAction( lookup.getFactoredAction() );
 				}else{
 					//random action
+					System.out.println("Base policy");
 					cur_action.setFactoredAction( pick_successor_node(state, 0).getFactoredAction() );
 				}
 			}
