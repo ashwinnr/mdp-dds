@@ -64,11 +64,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	private int generalization;
 //	private int generalization_cons;
 	private int _onPolicyDepth;
-	
-	//TODO : how important is base policy?
-	//TODO : rollout parameter and exps
-	//TODO : action sharing between levels for unvisited nodes
 
+	private enum LearningRule{
+		NONE, DECISION_LIST, LFA
+	}
+	private LearningRule _learningRule;
+	private ADDRNode _learnedPolicy = null;
+	private int numRules = 0;
+	private int _maxRules;
+	
 	public SymbolicRTDP(
 			String domain,
 			String instance,
@@ -96,7 +100,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			GENERALIZE_PATH gen_rule,
 			Consistency[] cons, 
 			final Random topLevel,
-			final int onPolicyDepth ) {
+			final int onPolicyDepth,
+			final LearningRule learningRule,
+			final int maxRulesToLearn ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type,
@@ -107,6 +113,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				gen_rule, cons, false, false , 
 				new Random( topLevel.nextLong() )  );
 		
+		_maxRules = maxRulesToLearn;
+		_learningRule = learningRule;
 		_onPolicyDepth = onPolicyDepth;
 		
 //		this.BACK_CHAIN = backChain;
@@ -126,20 +134,46 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	public FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act(
 			final FactoredState<RDDLFactoredStateSpace> state) {
 
+		if( _learningRule.equals( LearningRule.DECISION_LIST )  ){
+			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
+				lookup = lookupRule( state );
+			if( lookup != null ){
+				return lookup;
+			}
+		}
+		
 //		if( enableLabelling && !_manager.evaluate(_solved[0], state.getFactoredState()).equals(_manager.DD_ONE) ){
-		do_sRTDP( state );
+		if( numRules < _maxRules ){
+			do_sRTDP( state );	
+			final NavigableMap<String, Boolean> action 
+			= pick_successor_node(state, 0).getFactoredAction();//ADDManager.sampleOneLeaf(action_dd, _rand );
+			cur_action.setFactoredAction(action);
+			if( !_learningRule.equals(LearningRule.NONE) ){
+				addTrainingSample( state );
+				System.out.println("#Rules : " + numRules );
+			}
+		}else{
+			if( _learningRule.equals( LearningRule.DECISION_LIST )  ){
+				final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
+					lookup = lookupRule( state );
+				if( lookup != null ){
+					cur_action.setFactoredAction( lookup.getFactoredAction() );
+				}else{
+					//random action
+					cur_action.setFactoredAction( pick_successor_node(state, 0).getFactoredAction() );
+				}
+			}
+		}
+		
 //			display(  );//_valueDD, _policyDD );
 //		}
 //		display();
 		
 //		final ADDRNode action_dd 
 //			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
-		final NavigableMap<String, Boolean> action 
-			= pick_successor_node(state, 0).getFactoredAction();//ADDManager.sampleOneLeaf(action_dd, _rand );
 		
 //		_manager.flushCaches();
 		
-		cur_action.setFactoredAction(action);
 		
 		
 		//remember root node description of policy?
@@ -189,8 +223,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		
 //		System.out.println("Count positive tests = " + count );
 //		
-		
-		
 		throwAwayEverything();
 		saveValuePolicy();
 		
@@ -198,10 +230,67 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	}
 	
 
+	private void addTrainingSample(final FactoredState<RDDLFactoredStateSpace> state) {
+		if( _learnedPolicy == null ){
+			_learnedPolicy = _manager.DD_ZERO;
+		}
+		
+		final NavigableMap<String, Boolean> state_assign = state.getFactoredState();
+		final ADDRNode action_dd = _manager.restrict(_policyDD[0], state_assign);
+		final NavigableMap<String, Boolean> root_action 
+			= _manager.sampleOneLeaf(action_dd, _actionSelectionRandom);
+		ADDRNode policy_path = _manager.get_path( _manager.restrict(_policyDD[0], root_action ), 
+								state_assign );
+		final ADDRNode new_rule = 
+				_manager.BDDIntersection(policy_path, _manager.getProductBDDFromAssignment(root_action) );
+		System.out.println("Adding rule : " + 
+				_manager.enumeratePathsBDD(policy_path).toString() ); 
+		System.out.println( "Action " + root_action.toString() );
+		
+		numRules++;
+		
+		_learnedPolicy = _manager.BDDUnion(_learnedPolicy, new_rule );
+		
+	}
+
+	private FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> lookupRule(
+			final FactoredState<RDDLFactoredStateSpace> state) {
+		if( _learnedPolicy == null ){
+			return null;
+		}
+
+		if( _learningRule.equals(LearningRule.DECISION_LIST) ){
+			final ADDRNode action_dd = _manager.restrict(
+					_learnedPolicy, state.getFactoredState() );
+			if( action_dd.equals(_manager.DD_ZERO ) ){
+				return null;
+			}
+			
+			final NavigableMap<String, Boolean> partial_path = 
+					Maps.newTreeMap( _manager.sampleOneLeaf( action_dd , _actionSelectionRandom ) );
+	//		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> partial_action 
+	//		= cur_action.setFactoredAction( path );
+			for( final String actvar : _mdp.get_actionVars() ){
+				if( !partial_path.containsKey(actvar) ){
+					partial_path.put( actvar, _mdp.getDefaultValue(actvar) );
+				}
+			}
+			if( partial_path.size() != _mdp.get_actionVars().size() ){
+				try{
+					throw new Exception("partial action simulated");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			return cur_action.setFactoredAction(partial_path);
+		}
+		return null;
+	}
+
 	protected void do_sRTDP( final FactoredState<RDDLFactoredStateSpace> init_state ) {
 
 		int trials_to_go = nTrials;
-		boolean solved = false;
 		boolean timeOut = false;
 		final Timer act_time = new Timer();
 		
@@ -301,8 +390,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			update_generalized_trajectory( trajectory_states_non_null, trajectory_actions_non_null, 
 					gen_trajectory , num_actions+1 );
 			
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
-			
 //			_DPTimer.PauseTimer();
 			System.out.print("*");			
 //			System.out.println("Trials to go  " + trials_to_go );
@@ -320,6 +407,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
 //				System.out.println( "Heuristic sharing " + this.heuristic_sharing );
 //				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
+				
+				FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
 				
 				System.out.println( "Value of init state " + 
 						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
@@ -1246,7 +1335,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
 				consistency,
 				new Random( topLevel.nextLong() ),
-				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ) );
+				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ),
+				LearningRule.valueOf( cmd.getOptionValue("learningRule") ),
+				Integer.valueOf( cmd.getOptionValue("maxRules") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

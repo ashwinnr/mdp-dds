@@ -69,6 +69,8 @@ public class InstantiateArgs {
 	ret.addOption("enableLabelling", true, "enable labelling states as solved" );
 	ret.addOption("convergenceTest", true, "convergence test for labelling nodes - double" );
 	ret.addOption("onPolicyDepth", true, "depth from which policy constraint is added");
+	ret.addOption("learningRule", true, "Learning rule - DecisionList");
+	ret.addOption("maxRules", true, "max num rules" );
 	
 	return ret;
     }   
