@@ -123,9 +123,9 @@ domain traffic_mdp {
 
 	// Minimize congestion: this reward penalizes congested traffic defined as pairs 
 	// of *consecutive* occupied cells
-	reward = sum_{?c : cell, ?i : intersection} ( FLOWS-INTO-INTERSECTION-NS(?c,?i) * occupied(?c) * ~light-signal1(?i) * light-signal2(?i) 
-		+ FLOWS-INTO-INTERSECTION-EW(?c,?i) * occupied(?c) * light-signal1(?i) * ~light-signal2(?i) );
-	//reward = sum_{?c : cell} ( PERIMETER-EXIT-CELL(?c) * occupied(?c) );
+	//reward = sum_{?c : cell, ?i : intersection} ( FLOWS-INTO-INTERSECTION-NS(?c,?i) * occupied(?c) * ~light-signal1(?i) * light-signal2(?i) 
+	//	+ FLOWS-INTO-INTERSECTION-EW(?c,?i) * occupied(?c) * light-signal1(?i) * ~light-signal2(?i) );
+	reward = sum_{?c : cell} ( PERIMETER-EXIT-CELL(?c) * occupied(?c) );
 	
 	
 //	state-action-constraints {
