@@ -4750,11 +4750,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode get_path(final ADDRNode input,
 			final NavigableMap<String, Boolean>... paths) {
 		ADDRNode ret = DD_ZERO;
-		for( final NavigableMap<String, Boolean> path : paths ){
-			if( path != null ){
-				ret = BDDUnion( ret, get_path_int( input, path ) );
-			}
+		ADDRNode combined_path = DD_ONE;
+		for( final NavigableMap<String,Boolean> p : paths ){
+			combined_path = BDDIntersection(combined_path, getProductBDDFromAssignment( p ) );
 		}
+		
+		ret = get_path_int( input, enumeratePathsBDD(combined_path).iterator().next() );
 		return ret;
 	}
 
