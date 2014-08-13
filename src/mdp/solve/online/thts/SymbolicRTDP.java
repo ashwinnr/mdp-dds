@@ -69,8 +69,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		NONE, DECISION_LIST, LFA
 	}
 	private LearningRule _learningRule;
+	private enum LearningMode{
+		BATCH, ONLINE
+	}
+	private LearningMode _learningMode;
 	private ADDRNode _learnedPolicy = null;
-	private int numRules = 0;
+	private int _numRules = 0;
 	private int _maxRules;
 	
 	public SymbolicRTDP(
@@ -102,7 +106,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final Random topLevel,
 			final int onPolicyDepth,
 			final LearningRule learningRule,
-			final int maxRulesToLearn ) {
+			final int maxRulesToLearn,
+			final LearningMode learningMode ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type,
@@ -113,6 +118,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				gen_rule, cons, false, false , 
 				new Random( topLevel.nextLong() )  );
 		
+		_learningMode = learningMode;
 		_maxRules = maxRulesToLearn;
 		_learningRule = learningRule;
 		_onPolicyDepth = onPolicyDepth;
@@ -134,26 +140,29 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	public FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> act(
 			final FactoredState<RDDLFactoredStateSpace> state) {
 
-		if( _learningRule.equals( LearningRule.DECISION_LIST )  ){
+		if( _learningRule.equals( LearningRule.DECISION_LIST )  && 
+				( ( _learningMode.equals(LearningMode.ONLINE ) ) || 
+						( _learningMode.equals(LearningMode.BATCH) && _numRules == _maxRules ) ) ){
 			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
 				lookup = lookupRule( state );
 			if( lookup != null ){
+				System.out.println("Reacting");
 				return lookup;
 			}
 		}
 		
 //		if( enableLabelling && !_manager.evaluate(_solved[0], state.getFactoredState()).equals(_manager.DD_ONE) ){
-		if( numRules < _maxRules ){
+		if( _numRules < _maxRules ){
 			do_sRTDP( state );	
 			final NavigableMap<String, Boolean> action 
 			= pick_successor_node(state, 0).getFactoredAction();//ADDManager.sampleOneLeaf(action_dd, _rand );
 			cur_action.setFactoredAction(action);
 			if( !_learningRule.equals(LearningRule.NONE) ){
 				addTrainingSample( state );
-				System.out.println("#Rules : " + numRules );
+				System.out.println("#Rules : " + _numRules );
 			}
 		}else{
-			System.out.println("Reacting");
+			System.out.println("Reacting due to max rules reached");
 			if( _learningRule.equals( LearningRule.DECISION_LIST )  ){
 				final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
 					lookup = lookupRule( state );
@@ -249,7 +258,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				_manager.enumeratePathsBDD(policy_path).toString() ); 
 		System.out.println( "Action " + root_action.toString() );
 		
-		numRules++;
+		_numRules++;
 		
 		_learnedPolicy = _manager.BDDUnion(_learnedPolicy, new_rule );
 		
@@ -270,6 +279,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 			final NavigableMap<String, Boolean> partial_path = 
 					Maps.newTreeMap( _manager.sampleOneLeaf( action_dd , _actionSelectionRandom ) );
+			System.out.println("Found rule");
+			System.out.println(_manager.get_path( _learnedPolicy, 
+					state.getFactoredState(), partial_path ) );
+			
 	//		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> partial_action 
 	//		= cur_action.setFactoredAction( path );
 			for( final String actvar : _mdp.get_actionVars() ){
@@ -1339,7 +1352,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				new Random( topLevel.nextLong() ),
 				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ),
 				LearningRule.valueOf( cmd.getOptionValue("learningRule") ),
-				Integer.valueOf( cmd.getOptionValue("maxRules") ) );
+				Integer.valueOf( cmd.getOptionValue("maxRules") ),
+				LearningMode.valueOf( cmd.getOptionValue("learningMode")  ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
