@@ -177,6 +177,51 @@ public abstract class RDDLOnlineActor implements Runnable {
 							}
 						}
 						//check for collision
+					}else if( _domainFile.contains("triangle_tireworld") ){
+						
+						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
+							if( nfs._sPredName._sPVarName.contains("goal-location") ){
+								ArrayList<LCONST> goal_params = nfs._alTerms;
+								
+								if( ((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("vehicle-at"), goal_params )).equals(Boolean.TRUE) ){
+									System.out.println("goal reached - terminating");
+//									round_reward += horizon_to_go;
+									trial_is_over = true;
+									break;
+								}
+							}
+						}
+						
+						ArrayList<LCONST> cur_loc_lconst = null;
+
+						for( final String svar : _mdp.get_stateVars() ){
+							if( svar.contains("vehicle_at") ){
+								if( cur_state.getFactoredState().get(svar) == true ){
+									cur_loc_lconst = _transition._rddlVars.get( svar )._o2;
+									break;
+								}
+							}
+						}
+						
+						boolean no_spare_cur_loc = true;
+						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
+							if( nfs._sPredName._sPVarName.contains("spare-in") && 
+									nfs._alTerms.equals(cur_loc_lconst) &&
+									((Boolean)nfs._oValue).equals(Boolean.TRUE) ){
+								no_spare_cur_loc = false;
+							}
+						}
+						
+						if( !trial_is_over && !((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("not-flattire"), 
+								new ArrayList<LCONST>() ) ) &&  
+								!((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("hasspare"), 
+										new ArrayList<LCONST>() ) ) 
+										&& no_spare_cur_loc ){
+							System.out.println("dead in the water - terminating ");
+							trial_is_over = true;
+							break;
+						}
+
 					}
 					
 				}

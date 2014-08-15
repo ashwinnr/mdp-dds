@@ -43,7 +43,7 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 	private RDDLFactoredStateSpace _stateSpace;
 	private RDDLFactoredActionSpace _actionSpace;
 	private String[] _nextStateVars;
-	private TreeMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>> _rddlVars;
+	public TreeMap<String, UnorderedPair<PVAR_NAME, ArrayList<LCONST>>> _rddlVars;
 	private HashMap<LVAR, LCONST>[] _groundSubs;
 	private EXPR[] _groundExpr;
 	private String[] _stateVars;
