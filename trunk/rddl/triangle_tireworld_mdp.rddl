@@ -55,13 +55,13 @@ requirements = {
     // Nonfluents: topology
     road(location,location) : { non-fluent, bool, default = false }; // Road topology
     goal-location(location) : { non-fluent, bool, default = false }; // Additional nonfluent to specify a goal location
-	
+	spare-in(location)   : { non-fluent, bool, default = false };
+
 	// State
     vehicle-at(location) : { state-fluent, bool, default = false };
     not-flattire         : { state-fluent, bool, default = false }; // Not clear why negated
     hasspare             : { state-fluent, bool, default = false };
     goal-reward-received : { state-fluent, bool, default = false }; // An additional fluent to enforce a goal reward is only received once
-	spare-in(location)   : { state-fluent, bool, default = false };
 
 	// Actions 
     move-car(location) : { action-fluent, bool, default = false }; // Not clear why we need from location parameter
@@ -99,14 +99,14 @@ requirements = {
 		else 
 			KronDelta(vehicle-at(?l));
 	
-	spare-in'(?l) = 
-		// Was the spare used?
-		if ( spare-in(?l) ^ loadtire ^ vehicle-at(?l) )
-			then KronDelta(false)
-			
+	//spare-in'(?l) = 
+	//	// Was the spare used?
+		//if (loadtire ^ vehicle-at(?l) ^ spare-in(?l))
+			//then KronDelta(false)
+	//		
 		// It was not used, so it's current value persists (frame axiom)
-		else
-			KronDelta(spare-in(?l));
+		//else
+//			KronDelta(spare-in(?l));
 	 
 	not-flattire' =
 		// If the car moved there is a FLAT-PROB probability of getting a flat
