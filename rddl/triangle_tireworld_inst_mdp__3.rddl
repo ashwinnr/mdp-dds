@@ -33,6 +33,16 @@ non-fluents nf_triangle_tireworld_inst_mdp__3 {
 
 		goal-location(la1a5);
 		
+		spare-in(la2a1);
+		spare-in(la2a2);
+		spare-in(la2a3);
+		spare-in(la2a4);
+		spare-in(la3a1);
+		spare-in(la3a3);
+		spare-in(la4a1);
+		spare-in(la4a2);
+		spare-in(la5a1);
+		spare-in(la5a1);
 		
 	};
 }
@@ -45,16 +55,6 @@ instance triangle_tireworld_inst_mdp__3 {
 		not-flattire;
 		hasspare;
 		
-		spare-in(la2a1);
-		spare-in(la2a2);
-		spare-in(la2a3);
-		spare-in(la2a4);
-		spare-in(la3a1);
-		spare-in(la3a3);
-		spare-in(la4a1);
-		spare-in(la4a2);
-		spare-in(la5a1);
-		spare-in(la5a1);
 	};
 
 	max-nondef-actions = 1;
