@@ -168,29 +168,34 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 		return ret;
 	}
 
-	private void setStateAction(
-			FactoredState<RDDLFactoredStateSpace> state,
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
+	private void setStateAction( final NavigableMap<String, Boolean> state_assign, 
+			final NavigableMap<String, Boolean> action_assign ){
+
 		_state.clearPVariables( _state._actions );
 		_state.clearPVariables( _state._state );
 		
-		NavigableMap<String, Boolean> st = state.getFactoredState();
-		for( Map.Entry<String, Boolean> entry : st.entrySet() ){
+		for( Map.Entry<String, Boolean> entry : state_assign.entrySet() ){
 			String varName = entry.getKey();
 			UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
 				= _rddlVars.get( varName );
 			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
 		}
 		
-		if( action != null ){
-			NavigableMap<String, Boolean> act = action.getFactoredAction();
-			for( Map.Entry<String, Boolean> entry : act.entrySet() ){
+		if( action_assign != null ){
+			for( Map.Entry<String, Boolean> entry : action_assign.entrySet() ){
 				String varName = entry.getKey();
 				UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
 				= _rddlVars.get( varName );
 				_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
 			}
 		}
+	}
+	
+	private void setStateAction(
+			FactoredState<RDDLFactoredStateSpace> state,
+			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
+		setStateAction( state.getFactoredState(), 
+				action != null ? action.getFactoredAction() : null  );
 	}
 
 	@Override
@@ -263,6 +268,65 @@ public class RDDLFactoredTransition extends RDDLConstrainedMDP implements
 		
 		
 		return partial_factored_state;
+	}
+
+	//NOTE : next sate must not have primed vars
+	//NOTE : assumes no synchronic arcs
+	//next state vars are independent
+	public double getTransitionProb(
+			NavigableMap<String, Boolean> this_state_assign,
+			NavigableMap<String, Boolean> action,
+			NavigableMap<String, Boolean> possible_next_state) {
+		try{
+			
+			double prob = 1;
+			setStateAction( this_state_assign, action );
+			
+			for( int i = 0 ; i < _nextStateVars.length; ++i ){
+				final String thisOne = _nextStateVars[i];
+				final String unprimed_version = thisOne.substring(0, thisOne.length()-1 );
+				
+				HashMap<LVAR, LCONST> subs = _groundSubs[i];
+				EXPR expr = _groundExpr[i];
+				EXPR e = expr.getDist(subs, _state);
+				final Boolean this_value = possible_next_state.get( unprimed_version );
+				double prob_true;
+				
+				//System.out.println("RDDL.EXPR: " + e);
+				if (e instanceof KronDelta) {
+					EXPR e2 = ((KronDelta)e)._exprIntValue;
+					if (e2 instanceof INT_CONST_EXPR){
+						// Should either be true (1) or false (0)... same as prob_true
+						prob_true = (double)((INT_CONST_EXPR)e2)._nValue;
+					}
+					else if (e2 instanceof BOOL_CONST_EXPR){
+						prob_true = ((BOOL_CONST_EXPR)e2)._bValue ? 1d : 0d;
+					}else
+						throw new EvalException("Unhandled KronDelta argument: " + e2.getClass()); 
+				} else if (e instanceof Bernoulli) {
+					prob_true = ((REAL_CONST_EXPR)((Bernoulli)e)._exprProb)._dValue;
+				} else if (e instanceof DiracDelta) {
+					prob_true = ((REAL_CONST_EXPR)((DiracDelta)e)._exprRealValue)._dValue;
+				} else{
+					throw new EvalException("Unhandled distribution type: " + e.getClass());
+				}
+				if( DISPLAY_UPDATES ){
+					System.out.println("RDDL state: " + _state );
+					System.out.println("Updating : " + thisOne );
+					System.out.println("Expression: " + expr );
+					System.out.println("Subs :  " + subs );
+					System.out.println("Prob. true : " + prob_true );
+				}
+
+				prob *= this_value ? prob_true : 1-prob_true;
+
+			}
+			return prob;
+		}catch( EvalException e ){
+			e.printStackTrace();
+			System.exit(1);
+		}
+		return 0;
 	}
 	
 	
