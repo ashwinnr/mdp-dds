@@ -26,7 +26,7 @@ public class FactoredState<S extends FactoredStateSpace> extends State<S> {
 		if( factoredState == null ){
 			return 0;
 		}
-		return factoredState.values().hashCode();
+		return factoredState.hashCode();//values().hashCode();
 	}
 	
 	public FactoredState<S> setStateVariablesOrder(String[] stateVariablesOrder) {

@@ -55,10 +55,52 @@ public class RDDLFactoredReward implements FactoredReward< RDDLFactoredStateSpac
 			final Optional<List<ADDRNode>> sum_of_reward_dds ,
 			final Optional<ADDManager> dd_man ) {
 		
-		if( sum_of_reward_dds.isPresent() )
+		return sample( ((FactoredState<RDDLFactoredStateSpace>)state).getFactoredState(), 
+				((FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action).getFactoredAction(),
+				random );
+				
+	}
+	
+	private void setStateAction(
+			final NavigableMap<String, Boolean> state_assign, 
+			final NavigableMap<String, Boolean> action_assign ){
+
+		for( Map.Entry<String, Boolean> entry : state_assign.entrySet() ){
+			String varName = entry.getKey();
+			UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
+				= _rddlVars.get( varName );
+			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
+		}
 		
-		setStateAction( (FactoredState<RDDLFactoredStateSpace>)state, 
-				(FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>) action );
+		for( Map.Entry<String, Boolean> entry : action_assign.entrySet() ){
+			String varName = entry.getKey();
+			UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
+			= _rddlVars.get( varName );
+			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
+		}
+	}
+
+	private void setStateAction(
+			FactoredState<RDDLFactoredStateSpace> state,
+			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
+		setStateAction( state.getFactoredState(), 
+				action == null ? null : action.getFactoredAction() );
+	}
+	//this class must build
+	//the propositional substitutions /
+	//and sample from it
+	//code replicated from RDDLTransition
+
+	public double sample(final NavigableMap<String, Boolean> state_assign,
+			final NavigableMap<String, Boolean> action_assign, final Random random ) {
+		setStateAction( state_assign, action_assign  );
+		
+		try{
+			_state.checkStateActionConstraints(null, false);
+		}catch( EvalException e ){
+			return Double.NEGATIVE_INFINITY;
+		}
+		
 		try {
 			return Double.valueOf( _state._reward.sample(empty_sub , _state, random).toString() );
 		} catch (EvalException e) {
@@ -66,30 +108,7 @@ public class RDDLFactoredReward implements FactoredReward< RDDLFactoredStateSpac
 			System.exit(1);
 		}
 		return Double.NEGATIVE_INFINITY;
+
 	}
-	
-	private void setStateAction(
-			FactoredState<RDDLFactoredStateSpace> state,
-			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action) {
-		NavigableMap<String, Boolean> st = state.getFactoredState();
-		for( Map.Entry<String, Boolean> entry : st.entrySet() ){
-			String varName = entry.getKey();
-			UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
-				= _rddlVars.get( varName );
-			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
-		}
-		
-		NavigableMap<String, Boolean> act = action.getFactoredAction();
-		for( Map.Entry<String, Boolean> entry : act.entrySet() ){
-			String varName = entry.getKey();
-			UnorderedPair<PVAR_NAME, ArrayList<LCONST>> rddlPair 
-			= _rddlVars.get( varName );
-			_state.setPVariableAssign(rddlPair._o1, rddlPair._o2, entry.getValue() );
-		}
-	}
-	//this class must build
-	//the propositional substitutions /
-	//and sample from it
-	//code replicated from RDDLTransition
 	
 }

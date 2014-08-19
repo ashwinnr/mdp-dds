@@ -47,7 +47,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 	protected RDDLFactoredTransition _transition;
 	protected RDDLFactoredReward _reward;
 	protected ADDDecisionTheoreticRegression _dtr;
-	protected ADDManager _manager;
+	public  ADDManager _manager;
 	private StateViz _viz;
 	
 	private Random _initStateRand;
