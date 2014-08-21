@@ -241,7 +241,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					root_action = pick_successor_node(init_state, 0);
 				
 				System.out.println( "Value of init state " + 
-						value_fns[0].get( init_state ).toString() );
+						value_fns[0].get( init_state.getFactoredState() ).toString() );
 				
 				System.out.println("root node action : " + root_action.toString() );
 				
