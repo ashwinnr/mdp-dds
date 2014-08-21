@@ -77,6 +77,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private int _numRules = 0;
 	private int _maxRules;
 	
+	private boolean do_Xion = true;
+	
 	public SymbolicRTDP(
 			String domain,
 			String instance,
@@ -107,7 +109,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final int onPolicyDepth,
 			final LearningRule learningRule,
 			final int maxRulesToLearn,
-			final LearningMode learningMode ) {
+			final LearningMode learningMode ,
+			final boolean do_Xion ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type,
@@ -123,6 +126,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		_learningRule = learningRule;
 		_onPolicyDepth = onPolicyDepth;
 		
+		this.do_Xion = do_Xion;
 //		this.BACK_CHAIN = backChain;
 			
 		trajectory_states = new FactoredState[ steps_lookahead ];
@@ -728,11 +732,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			// current partition subseteq update_states must contain actual_state
 			// unless consistency is used! - in which case current_partition 
 			// can be a superset
-			ADDRNode current_parition = findNewGeneralizedPartition( new_val,
+			ADDRNode current_parition = null;
+			if( do_Xion ){
+				current_parition = findNewGeneralizedPartition( new_val,
 				new_policy, update_states, depth, actual_state, next_state );
-			
-//			final ADDRNode diff = _manager.BDDIntersection( update_states, 
-//					_manager.BDDNegate(current_parition) );
+				current_parition = _manager.BDDIntersection( current_parition, update_states );
+			}else{
+				current_parition = update_states;
+			}
 			
 			if( _manager.getVars(current_parition).get(0).contains("delta_y_1") ){
 				try{
@@ -744,7 +751,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 //			System.out.println( "gen state " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
 //			System.out.println( "updated state " + depth + " " + _manager.enumeratePathsBDD(update_states).toString() );
-			current_parition = _manager.BDDIntersection( current_parition, update_states );
+			
 
 //			System.out.println( depth + " " + 
 //					_manager.enumeratePathsBDD(current_parition).iterator().next().size()/(1.0d*_mdp.getNumStateVars()) );
@@ -1392,7 +1399,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Integer.parseInt( cmd.getOptionValue("onPolicyDepth") ),
 				LearningRule.valueOf( cmd.getOptionValue("learningRule") ),
 				Integer.valueOf( cmd.getOptionValue("maxRules") ),
-				LearningMode.valueOf( cmd.getOptionValue("learningMode")  ) );
+				LearningMode.valueOf( cmd.getOptionValue("learningMode")  ),
+				Boolean.parseBoolean( cmd.getOptionValue("do_Xion") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

@@ -72,6 +72,7 @@ public class InstantiateArgs {
 	ret.addOption("learningRule", true, "Learning rule - DecisionList");
 	ret.addOption("maxRules", true, "max num rules" );
 	ret.addOption("learningMode", true, "whether ONLINE/BATCH for learning with mx rules");
+	ret.addOption("do_Xion", true, "invariance of abstract states" );
 	
 	return ret;
     }   
