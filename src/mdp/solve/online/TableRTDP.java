@@ -65,7 +65,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final double timeOutMins, 
 			int steps_lookahead,
 			final Random topLevel, StateViz viz  ) {
-		super(domain, instance, true, debug, order, topLevel.nextLong(),
+		super(domain, instance, true, debug, order, new Random( topLevel.nextLong() ).nextLong(),
 				useDiscounting, numStates, numRounds, 
 				init_state_conf, init_state_prob, viz );
 		this.steps_lookahead = steps_lookahead;
