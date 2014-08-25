@@ -212,6 +212,9 @@ public class SPUDDFAR implements Runnable{
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
+		
+		t.interrupt();
+		
 	}
 	
 	private int getHorizon() {
