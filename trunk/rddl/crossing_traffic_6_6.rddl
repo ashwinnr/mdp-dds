@@ -43,20 +43,7 @@ instance crossing_traffic_6_6 {
 	non-fluents = nf_crossing_traffic_6_6;
 	init-state {
 		robot-at-x(x1);
-		robot-at-y(y1);
-		obstacle-at(x1,y2);
-		obstacle-at(x1,y3);
-		obstacle-at(x1,y4);
-		obstacle-at(x2,y2);
-		obstacle-at(x2,y4);
-		obstacle-at(x3,y2);
-		obstacle-at(x3,y3);
-		obstacle-at(x3,y5);
-		obstacle-at(x4,y2);
-		obstacle-at(x4,y3);
-		obstacle-at(x4,y4);
-		obstacle-at(x5,y2);
-		obstacle-at(x5,y3);
+		robot-at-y(y2);
 	};
 	max-nondef-actions = 1;
 	horizon = 40;

@@ -306,6 +306,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 							seen_prob += this_prob;
 							action_val += this_prob*next_table.get( possible_next_state );
 						}
+						if( seen_prob == 1.0d ){
+							break;
+						}
 					}
 					action_val += (1.0d-seen_prob)*( _mdp.getVMax(i, steps_lookahead).getMax() );
 					action_val *= _mdp.getDiscount();
