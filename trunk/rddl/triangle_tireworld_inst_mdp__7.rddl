@@ -86,6 +86,35 @@ non-fluents nf_triangle_tireworld_inst_mdp__7 {
 		road(la8a2,la7a3);
 		road(la8a1,la9a1);
 		road(la9a1,la8a2);
+		
+		spare-in(la2a1);
+		spare-in(la2a2);
+		spare-in(la2a3);
+		spare-in(la2a4);
+		spare-in(la2a5);
+		spare-in(la2a6);
+		spare-in(la2a7);
+		spare-in(la2a8);
+		spare-in(la3a1);
+		spare-in(la3a7);
+		spare-in(la4a1);
+		spare-in(la4a2);
+		spare-in(la4a3);
+		spare-in(la4a4);
+		spare-in(la4a5);
+		spare-in(la4a6);
+		spare-in(la5a1);
+		spare-in(la5a5);
+		spare-in(la6a1);
+		spare-in(la6a2);
+		spare-in(la6a3);
+		spare-in(la6a4);
+		spare-in(la7a1);
+		spare-in(la7a3);
+		spare-in(la8a1);
+		spare-in(la8a2);
+		spare-in(la9a1);
+		spare-in(la9a1);
 
 		goal-location(la1a9);
 	};
