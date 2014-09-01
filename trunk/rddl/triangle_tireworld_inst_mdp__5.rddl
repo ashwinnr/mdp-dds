@@ -83,7 +83,7 @@ instance triangle_tireworld_inst_mdp__5 {
 	non-fluents = nf_triangle_tireworld_inst_mdp__5;
 	init-state {
 		vehicle-at(la1a1);
-		
+		hasspare;
 		not-flattire;
 	};
 
