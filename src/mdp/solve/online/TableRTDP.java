@@ -162,6 +162,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		int trials_to_go = nTrials;
 		boolean timeOut = false;
 		final Timer act_time = new Timer();
+		int numSamples = 0;
 		
 		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
@@ -216,7 +217,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			
 			update_trajectory( trajectory_states_non_null, trajectory_actions_non_null  );
 			
-			System.out.print("*");			
+			System.out.print("*");		
+			++numSamples;
 
 			act_time.PauseTimer();
 			if( act_time.GetElapsedTimeInMinutes() >= timeOutMins ){
@@ -243,6 +245,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			
 		}
 		System.out.println();
+		System.out.println("num samples : " + numSamples );
 		
 		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
 		root_action = pick_successor_node(init_state, 0);
