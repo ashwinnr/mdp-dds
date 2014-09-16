@@ -13,6 +13,7 @@ import mdp.generalize.trajectory.parameters.GeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.type.GeneralizationType;
 import util.UnorderedPair;
+import add.ADDINode;
 import add.ADDLeaf;
 import add.ADDManager;
 import add.ADDRNode;
@@ -31,11 +32,17 @@ public abstract class Generalization<S extends FactoredStateSpace,
 			final NavigableMap<String, Boolean> path ){
 		switch( rule ){
 		case ALL_PATHS :
-			ADDRNode eval = input;
-			eval = manager.restrict( eval, path );
+			final ADDRNode leaf_val = manager.restrict(input, path);//.getMax();
+			if( leaf_val.getNode() instanceof ADDINode ){
+				try{
+					throw new Exception("restriction did not give leaf??");
+				}catch( Exception  e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
 			
-			ADDLeaf leaf = (ADDLeaf)eval.getNode();
-			return manager.all_paths_to_leaf(input, leaf); 
+			return manager.all_paths_to_leaf( input, leaf_val ); 
 		case NONE :
 			return manager.getProductBDDFromAssignment(path);
 		case PATH :

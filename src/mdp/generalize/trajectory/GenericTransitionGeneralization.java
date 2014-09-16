@@ -29,6 +29,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 
     protected ADDDecisionTheoreticRegression _dtr;
     private Consistency[] _cons;
+	private boolean _stationary_vfn;
     public enum Consistency{
 	WEAK_POLICY, WEAK_ACTION, BACKWARDS_WEAK_POLICY, BACKWARDS_WEAK_ACTION,
 	NONE, BACKWARDS_STRONG, TREE
@@ -116,7 +117,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 	    
 	    final ADDRNode cur_gen_state = generalize_state(states[i], 
 	    		i >= actions.length ? null : actions[i], 
-	    		i+1 >= states.length ? null : states[i+1], parameters, i);
+	    		i+1 >= states.length ? null : states[i+1], parameters, 
+	    		_stationary_vfn ? 0 : i );
 	    
 	    try{
 	    	if( cur_gen_state.equals(manager.DD_ZERO) ){
@@ -134,7 +136,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //	    System.out.println("Generalizing action " + i );
 	    
 	    final ADDRNode cur_gen_action = 
-		i == states.length - 1 ? null : generalize_action( states[i], actions[i], states[i+1], parameters, i );
+		i == states.length - 1 ? null : generalize_action( states[i], actions[i], 
+				states[i+1], parameters, _stationary_vfn ? 0 : i );
 	    
 	    if( prev_gen_state == null ){
 		ret[j++] = cur_gen_state;
@@ -161,8 +164,10 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //									manager.DD_ZERO ) ;
 			break;
 		    case WEAK_POLICY : 
-				final ADDRNode bddImagePolicy = _dtr.BDDImagePolicy(prev_gen_state, true, DDQuantify.EXISTENTIAL, 
-					parameters.get_policyDD()[i-1], true);
+				final ADDRNode bddImagePolicy = _dtr.BDDImagePolicy(prev_gen_state, 
+						true, DDQuantify.EXISTENTIAL, 
+					_stationary_vfn ? parameters.get_policyDD()[0] : parameters.get_policyDD()[i-1], 
+					true);
 				consistent_cur_gen_state = 
 //				parameters.get_constrain_naively() ? 
 						manager.BDDIntersection( consistent_cur_gen_state, bddImagePolicy  );
@@ -298,7 +303,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 
 	    final ADDRNode cur_gen_state = generalize_state(states[i], 
 	    		i == 0 ? null : actions[i-1], 
-	    		i == 0 ? null : states[i-1], parameters, i);
+	    		i == 0 ? null : states[i-1], parameters, 
+	    				_stationary_vfn ? 0 : i);
 	    
 	    if( cur_gen_state.equals(manager.DD_ZERO) ){
 	    	try{
@@ -312,7 +318,9 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 //	    System.out.println("Generalizing action " + i );
 	    
 	    final ADDRNode cur_gen_action = 
-	    		i == 0 ? null : generalize_action( states[i], actions[i-1], states[i-1], parameters, i-1 );
+	    		i == 0 ? null : generalize_action( states[i], actions[i-1], 
+	    				states[i-1], parameters, 
+	    				_stationary_vfn ? 0 : i-1 );
 	    
 	    if( prev_gen_state == null ){
 	    	ret[j--] = cur_gen_state;
@@ -346,7 +354,8 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		    
 			
 		    case BACKWARDS_WEAK_POLICY : 
-		    	final ADDRNode preimage = _dtr.BDDPreImagePolicy( prev_gen_state, parameters.get_policyDD()[i],
+		    	final ADDRNode preimage = _dtr.BDDPreImagePolicy( prev_gen_state,
+		    			_stationary_vfn ?  parameters.get_policyDD()[0] : parameters.get_policyDD()[i],
 		    		true, DDQuantify.EXISTENTIAL, false );
 		    	consistent_cur_gen_state = manager.constrain(consistent_cur_gen_state, 
 		    			preimage, manager.DD_ZERO );
@@ -396,6 +405,11 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 			}
 		}
 		return false;
+	}
+
+	public void setStationary( final boolean stationary_vfn) {
+		_stationary_vfn = stationary_vfn;
+		
 	}
 
 //    @Override

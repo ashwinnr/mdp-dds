@@ -72,8 +72,12 @@ domain recon_mdp {
 
 		//probability of the tool being damaged, and its detection capabilities, without and with damage
 		DAMAGE_PROB:   { non-fluent, real, default = 0.0 };
-		DETECT_PROB:         { non-fluent, real, default = 0.8 };
-		DETECT_PROB_DAMAGED: { non-fluent, real, default = 0.4 };
+		DETECT_PROB_TP :         { non-fluent, real, default = 0.4 };
+		DETECT_PROB_FP :         { non-fluent, real, default = 0.1 };
+		DETECT_PROB_TP_DAMAGED: { non-fluent, real, default = 0.2 };
+		DETECT_PROB_FP_DAMAGED: { non-fluent, real, default = 0.2 };
+		
+		HAS-LIFE(obj) : { non-fluent, bool, default = false };
 		
 		//types of tools
 		CAMERA_TOOL(tool) : { non-fluent, bool, default = false };

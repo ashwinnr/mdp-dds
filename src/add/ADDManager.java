@@ -433,9 +433,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	}
 
 	public static void main(String[] args) throws Exception {
+		
+		testPathsToLeaf();
 //	    testGetProductDD( );
 //	    testAssignDD();
-	    testGetProductFromAssign();
+//	    testGetProductFromAssign();
 //		testApricodd();
 //		testBreakTies();
 		//		testAddPair();
@@ -2444,25 +2446,31 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	
 	public ADDRNode all_paths_to_leaf( 
 			final ADDRNode input, 
-			final ADDLeaf leafVal ) {
-		return all_paths_to_leaf(input, leafVal.getLeafValues());
-	}
-	
-	public ADDRNode all_paths_to_leaf( 
-			final ADDRNode input, 
-			final Double leafVal ) {
-		ADDRNode ret = DD_ZERO;
-		Set<NavigableMap<String, Boolean>> assigns = enumeratePaths(input, false, true, leafVal, false );
-		if( assigns.isEmpty() ){
-			return DD_ONE;
-		}
-		for( final NavigableMap<String, Boolean> path : assigns ){
-			final ADDRNode this_path_dd = getProductBDDFromAssignment( path );
-			ret = BDDUnion( this_path_dd, ret );
-		}
+			final ADDRNode leafVal ) {
+		final ADDRNode diff = apply( input, leafVal, DDOper.ARITH_MINUS );
+		final ADDRNode diff_neg_inf = apply( diff, DD_NEG_INF, DDOper.ARITH_PROD );
+		
+		final ADDRNode ret = threshold(diff_neg_inf, 0.0d, false );
+		
 		return ret;
+		
 	}
 	
+//	public ADDRNode all_paths_to_leaf( 
+//			final ADDRNode input, 
+//			final Double leafVal ) {
+//		ADDRNode ret = DD_ZERO;
+//		Set<NavigableMap<String, Boolean>> assigns = enumeratePaths(input, false, true, leafVal, false );
+//		if( assigns.isEmpty() ){
+//			return DD_ONE;
+//		}
+//		for( final NavigableMap<String, Boolean> path : assigns ){
+//			final ADDRNode this_path_dd = getProductBDDFromAssignment( path );
+//			ret = BDDUnion( this_path_dd, ret );
+//		}
+//		return ret;
+//	}
+//	
 	public Set<NavigableMap<String,Boolean>> enumeratePathsBDD(
 			final ADDRNode input ) {
 		return enumeratePaths( input, true, true, 
@@ -2578,9 +2586,9 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		ADDRNode inode2 = man.getINode("Y", inode, 
 				 man.getINode("X", leaf1, man.DD_ONE ) );
 
-		man.showGraph(inode2);
+		System.out.println( man.enumeratePaths(inode2).toString() );
 
-		man.showGraph( man.all_paths_to_leaf(inode2, ((ADDLeaf)leaf1.getNode()) ) );
+		System.out.println( man.enumeratePaths( man.all_paths_to_leaf(inode2, leaf1  ) ).toString() );
 		
 	}
 

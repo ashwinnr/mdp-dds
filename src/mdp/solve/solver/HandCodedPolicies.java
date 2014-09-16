@@ -17,6 +17,9 @@ public class HandCodedPolicies {
 	if( domain_file.contains("crossing_traffic") ){
 		return manager.getIndicatorDiagram("delta_y_2".intern(), true);
 	}
+	else if( domain_file.contains("sysadmin") ){
+		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
+	}
 //	else if( domain_file.contains("grid") ){
 //		return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
 //	}

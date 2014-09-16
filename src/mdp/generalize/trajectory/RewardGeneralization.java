@@ -38,7 +38,7 @@ RewardGeneralizationType, RewardGeneralizationParameters>{
 		 	break;
 		 case ALL_PATHS : 
 			 for( final ADDRNode rew : parameters.get_max_rewards() ){
-				 final double this_r = manager.evaluate(rew, state_path).getMax();
+				 final ADDRNode this_r = manager.evaluate(rew, state_path);
 				 final ADDRNode this_paths = manager.all_paths_to_leaf(rew, this_r);
 				 output_path = manager.BDDUnion(output_path == null ?
 						 manager.DD_ZERO : output_path, this_paths );
