@@ -419,45 +419,46 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				timeOut = true;
 			}
 			
-			if( trials_to_go % 100 == 0 ){
-				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
-				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
+			if( trials_to_go % 50 == 0 ){
+//				System.out.println( "#updates to value " + (double)_successful_update / nTrials );
+//				System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
 //				System.out.println( "Heuristic sharing " + this.heuristic_sharing );
 //				System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
 				
 				FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
 				
 				System.out.println( "Value of init state " + 
-						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).getMax() );
 				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 				
 				System.out.println("root node action : " + root_action.toString() );
 				
 				System.out.print("description of value of init state ");
 				
+				final ADDRNode path_aroo = _manager.get_path(_valueDD[0], init_state.getFactoredState() );
+				
 				System.out.println(  
 								(_manager.enumeratePathsBDD( 
-										_manager.get_path(
-												_valueDD[0], init_state.getFactoredState() )).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
+										path_aroo).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
 				
 				
 				System.out.println( "Value : " + 
-						_manager.enumeratePathsBDD( _manager.get_path(_valueDD[0], init_state.getFactoredState() ) ) );
+						_manager.enumeratePathsBDD( path_aroo ) );
 				
 				System.out.print("description of policy of init state ");
 				
 
+				final ADDRNode policy_roo = _manager.get_path(
+						_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
+						init_state.getFactoredState() ) ;
+				
 				System.out.println( "Policy : " + 
 						(_manager.enumeratePathsBDD( 
-								_manager.get_path(
-										_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
-										init_state.getFactoredState() ) ).iterator().next().size()-1) / (1.0d*_mdp.getNumStateVars()) );
+								policy_roo ).iterator().next().size()-1) / (1.0d*_mdp.getNumStateVars()) );
 				
 				System.out.println( "Policy : " + 
 						_manager.enumeratePathsBDD( 
-								_manager.get_path(
-										_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
-										init_state.getFactoredState() ) ) );
+								policy_roo ) );
 				
 //				display(  );
 			}
