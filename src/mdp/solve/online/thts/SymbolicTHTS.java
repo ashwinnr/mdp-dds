@@ -45,6 +45,10 @@ public abstract class SymbolicTHTS< T extends GeneralizationType,
 P extends GeneralizationParameters<T> > extends RDDLOnlineActor 
 implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 
+	
+	protected FactoredState[] trajectory_states;
+	protected FactoredAction[] trajectory_actions;
+	
 	protected boolean CONSTRAIN_NAIVELY = false;
 	protected double	EPSILON;
 	protected Timer _DPTimer = null;
@@ -478,9 +482,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //	}
 	
 	protected void throwAwayEverything() {
+		_policyDD = null;
 		_policyDD = new ADDRNode[ steps_lookahead ];
 		Arrays.fill(_policyDD, _baseLinePolicy );
 		
+		_valueDD = null;
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int i = 0 ; i < steps_lookahead; ++i ){
 			if( i == steps_lookahead-1 ){
@@ -499,6 +505,16 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				_valueDD[i] = _mdp.getVMax(i, steps_lookahead);
 			}
 		}
+		
+		trajectory_states = null;
+		trajectory_states = new FactoredState[ steps_lookahead ];
+		trajectory_actions = null;
+		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
+		for( int i = 0 ; i < steps_lookahead-1; ++i ){
+		    trajectory_actions[i] = new FactoredAction( );
+		    trajectory_states[i] = new FactoredState( );
+		}
+		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
 		
 //		_solved = new ADDRNode[ steps_lookahead ];
 //		Arrays.fill( _solved, _manager.DD_ZERO );
