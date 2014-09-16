@@ -34,6 +34,6 @@ instance sysadmin_star_10_10 {
 	};
 
 	max-nondef-actions = 10;
-	horizon  = 40;
+	horizon  = 20;
 	discount = 0.9;
 }

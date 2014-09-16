@@ -3,15 +3,19 @@
  */
 package mdp.solve.solver;
 
+import java.util.Random;
+
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
 import util.Timer;
 import add.ADDManager;
+import add.ADDRNode;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.NoOpPolicy;
 import dtr.add.RandomPolicy;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 
 public class BaseLinePolicy implements Runnable{
 
@@ -30,13 +34,18 @@ public class BaseLinePolicy implements Runnable{
 	private BaseType _type;
 	private RDDL2ADD _mdp;
 	private long _seed;
+	private ADDRNode _initial_state_add;
 	
-	public BaseLinePolicy(String domain, String instance, 
+	public BaseLinePolicy(
+			final String domain, 
+			final String instance, 
 			final long seed,
 			final boolean useDiscounting, 
 			final int numStates,
 			final int numRounds,
-			final BaseType type ) {
+			final BaseType type,
+			final INITIAL_STATE_CONF init_state_conf,
+			final double init_prob ) {
 		_cptTimer = new Timer();
 		_mdp = new RDDL2ADD(domain, instance, true, DEBUG_LEVEL.PROBLEM_INFO, 
 				ORDER.GUESS, false, seed);
@@ -50,6 +59,7 @@ public class BaseLinePolicy implements Runnable{
 		DISCOUNT = _mdp.getDiscount();
 		HORIZON = _mdp.getHorizon();
 		_type = type;
+		_initial_state_add = _dtr.getIIDInitialStates(init_state_conf , init_prob);
 	}
 
 	/* (non-Javadoc)
@@ -75,8 +85,14 @@ public class BaseLinePolicy implements Runnable{
 		}
 		
 		try{
+			final Random topLevel = new Random( _seed );
+			topLevel.nextLong();
+			
 			_policy.executePolicy(_nRounds, _nStates, _useDiscounting, 
-					HORIZON, DISCOUNT, null  ).printStats();
+					HORIZON, DISCOUNT, null, _initial_state_add,
+					new Random( topLevel.nextLong() ),
+					new Random( topLevel.nextLong() ),
+					new Random( topLevel.nextLong() ) ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
@@ -87,10 +103,14 @@ public class BaseLinePolicy implements Runnable{
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
+
 		Runnable worker = new BaseLinePolicy(args[0], args[1],
 				Long.parseLong(args[2]), 
 				Boolean.parseBoolean( args[3] ), Integer.parseInt(args[4]), 
-				Integer.parseInt(args[5]) ,  BaseType.valueOf( args[6] ) );
+				Integer.parseInt(args[5]) ,  BaseType.valueOf( args[6] ), 
+				INITIAL_STATE_CONF.valueOf( args[7] ),
+				Double.parseDouble( args[8] ) );
+		
 		Thread t = new Thread( worker );
 		t.start();
 		t.join();

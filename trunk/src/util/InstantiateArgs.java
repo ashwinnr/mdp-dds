@@ -74,6 +74,8 @@ public class InstantiateArgs {
 	ret.addOption("learningMode", true, "whether ONLINE/BATCH for learning with mx rules");
 	ret.addOption("do_Xion", true, "invariance of abstract states" );
 	
+	ret.addOption("stat_vfn", true, "stationary value fn" );
+	
 	return ret;
     }   
 

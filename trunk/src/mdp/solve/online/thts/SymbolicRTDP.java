@@ -79,6 +79,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	
 	private boolean do_Xion = true;
 	
+	private boolean _stationary_vfn = false;
+	
 	public SymbolicRTDP(
 			String domain,
 			String instance,
@@ -110,7 +112,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final LearningRule learningRule,
 			final int maxRulesToLearn,
 			final LearningMode learningMode ,
-			final boolean do_Xion ) {
+			final boolean do_Xion ,
+			final boolean stat_vfn ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type,
@@ -137,6 +140,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}
 		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
 		_genStates = !gen_fix_states;
+		
+		_stationary_vfn = stat_vfn;
+		_generalizer.setStationary( _stationary_vfn );
 		
 	}
 
@@ -523,7 +529,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 //		System.out.println( "Generalizing " );
 		
-		return _generalizer.generalize_trajectory(trajectory_states, trajectory_actions, _genaralizeParameters);
+		return _generalizer.generalize_trajectory(trajectory_states, trajectory_actions,
+				_genaralizeParameters );
 	}
 	
 	protected void update_generalized_trajectory( 
@@ -549,8 +556,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			this_actions = trajectory[i--];
 			this_states = trajectory[i];
 		    
-			target_val = _valueDD[ j-1 ];
-			target_policy = _policyDD[ j-1 ];
+			target_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j-1 ];
+			target_policy = _stationary_vfn ? _policyDD[0] : _policyDD[ j-1 ];
 			
 //			final ADDRNode next_states = _dtr.BDDImageAction( this_states, DDQuantify.EXISTENTIAL,
 //					this_actions, true, _actionVars );//WARNING : constant true
@@ -572,7 +579,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //				source_val = initilialize_node_temp( _valueDD[j], image_not_visited, j);
 //			}else{
 			
-			source_val = _valueDD[ j ];
+			source_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j ];
 //			}
 			
 			_DPTimer.ResumeTimer();
@@ -585,12 +592,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					backup = _dtr.backup( 
 							target_val, target_policy, source_val, 
 						this_states, BACKUP_TYPE.VI_FAR, 
-						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
+						do_apricodd, 
+						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0 , 
 								apricodd_type, true, -1 , CONSTRAIN_NAIVELY, null  );
 				}else{
 					backup = _dtr.backup( target_val, target_policy, source_val, 
 							this_states, BACKUP_TYPE.VI_FAR, 
-							do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , 
+							do_apricodd, 
+							do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
 									apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy );
 				}
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
@@ -605,13 +614,16 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 			}else{
 				backup = _dtr.backup( target_val, target_policy, source_val, this_states, BACKUP_TYPE.VI_FAR, 
-						do_apricodd, do_apricodd ? apricodd_epsilon[j-1] : 0 , apricodd_type, true, -1, 
+						do_apricodd, 
+						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
+								apricodd_type, true, -1, 
 								CONSTRAIN_NAIVELY , null  );
 //				System.out.println( backup._o2._o2 );
 			}
 			_DPTimer.PauseTimer();
 			
-			setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, j-1 , 
+			setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, 
+					_stationary_vfn ? 0 : j-1 , 
 					trajectory_states[j-1], trajectory_states[j] );
 			
 //			if( enableLabelling  ){
@@ -656,15 +668,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//in the on trajectory state
 			
 
-			if( j-1 == 0 && ( ( _manager.evaluate(target_val, trajectory_states[j-1].getFactoredState() ).getMax()
-					) - ( _manager.evaluate(_valueDD[j-1], trajectory_states[j-1].getFactoredState() ).getMax() ) ) != 0 ){
-				_successful_update++;
-			}
-			if( j-1 == 0 &&
-					!_policyDD[j-1].equals(target_policy) ){
-				++successful_policy_update ;
-			}
-			
+//			if( j-1 == 0 && ( ( _manager.evaluate(target_val, trajectory_states[j-1].getFactoredState() ).getMax()
+//					) - ( _manager.evaluate(_valueDD[j-1], trajectory_states[j-1].getFactoredState() ).getMax() ) ) != 0 ){
+//				_successful_update++;
+//			}
+//			if( j-1 == 0 &&
+//					!_policyDD[j-1].equals(target_policy) ){
+//				++successful_policy_update ;
+//			}
+//			
 			//FIX 1 : visit all the nodes in generalized states
 			//and remove at the end
 			//changed : 5/1/14
@@ -1400,7 +1412,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				LearningRule.valueOf( cmd.getOptionValue("learningRule") ),
 				Integer.valueOf( cmd.getOptionValue("maxRules") ),
 				LearningMode.valueOf( cmd.getOptionValue("learningMode")  ),
-				Boolean.parseBoolean( cmd.getOptionValue("do_Xion") ) );
+				Boolean.parseBoolean( cmd.getOptionValue("do_Xion") ),
+				Boolean.parseBoolean( cmd.getOptionValue("stat_vfn") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
