@@ -308,6 +308,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		int trials_to_go = nTrials;
 		boolean timeOut = false;
 		final Timer act_time = new Timer();
+		int numSamples = 0;
 		
 		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) ){// && ( !enableLabelling || !solved ) ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
@@ -406,7 +407,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					gen_trajectory , num_actions+1 );
 			
 //			_DPTimer.PauseTimer();
-			System.out.print("*");			
+			System.out.print("*");	
+			++numSamples;
 //			System.out.println("Trials to go  " + trials_to_go );
 			
 //			solved = _manager.evaluate(_solved[0], init_state.getFactoredState()).equals(_manager.DD_ONE);
@@ -469,10 +471,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 		}
 		System.out.println();
-		
-		System.out.println( "#updates to value " + (double)_successful_update / nTrials );
-		System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
-//		System.out.println( "Heuristic sharing " + this.heuristic_sharing );
+		System.out.println("num samples : " + numSamples );
+//		System.out.println( "#updates to value " + (double)_successful_update / nTrials );
+//		System.out.println( "#updates to policy " + (double)successful_policy_update/ nTrials );
+////		System.out.println( "Heuristic sharing " + this.heuristic_sharing );
 //		System.out.println( "#Good updates " + (double)good_updates / ( steps_lookahead * (nTrials-trials_to_go) ) );
 		
 		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
