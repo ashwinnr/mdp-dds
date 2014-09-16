@@ -72,12 +72,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		this.nTrials = nTrials;
 		this.timeOutMins = timeOutMins;
 		
-		value_fns = (Map<NavigableMap<String, Boolean>, Double>[]) Array.newInstance( HashMap.class, steps_lookahead );
-		policies = (Map<NavigableMap<String, Boolean>, NavigableMap<String, Boolean> >[]) Array.newInstance( HashMap.class, steps_lookahead );
-		for( int i = 0 ; i < steps_lookahead; ++i ){
-			value_fns[i] = new HashMap< >();
-			policies[i] = new HashMap< >();
-		}
+		throwAwayEverything();
 
 		_actionSelectionRandom = new Random( topLevel.nextLong() );
 		_stateSelectionRand = new Random( topLevel.nextLong() );
@@ -85,13 +80,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 
-		trajectory_states = new FactoredState[ steps_lookahead ];
-		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
-		for( int i = 0 ; i < steps_lookahead-1; ++i ){
-		    trajectory_actions[i] = new FactoredAction( );
-		    trajectory_states[i] = new FactoredState( );
-		}
-		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
 		_all_actions = _mdp.getFullRegressionOrder();
 		
 	}
@@ -256,7 +244,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}
 		System.out.println();
 		
-		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
+		final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> 
 		root_action = pick_successor_node(init_state, 0);
 		
 		System.out.println( "Value of init state " + 
@@ -265,9 +253,34 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		System.out.println("root node action : " + root_action.toString() );
 		
 		System.out.print("description of value of init state ");
+	
+		throwAwayEverything();
 		
 		return root_action;
 
+	}
+
+
+	private void throwAwayEverything() {
+		value_fns = (Map<NavigableMap<String, Boolean>, Double>[]) Array.newInstance( HashMap.class, steps_lookahead );
+		policies = (Map<NavigableMap<String, Boolean>, NavigableMap<String, Boolean> >[]) Array.newInstance( HashMap.class, steps_lookahead );
+		for( int i = 0 ; i < steps_lookahead; ++i ){
+			value_fns[i] = null;
+			value_fns[i] = new HashMap< >();
+			policies[i] = null; 
+			policies[i] = new HashMap< >();
+		}
+		
+		trajectory_states = new FactoredState[ steps_lookahead ];
+		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
+		for( int i = 0 ; i < steps_lookahead-1; ++i ){
+		    trajectory_actions[i] = null;
+		    trajectory_actions[i] = new FactoredAction( );
+		    trajectory_states[i] = null;
+		    trajectory_states[i] = new FactoredState( );
+		}
+		trajectory_states[ steps_lookahead - 1 ] = null;
+		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
 	}
 
 

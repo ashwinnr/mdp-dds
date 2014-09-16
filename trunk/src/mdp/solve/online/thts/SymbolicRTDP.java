@@ -51,9 +51,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	P extends GeneralizationParameters<T> > extends SymbolicTHTS< T, P >  {
 
 
-	private FactoredState[] trajectory_states;
-	private FactoredAction[] trajectory_actions;
-	
 	public final static boolean  DISPLAY_TRAJECTORY = false;
 //	public boolean BACK_CHAIN;
 	private int _successful_update = 0;
@@ -132,13 +129,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		this.do_Xion = do_Xion;
 //		this.BACK_CHAIN = backChain;
 			
-		trajectory_states = new FactoredState[ steps_lookahead ];
-		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
-		for( int i = 0 ; i < steps_lookahead-1; ++i ){
-		    trajectory_actions[i] = new FactoredAction( );
-		    trajectory_states[i] = new FactoredState( );
-		}
-		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
 		_genStates = !gen_fix_states;
 		
 		_stationary_vfn = stat_vfn;
