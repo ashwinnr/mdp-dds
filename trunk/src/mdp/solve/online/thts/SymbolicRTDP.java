@@ -427,7 +427,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 				FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
 				
-				System.out.println( "Value of init state " + 
+				System.out.println( "\nValue of init state " + 
 						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).getMax() );
 				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 				
