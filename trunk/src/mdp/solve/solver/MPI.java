@@ -1,6 +1,7 @@
 package mdp.solve.solver;
 
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import rddl.mdp.RDDL2ADD;
@@ -15,6 +16,7 @@ import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.ADDValueFunction;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 
 public class MPI implements Runnable {
 	
@@ -175,10 +177,16 @@ public class MPI implements Runnable {
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
+		
+		final long seed = Long.parseLong(args[3]);
+		final Random topLevel = new Random( seed );
+		int nStates = Integer.parseInt(args[5]);
+		int nRounds = Integer.parseInt(args[6]);
+		
 		MPI worker = new MPI(args[0], args[1], Double.parseDouble(args[2]), 
-				null, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
-				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
-				Integer.parseInt(args[6]), Integer.parseInt(args[7]),
+				null, DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, topLevel.nextLong(), 
+				Boolean.parseBoolean(args[4]), nStates, 
+				nRounds, Integer.parseInt(args[7]),
 				Boolean.parseBoolean(args[8] ), Boolean.parseBoolean(args[9]) ,
 				Boolean.parseBoolean(args[10]), Double.parseDouble(args[11]),
 				APPROX_TYPE.valueOf(args[12]) );
@@ -190,15 +198,28 @@ public class MPI implements Runnable {
 		System.out.println("Stopping!" );
 		
 		final ADDPolicy policy = worker.getPolicy();
+		
+		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
+		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
+		
+		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
+		
 		try{
-			policy.executePolicy( Integer.parseInt(args[7]), Integer.parseInt(args[6]), Boolean.parseBoolean(args[8] ), 
-					worker.getHorizon(), worker.getDiscount(), null ).printStats();
+			policy.executePolicy( nRounds, nStates, Boolean.parseBoolean(args[8] ), 
+					worker.getHorizon(), worker.getDiscount(), null ,
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() ) ).printStats();
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
 		
 	}
 	
+	private ADDRNode getInitialStateADD(INITIAL_STATE_CONF thing1, Double thing2) {
+		return _dtr.getIIDInitialStates(thing1, thing2 );
+	}
+
 	private ADDPolicy getPolicy() {
 		return _policy;//._bddPolicy != null ? _policy._bddPolicy : _policy._addPolicy;
 	}
