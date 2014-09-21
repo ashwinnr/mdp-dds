@@ -1779,7 +1779,21 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			final DDOper op ){
 //		Objects.requireNonNull( op );
 //		invalidateApplyCache();
-		final ADDRNode ret = applyInt( op1, op2, op );
+		ADDRNode ret = null;
+		try{
+			ret = applyInt( op1, op2, op );
+		}catch(OutOfMemoryError e ){
+			e.printStackTrace();
+			throwAwayApplyCache();
+			System.err.println("apply EML");
+			try {
+				Thread.sleep(10000);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+			
+			throw new OutOfMemoryError();
+		}
 //		if( ret.getMax() == Double.NaN ){
 //			try{
 //				throw new Exception("Nan produced");
@@ -3189,7 +3203,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					ret = null;
 					System.err.println("cant create more inodes");
 					e.printStackTrace();
-					System.exit(1);
+					throw new OutOfMemoryError();
 				}
 			}else{
 				ret = inode;
