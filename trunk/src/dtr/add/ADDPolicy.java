@@ -40,7 +40,7 @@ public class ADDPolicy extends
 	SymbolicPolicy<ADDNode, ADDRNode, ADDINode, ADDLeaf, RDDLFactoredStateSpace,
 		RDDLFactoredActionSpace> implements RDDLPolicy{
 
-	private static final boolean DISPLAY = false;
+	private static final boolean DISPLAY = true;
 	protected ADDManager _manager;
 	private RDDLFactoredTransition _transition;
 	private FactoredReward<RDDLFactoredStateSpace, RDDLFactoredActionSpace> _reward;
