@@ -215,6 +215,7 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
 		    	consistent_cur_gen_state = 
 							manager.BDDIntersection( consistent_cur_gen_state, bddImage  );		    		
 			}
+		    break;
 		}
 		
 		if( consistent_cur_gen_state.equals(manager.DD_ZERO) ){
