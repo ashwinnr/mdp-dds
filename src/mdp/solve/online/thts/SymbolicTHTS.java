@@ -85,7 +85,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	private Random _stateSelectionRand = null;
 	protected Random _actionSelectionRandom = null;
 	private List<ADDRNode>  max_rewards = null;
-	protected boolean _has_reward_init = true;
+	protected final boolean INIT_REWARD = true;
 	
 //	public enum SUCCESSOR{
 //		NONE, BRTDP, FRTDP
@@ -491,7 +491,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int i = 0 ; i < steps_lookahead; ++i ){
 			if( i == steps_lookahead-1 ){
-				try{
+				if( INIT_REWARD ){
 					final List<ADDRNode> rews = _mdp.getRewards();
 					_valueDD[i] = _manager.DD_ZERO;
 					for( final ADDRNode rew : rews ){
@@ -504,10 +504,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					}
 					_valueDD[i] = _dtr.maxActionVariables(_valueDD[i], _mdp.getElimOrder(), null, 
 														do_apricodd, do_apricodd ? apricodd_epsilon[i] : 0, apricodd_type);
-				}catch( OutOfMemoryError e ){
-					System.err.println("init reward failed");
+				}else{
+					System.out.println("initializing with RMax");
 					_valueDD[i] = _mdp.getVMax(i, steps_lookahead);
-					_has_reward_init  = false;
 				}
 				
 			}else{
