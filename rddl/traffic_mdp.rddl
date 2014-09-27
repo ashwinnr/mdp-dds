@@ -73,14 +73,14 @@ domain traffic_mdp {
   		// Note: a light signal that is red *must* advance to the next state...
   		//       there would be no reason to hold a red signal indefinitely. 
   		light-signal1'(?i) = 
-  			if ( advance(?i) )
+  			if (advance(?i) | (light-signal1(?i) ^ light-signal2(?i)) | (~light-signal1(?i) ^ ~light-signal2(?i)))
  			then // Advance to next state (see table above)
   				KronDelta( light-signal2(?i) )
   			else // No change 
   				KronDelta( light-signal1(?i) );
  
   		light-signal2'(?i) = 
-  			if ( advance(?i) )
+  			if (advance(?i) | (light-signal1(?i) ^ light-signal2(?i)) | (~light-signal1(?i) ^ ~light-signal2(?i)))
   			then // Advance to next state (see table above)
   				KronDelta( ~light-signal1(?i) )
   			else // No change 
@@ -89,7 +89,11 @@ domain traffic_mdp {
   		// Update a cell's occupation status according to CTM rules
   		occupied'(?c) = // Check for perimeter cell
   						if (PERIMETER-INPUT-CELL(?c))
-  						then Bernoulli(	PERIMETER-INPUT-RATE(?c) )
+  						then [if (~occupied(?c))
+  								then Bernoulli(	PERIMETER-INPUT-RATE(?c) ) // Empty
+  							else if (exists_{?c2 : cell} [FLOWS-INTO-CELL(?c, ?c2) ^ ~occupied(?c2)])
+  								then KronDelta(	false ) // Vacated  
+  							else KronDelta( true )] // Stopped
   							
   						// Check for cell entering intersection on green light
   						else if ([exists_{?i : intersection} [light-signal2(?i) ^ ~light-signal1(?i) ^ FLOWS-INTO-INTERSECTION-NS(?c,?i) ^ exists_{?c2 : cell} [FLOWS-INTO-CELL(?c, ?c2) ^ ~occupied(?c2)]]]
@@ -123,10 +127,7 @@ domain traffic_mdp {
 
 	// Minimize congestion: this reward penalizes congested traffic defined as pairs 
 	// of *consecutive* occupied cells
-	reward = sum_{?c : cell, ?i : intersection} ( FLOWS-INTO-INTERSECTION-NS(?c,?i) * occupied(?c) * ~light-signal1(?i) * light-signal2(?i) 
-		+ FLOWS-INTO-INTERSECTION-EW(?c,?i) * occupied(?c) * light-signal1(?i) * ~light-signal2(?i) );
-	//reward = sum_{?c : cell} ( PERIMETER-EXIT-CELL(?c) * occupied(?c) );
-	
+	reward = sum_{?c : cell} -[occupied(?c) ^ exists_{?c2 : cell} (FLOWS-INTO-CELL(?c2, ?c) ^ occupied(?c2))];
 	
 //	state-action-constraints {
 //		// Make sure probabilities are in correct range
