@@ -85,7 +85,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	private Random _stateSelectionRand = null;
 	protected Random _actionSelectionRandom = null;
 	private List<ADDRNode>  max_rewards = null;
-	protected final boolean INIT_REWARD = true;
+	protected final boolean INIT_REWARD = false;
 	
 //	public enum SUCCESSOR{
 //		NONE, BRTDP, FRTDP
