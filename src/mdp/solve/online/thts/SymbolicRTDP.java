@@ -52,21 +52,16 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 
 	public final static boolean  DISPLAY_TRAJECTORY = false;
-//	public boolean BACK_CHAIN;
-	private int _successful_update = 0;
-	private int successful_policy_update = 0;
-//	private int good_updates;
-//	private int truncated_backup;
+
 	private boolean _genStates;
-//	private int generalization;
-//	private int generalization_cons;
+
 	private int _onPolicyDepth;
 
-	private enum LearningRule{
+	public enum LearningRule{
 		NONE, DECISION_LIST, LFA
 	}
 	private LearningRule _learningRule;
-	private enum LearningMode{
+	public enum LearningMode{
 		BATCH, ONLINE
 	}
 	private LearningMode _learningMode;
@@ -152,7 +147,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}
 		
 //		if( enableLabelling && !_manager.evaluate(_solved[0], state.getFactoredState()).equals(_manager.DD_ONE) ){
-		if( !_learningRule.equals(LearningRule.NONE) || _numRules < _maxRules ){
+		if( _learningRule.equals(LearningRule.NONE) || 
+				(!_learningRule.equals(LearningRule.NONE) && _numRules < _maxRules ) ){
 			do_sRTDP( state );	
 			final NavigableMap<String, Boolean> action 
 			= pick_successor_node(state, 0).getFactoredAction();//ADDManager.sampleOneLeaf(action_dd, _rand );
@@ -746,14 +742,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				current_parition = update_states;
 			}
 			
-			if( _manager.getVars(current_parition).get(0).contains("delta_y_1") ){
-				try{
-					throw new Exception("Problem");
-				}catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			
 //			System.out.println( "gen state " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
 //			System.out.println( "updated state " + depth + " " + _manager.enumeratePathsBDD(update_states).toString() );
 			
@@ -1181,7 +1169,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		return new_generalized_state;
 	}
 
-	private void saveValuePolicy() {
+	protected void saveValuePolicy() {
 		_genaralizeParameters.set_valueDD(_valueDD);
 		_genaralizeParameters.set_policyDD( _policyDD );
 //		_genaralizeParameters.set_visited(_visited);
