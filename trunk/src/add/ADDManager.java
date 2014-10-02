@@ -2604,6 +2604,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 		System.out.println( man.enumeratePaths( man.all_paths_to_leaf(inode2, leaf1  ) ).toString() );
 		
+		System.out.println( man.enumeratePaths( man.all_paths_to_leaf(inode2, leaf2  ) ).toString() );
+		
+		System.out.println( man.enumeratePaths( man.all_paths_to_leaf(inode2, man.DD_ONE  ) ).toString() );
+		
 	}
 
 	private int enumeratePathsInt(final ADDRNode input,
