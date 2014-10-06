@@ -46,7 +46,8 @@ instance recon_inst_mdp__7 {
 	domain = recon_mdp; 
  	non-fluents = nf_recon_inst_mdp__7;
 	init-state { 
-		agentAt(a1,x0,y1);
+		agentAt-X(a1,x0);
+		agentAt-Y(a1,y1);
 	};
 	max-nondef-actions = 1;
 	horizon = 40;
