@@ -31,18 +31,17 @@ non-fluents nf_recon_inst_mdp__3 {
 		objAt(o3,x1,y1);
 		objAt(o4,x1,y0);
 		HAZARD(x2,y2);
-		DAMAGE_PROB(w1) = 0.3;
-		DAMAGE_PROB(l1) = 0.3;
-		GOOD_PIC_WEIGHT = 1;
-		BAD_PIC_WEIGHT = 0.3;
+		DAMAGE_PROB(w1) = 0.28236946;
+		DAMAGE_PROB(l1) = 0.30418548;
+		GOOD_PIC_WEIGHT = 0.7597893;
+		BAD_PIC_WEIGHT = 0.33286658;
 	};
 }
 instance recon_inst_mdp__3 { 
 	domain = recon_mdp; 
  	non-fluents = nf_recon_inst_mdp__3;
 	init-state { 
-		agentAt-X(x1);
-		agentAt-Y(y2);
+		agentAt(a1,x1,y2);
 	};
 	max-nondef-actions = 1;
 	horizon = 40;
