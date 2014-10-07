@@ -312,7 +312,7 @@ RDDLFactoredActionSpace> {
 
 			value_ret = _manager.marginalize( value_ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
 
-			value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) :
+			value_ret = constrain_naively ? value_ret : //_manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) :
 				_manager.constrain( value_ret, all_constraints, _manager.DD_NEG_INF );
 			
 		}
@@ -324,7 +324,7 @@ RDDLFactoredActionSpace> {
 
 			value_ret = _manager.apply( value_ret, r2, DDOper.ARITH_PLUS );
 			
-			value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS) :
+			value_ret = constrain_naively ? value_ret : //_manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS) :
 				_manager.constrain(value_ret, all_constraints, _manager.DD_NEG_INF );
 			
 		}
