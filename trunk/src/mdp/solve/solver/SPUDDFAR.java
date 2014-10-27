@@ -161,10 +161,10 @@ public class SPUDDFAR implements Runnable{
 				_manager.countNodes(_valueDD ).toString() + " " +
 				( _FAR ? _manager.countNodes( _policy._bddPolicy ).toString()
 						: _manager.countNodes( _policy._addPolicy ).toString() ) );
-		System.out.println("Paths of value, policy = " + 
-				_manager.countPathsADD( _valueDD ) + " " + 
-				( _FAR ? _manager.countPathsBDD(_policy._bddPolicy ) : 
-					_manager.countPathsADD( _policy._addPolicy ) ) );
+//		System.out.println("Paths of value, policy = " + 
+//				_manager.countPathsADD( _valueDD ) + " " + 
+//				( _FAR ? _manager.countPathsBDD(_policy._bddPolicy ) : 
+//					_manager.countPathsADD( _policy._addPolicy ) ) );
 //		System.out.println( "No. of leaves = " + Arrays.toString( _manager.countLeaves(_valueDD) ) );
 //		_manager.showGraph( _valueDD );//,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
