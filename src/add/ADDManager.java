@@ -1790,11 +1790,6 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			e.printStackTrace();
 			throwAwayApplyCache();
 			System.err.println("apply EML");
-			try {
-				Thread.sleep(10000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
 			
 			throw new OutOfMemoryError();
 		}
