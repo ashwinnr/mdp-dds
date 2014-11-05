@@ -4788,19 +4788,22 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	private ADDRNode get_path_int(
 			final ADDRNode input, final NavigableMap<String, Boolean> path) {
-		ADDRNode ret = DD_ONE, cur = input;
+		ADDRNode cur = input;
+		final NavigableMap<String, Boolean> ret_path_assign = 
+				Maps.newTreeMap();
+		
 		while( cur.getNode() instanceof ADDINode ){
 			final String var = cur.getTestVariable();
 			Boolean val = path.get(var);
-			final ADDRNode cur_node = getIndicatorDiagram(var, val);
-			ret = BDDIntersection(ret, cur_node);
+			ret_path_assign.put( var, val );
+			
 			if( val ){
 				cur = cur.getTrueChild();
 			}else{
 				cur = cur.getFalseChild();
 			}
 		}
-		return ret;
+		return getProductBDDFromAssignment(ret_path_assign);
 	}
 
 	public ADDRNode quantify(final ADDRNode input, 
