@@ -1300,6 +1300,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		}
 //		_rand = new Random(seed);
 	}
+	
+	public InternedArrayList<String> getOrdering(){
+		return _ordering;
+	}
 
 	private synchronized void addPair( final ADDRNode op1, final ADDRNode op2, 
 			final DDOper op, final ADDRNode res ){
@@ -4824,6 +4828,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			ret = BDDIntersection( ret, get_path( dd, assigns ) );
 		}
 		return ret;
+	}
+
+	public ADDRNode BDDImplication( final ADDRNode bdd_one,
+			final ADDRNode bdd_two) {
+		return BDDUnion( BDDNegate(bdd_one), bdd_two );
 	}
 	
 

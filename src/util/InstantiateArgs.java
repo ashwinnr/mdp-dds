@@ -6,6 +6,9 @@ import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
 import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
+import mdp.solve.online.thts.IncrementalSymbolicRTDP.REMOVE_VAR_CONDITION;
+import mdp.solve.online.thts.IncrementalSymbolicRTDP.START_STATE;
+import mdp.solve.online.thts.IncrementalSymbolicRTDP.STOPPING_CONDITION;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -73,8 +76,16 @@ public class InstantiateArgs {
 	ret.addOption("maxRules", true, "max num rules" );
 	ret.addOption("learningMode", true, "whether ONLINE/BATCH for learning with mx rules");
 	ret.addOption("do_Xion", true, "invariance of abstract states" );
-	
 	ret.addOption("stat_vfn", true, "stationary value fn" );
+
+	ret.addOption( "initGen", true, "initialization for generalized state " 
+			+ Arrays.toString( START_STATE.values() ) );
+	ret.addOption("stopGen", true, "stoping condition for generalization" 
+			+ Arrays.toString( STOPPING_CONDITION.values() ) );
+	ret.addOption( "nextGen", true, "how to generate subsequent generalizations - " + 
+			Arrays.toString( REMOVE_VAR_CONDITION.values()) );
+	ret.addOption( "maxIgnoreDepth", true, "maximum variables that can be ignored" );
+	ret.addOption( "timePerState", true, "time(mins) per state" );
 	
 	return ret;
     }   
