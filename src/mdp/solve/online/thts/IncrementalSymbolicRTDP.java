@@ -238,13 +238,13 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		while ( !done ){
 
 			update_time.ResumeTimer();
-			ADDRNode next_gen_uniq = 
-					_manager.BDDIntersection( next_generalization, 
-							_manager.BDDNegate(updated_states) ) ;
+//			ADDRNode next_gen_uniq = 
+//					_manager.BDDIntersection( next_generalization, 
+//							_manager.BDDNegate(updated_states) ) ;
 //			System.out.println("updating " + _manager.enumeratePathsBDD(next_generalization).iterator().next().toString() );
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup 
 				= _dtr.backup( updated_V, updated_pi, source_val, 
-						next_gen_uniq, BACKUP_TYPE.VI_FAR, 
+						next_generalization, BACKUP_TYPE.VI_FAR, 
 						do_apricodd, 
 						do_apricodd ? apricodd_epsilon  : 0, 
 						apricodd_type, true, -1, 
@@ -348,7 +348,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		}
 		
 		if( num_missing_vars > 0 ){
-			System.out.println("ignored total " + num_missing_vars );
+//			System.out.println("ignored total " + num_missing_vars );
 			++succesful_generalization;
 		}
 		
