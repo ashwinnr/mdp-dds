@@ -321,6 +321,10 @@ RDDLFactoredActionSpace> {
 			
 		}
 		
+		value_ret = constrain_naively ? 
+				_manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) : 
+					value_ret;
+		
 		value_ret = _manager.scalarMultiply(value_ret, _mdp.getDiscount() );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 			System.out.println("adding reward "  );
