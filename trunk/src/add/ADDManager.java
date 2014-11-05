@@ -2266,6 +2266,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode constrain( final ADDRNode rnode, final ADDRNode rconstrain, 
 			final ADDRNode violate ){
 
+//				System.out.println("constrain");
+		
 //		if( _constrainCache == null ){
 //			_constrainCache = new ConcurrentHashMap< 
 //					Pair< ADDRNode, ADDRNode >, ADDRNode >();

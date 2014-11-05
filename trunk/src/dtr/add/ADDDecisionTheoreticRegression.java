@@ -307,11 +307,11 @@ RDDLFactoredActionSpace> {
 			
 			final ADDRNode this_cpt = cpt_dds.get( ns_var );
 			//remove inconsistent things in cpt without adding vars
-			final ADDRNode restricted_cpt = _manager.constrain(this_cpt,
-					this_constraint, _manager.DD_ZERO );
+//			final ADDRNode restricted_cpt = _manager.constrain(this_cpt,
+//					this_constraint, _manager.DD_ZERO );
 			
 			//multiply
-			value_ret = _manager.apply( value_ret, restricted_cpt, DDOper.ARITH_PROD );
+			value_ret = _manager.apply( value_ret, this_cpt, DDOper.ARITH_PROD );
 			//marginalize
 
 			value_ret = _manager.marginalize( value_ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
@@ -331,9 +331,9 @@ RDDLFactoredActionSpace> {
 		}
 		
 		for( final ADDRNode rew : reward_dds ){
-			final ADDRNode r2 = _manager.constrain(rew, this_constraint, _manager.DD_NEG_INF );
+//			final ADDRNode r2 = _manager.constrain(rew, this_constraint, _manager.DD_NEG_INF );
 
-			value_ret = _manager.apply( value_ret, r2, DDOper.ARITH_PLUS );
+			value_ret = _manager.apply( value_ret, rew, DDOper.ARITH_PLUS );
 			
 			value_ret = constrain_naively ? value_ret : // _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS) :
 				_manager.constrain(value_ret, all_constraints, _manager.DD_NEG_INF );
