@@ -301,6 +301,10 @@ RDDLFactoredActionSpace> {
 				_manager.apply( primed, all_constraints_neg_inf, DDOper.ARITH_PLUS ): primed;
 				
 		for( final String ns_var : _mdp.getSumOrder() ){
+			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+				System.out.println("expectation " + ns_var );
+			}
+			
 			final ADDRNode this_cpt = cpt_dds.get( ns_var );
 			//remove inconsistent things in cpt without adding vars
 			final ADDRNode restricted_cpt = _manager.constrain(this_cpt,
@@ -318,6 +322,9 @@ RDDLFactoredActionSpace> {
 		}
 		
 		value_ret = _manager.scalarMultiply(value_ret, _mdp.getDiscount() );
+		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+			System.out.println("adding reward "  );
+		}
 		
 		for( final ADDRNode rew : reward_dds ){
 			final ADDRNode r2 = _manager.constrain(rew, this_constraint, _manager.DD_NEG_INF );
@@ -336,6 +343,9 @@ RDDLFactoredActionSpace> {
 		final ADDRNode q_func = value_ret;
 		
 		for( final String act_var : _mdp.getElimOrder() ){
+			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
+				System.out.println("maxxing " + act_var );
+			}
 			value_ret = _manager.marginalize(value_ret, act_var, DDMarginalize.MARGINALIZE_MAX );
 		}
 		
