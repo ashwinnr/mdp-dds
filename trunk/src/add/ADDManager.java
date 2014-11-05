@@ -1792,6 +1792,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			System.err.println("apply EML");
 			
 			throw new OutOfMemoryError();
+		}catch( Exception e ){
+			e.printStackTrace();
 		}
 //		if( ret.getMax() == Double.NaN ){
 //			try{
