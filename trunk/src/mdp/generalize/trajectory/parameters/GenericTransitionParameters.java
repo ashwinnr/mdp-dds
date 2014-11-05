@@ -36,7 +36,9 @@ public class GenericTransitionParameters< T extends GeneralizationType, P extend
 	    this.num_states = num_states;
 	    this.inner_generalizer = inner_generalizer;
 	    this.inner_parameters = inner_parameters;
-	    inner_parameters.set_manager(_manager);
+	    if( inner_parameters != null ){
+	    	inner_parameters.set_manager(_manager);
+	    }
 	    _bddRandom = new Random( seed );
 	}
 	public Generalization<S, A, T, P> getGeneralizer() {

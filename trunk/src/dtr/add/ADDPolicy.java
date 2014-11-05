@@ -45,15 +45,17 @@ public class ADDPolicy extends
 	private RDDLFactoredTransition _transition;
 	private FactoredReward<RDDLFactoredStateSpace, RDDLFactoredActionSpace> _reward;
 	private RDDLFactoredStateSpace _stateSpace;
+	private RDDLFactoredActionSpace _actionSpace;
 	
 	public ADDPolicy(ADDManager man, 
 			RDDLFactoredStateSpace stateSpace,
 			RDDLFactoredTransition transition, 
-			RDDLFactoredReward reward  ) {
+			RDDLFactoredReward reward, RDDLFactoredActionSpace actionSpace  ) {
 		_manager = man;
 		_transition = transition;
 		_reward = reward;
 		_stateSpace = stateSpace;
+		_actionSpace = actionSpace;
 	}
 	
 	@Override
@@ -96,6 +98,8 @@ public class ADDPolicy extends
 		ADDRNode diff = _manager.apply(v_func, jointQFunc, DDOper.ARITH_MINUS );
 //		_manager.showGraph( v_func, jointQFunc, diff );
 		_bddPolicy = _manager.threshold(diff, 0, false);
+		_bddPolicy = _manager.breakTiesInBDD(_bddPolicy, _actionSpace.getActionVariables(),
+				false );
 	}
 	
 	@Override

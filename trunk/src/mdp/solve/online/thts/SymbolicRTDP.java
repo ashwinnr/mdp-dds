@@ -53,12 +53,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 	public final static boolean  DISPLAY_TRAJECTORY = false;
 
-	private boolean _genStates;
+	protected boolean _genStates;
 
-	private int _onPolicyDepth;
+	protected int _onPolicyDepth;
 
 	public enum LearningRule{
-		NONE, DECISION_LIST, LFA
+		NONE, DECISION_LIST
 	}
 	private LearningRule _learningRule;
 	public enum LearningMode{
@@ -71,7 +71,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	
 	private boolean do_Xion = true;
 	
-	private boolean _stationary_vfn = false;
+	protected boolean _stationary_vfn = false;
 	
 	public SymbolicRTDP(
 			String domain,
@@ -241,22 +241,25 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		if( _learnedPolicy == null ){
 			_learnedPolicy = _manager.DD_ZERO;
 		}
+		if( _learningRule.equals(LearningRule.DECISION_LIST) ){
 		
-		final NavigableMap<String, Boolean> state_assign = state.getFactoredState();
-		final ADDRNode action_dd = _manager.restrict(_policyDD[0], state_assign);
-		final NavigableMap<String, Boolean> root_action 
-			= _manager.sampleOneLeaf(action_dd, _actionSelectionRandom);
-		ADDRNode policy_path = _manager.get_path( _manager.restrict(_policyDD[0], root_action ), 
-								state_assign );
-		final ADDRNode new_rule = 
-				_manager.BDDIntersection(policy_path, _manager.getProductBDDFromAssignment(root_action) );
-		System.out.println("Adding rule : " + 
-				_manager.enumeratePathsBDD(policy_path).toString() ); 
-		System.out.println( "Action " + root_action.toString() );
-		
-		_numRules++;
-		
-		_learnedPolicy = _manager.BDDUnion(_learnedPolicy, new_rule );
+			final NavigableMap<String, Boolean> state_assign = state.getFactoredState();
+			final ADDRNode action_dd = _manager.restrict(_policyDD[0], state_assign);
+			final NavigableMap<String, Boolean> root_action 
+				= _manager.sampleOneLeaf(action_dd, _actionSelectionRandom);
+			ADDRNode policy_path = _manager.get_path( _manager.restrict(_policyDD[0], root_action ), 
+									state_assign );
+			final ADDRNode new_rule = 
+					_manager.BDDIntersection(policy_path, _manager.getProductBDDFromAssignment(root_action) );
+			System.out.println("Adding rule : " + 
+					_manager.enumeratePathsBDD(policy_path).toString() ); 
+			System.out.println( "Action " + root_action.toString() );
+			
+			_numRules++;
+			
+			_learnedPolicy = _manager.BDDUnion(_learnedPolicy, new_rule );
+			
+		}
 		
 	}
 
@@ -531,7 +534,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		int i = (num_states-1)*2;//-1;
 		int j = num_states-1;
 //		System.out.println("num states " + num_states );
-		ADDRNode visit_save_j = null;// Arrays.copyOf(_visited, _visited.length);
 			
 		while( i >= 2 ){
 		
@@ -1175,8 +1177,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		_genaralizeParameters.set_visited(_visited);
 		
 		final P inner_params = _genaralizeParameters.getParameters();
-		inner_params.set_valueDD(_valueDD);
-		inner_params.set_policyDD(_policyDD);
+		if( inner_params != null ){
+			inner_params.set_valueDD(_valueDD);
+			inner_params.set_policyDD(_policyDD);
+		}
 //		inner_params.set_visited(_visited);
 	}
 	

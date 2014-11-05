@@ -1448,7 +1448,7 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	}
 	
 	@Override
-	public FactoredActionSpace<? extends FactoredStateSpace> getFactoredActionSpace() {
+	public RDDLFactoredActionSpace getFactoredActionSpace() {
 		return _rddlActionSpace;
 	}
 	
@@ -1680,6 +1680,10 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		return (Boolean) _state.getDefaultValue( _tmActionVars.get( svar )._o1 );
 	    }
 	    return null;
+	}
+
+	public boolean isStateVariable( final String s) {
+		return _stateVars.contains(s);
 	}
 
 }

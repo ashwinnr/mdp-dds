@@ -203,7 +203,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				apricodd_type) ;
 		
 		final P inner_params = _genaralizeParameters.getParameters();
-		inner_params.set_manager(_manager);
+		if( inner_params != null ){
+			inner_params.set_manager(_manager);
+		}
 		
 		if( inner_params instanceof EBLParams ){
 			((EBLParams)inner_params).set_dtr( _dtr );

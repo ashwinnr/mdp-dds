@@ -28,4 +28,19 @@ public class InternedArrayList<T> extends ArrayList<T> {
     	    return -1;
     	    
     	}
+		
+		public static void main(String[] args) {
+			testFind();
+		}
+
+		private static void testFind() {
+			ArrayList<String> ord = new ArrayList<String>();
+			ord.add("A".intern());
+			ord.add("B".intern());
+			ord.add("C".intern());
+			
+			InternedArrayList<String> ial = new InternedArrayList<>(ord);
+			System.out.println( ial.indexOf("B".intern()) );
+			System.out.println( ial.indexOf(new String("B") ) );
+		}
 }

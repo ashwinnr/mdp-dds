@@ -342,7 +342,7 @@ RDDLFactoredActionSpace> {
 //		removeStateConstraint(state_constraint);
 		
 		ADDPolicy policy = new ADDPolicy(_manager, _mdp.getFactoredStateSpace(), 
-				_mdp.getFactoredTransition(), _mdp.getFactoredReward() );
+				_mdp.getFactoredTransition(), _mdp.getFactoredReward(), _mdp.getFactoredActionSpace() );
 		policy.updateBDDPolicy(value_ret, q_func);
 		
 		final ADDRNode to_not = _manager.BDDNegate(to);
@@ -736,7 +736,8 @@ RDDLFactoredActionSpace> {
 				if( policy == null ){
 					policy = new ADDPolicy(
 							_manager, _mdp.getFactoredStateSpace(),
-							_mdp.getFactoredTransition(), _mdp.getFactoredReward() );
+							_mdp.getFactoredTransition(), _mdp.getFactoredReward(),
+							_mdp.getFactoredActionSpace() );
 				}
 				policy.updateADDPolicy(v_func, this_q, action);
 			}
@@ -1350,7 +1351,8 @@ RDDLFactoredActionSpace> {
 					if( policy == null ){
 						policy = new ADDPolicy(
 								_manager, _mdp.getFactoredStateSpace(),
-								_mdp.getFactoredTransition(), _mdp.getFactoredReward()  );
+								_mdp.getFactoredTransition(), _mdp.getFactoredReward(),
+								_mdp.getFactoredActionSpace() );
 					}
 					policy.updateBDDPolicy( v_func, q_func );
 				}else{ 
@@ -1807,7 +1809,7 @@ RDDLFactoredActionSpace> {
 
 				final ADDPolicy add_policy = new ADDPolicy(_manager,
 						_mdp.getFactoredStateSpace(), _mdp.getFactoredTransition(),
-						_mdp.getFactoredReward()  );
+						_mdp.getFactoredReward(), _mdp.getFactoredActionSpace()  );
 				add_policy._bddPolicy = policy;
 
 				System.out.println("Regressed MBFAR, total leaves = " + total_leaves );
@@ -2265,7 +2267,7 @@ RDDLFactoredActionSpace> {
 		manager.showGraph( newValueFn );	
 		//execute policyregre
 		ADDPolicy policy = new ADDPolicy(manager, mdp.getFactoredStateSpace(), 
-				mdp.getFactoredTransition(), mdp.getFactoredReward() );
+				mdp.getFactoredTransition(), mdp.getFactoredReward() , mdp.getFactoredActionSpace() );
 		policy._bddPolicy = handCodedPolicy;
 		policy.executePolicy(3, 4, true, mdp.getHorizon(), mdp.getDiscount(),
 				new Random(42), new Random(23), new Random(61) ).printStats();

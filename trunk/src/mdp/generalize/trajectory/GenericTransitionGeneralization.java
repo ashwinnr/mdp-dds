@@ -259,6 +259,10 @@ GenericTransitionType<T>, GenericTransitionParameters<T,P, RDDLFactoredStateSpac
     }
     
     private boolean containsBackwards(Consistency[] cons) {
+    	if( cons == null ){
+    		return false;
+    	}
+    	
     	for( final Consistency c : cons ){
     		if( c.equals(Consistency.BACKWARDS_WEAK_ACTION) || c.equals(Consistency.BACKWARDS_WEAK_POLICY) ){
     			return true;
