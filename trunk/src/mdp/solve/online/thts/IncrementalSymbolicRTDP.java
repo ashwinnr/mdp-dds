@@ -187,8 +187,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			saveValuePolicy();
 			--j;
 		}
-		System.out.println(succesful_generalization);
-		succesful_generalization = 0;
+//		System.out.println(succesful_generalization);
+//		succesful_generalization = 0;
 	}
 
 	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> updatePath(
