@@ -79,7 +79,6 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		RANDOM,FROM_LGG,LOWEST_ORDER
 	}
 	private REMOVE_VAR_CONDITION _remove_mode;
-	private double _time_per_state;
 	private Random _rand;
 	private int _max_ignore_vars;
 	private int succesful_generalization;
@@ -109,7 +108,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			mdp.solve.online.thts.SymbolicRTDP.LearningMode learningMode, 
 			START_STATE init_mode, STOPPING_CONDITION stop_mode, 
 			REMOVE_VAR_CONDITION remove_mode,
-			final int max_ignore_vars, final double time_per_state ) {
+			final int max_ignore_vars ){
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, init_state_conf, init_state_prob, nTrials, timeOutMins,
@@ -122,7 +121,6 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		_remove_mode = remove_mode;
 		_rand = new Random( topLevel.nextLong() );
 		_max_ignore_vars = max_ignore_vars;
-		_time_per_state = time_per_state;
 	}
 	
 	protected void update_generalized_trajectory(
@@ -159,23 +157,21 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 				if( j-1 < _onPolicyDepth ){
 					backup = updatePath( 
 							target_val, target_policy, source_val, 
-							BACKUP_TYPE.VI_FAR, 
-							do_apricodd, 
+							BACKUP_TYPE.VI_FAR,  do_apricodd, 
 							do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0 , 
 								apricodd_type, true, -1 , CONSTRAIN_NAIVELY, null, 
-								trajectory_states[j-1], trajectory_actions[j-1], j );
+								trajectory_states[j-1], trajectory_actions[j-1], j  );
 				}else{
 					backup = updatePath( target_val, target_policy, source_val, 
-							BACKUP_TYPE.VI_FAR, 
-							do_apricodd, 
+							BACKUP_TYPE.VI_FAR, do_apricodd, 
 							do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
 									apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy,
-									trajectory_states[j-1], trajectory_actions[j-1], j  );
+									trajectory_states[j-1], trajectory_actions[j-1], j );
 				}
 				
 			}else{
-				backup = _dtr.backup( target_val, target_policy, source_val, this_states, BACKUP_TYPE.VI_FAR, 
-						do_apricodd, 
+				backup = _dtr.backup( target_val, target_policy, source_val, this_states, 
+						BACKUP_TYPE.VI_FAR,  do_apricodd, 
 						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
 								apricodd_type, true, -1, 
 								CONSTRAIN_NAIVELY , null  );
@@ -204,7 +200,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			final ADDRNode policy_constraint, 
 			final FactoredState<RDDLFactoredStateSpace> actual_state, 
 			FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace> actual_action,
-			final int depth ){
+			final int depth  ){
 
 		ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
 		ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
@@ -215,10 +211,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		
 		//
 		final ADDRNode initial_path = InitializeGenState( 
-				actual_state,
-				actual_action,
-				depth,
-				current_value_path, current_policy_path );
+				actual_state, actual_action,
+				depth, current_value_path, current_policy_path );
 		ADDRNode best_seen_generalization = null;
 		final Set<String> best_seen_generalization_vars = _manager.getVars(initial_path).get(0);
 		//current generalized state being updated 
@@ -229,7 +223,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		//USE :  to avoid double updates
 		ADDRNode updated_states = _manager.DD_ZERO;
 		boolean done = false;
-		double time_per_extension = 0.0d, elapsedTimeInMinutes = 0d;
+//		double time_per_extension = 0.0d,;
 		final Timer update_time = new Timer();
 		int num_missing_vars = 0;
 		ADDRNode updated_V = target_val, updated_pi = target_policy;
@@ -239,22 +233,21 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		
 		while ( !done ){
 
+			update_time.ResetTimer();
 			update_time.ResumeTimer();
+			
 			ADDRNode next_gen_uniq = 
 					updated_states.equals(_manager.DD_ZERO) ? 
 							next_generalization : 
-					_manager.BDDIntersection( next_generalization, 
-							_manager.BDDNegate(updated_states) ) ;
+					_manager.BDDIntersection( next_generalization, _manager.BDDNegate(updated_states) ) ;
 //			System.out.println("updating " + _manager.enumeratePathsBDD(next_generalization).iterator().next().toString() );
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup 
 				= _dtr.backup( updated_V, updated_pi, source_val, 
-						next_gen_uniq, BACKUP_TYPE.VI_FAR, 
-						do_apricodd, 
+						next_gen_uniq, BACKUP_TYPE.VI_FAR, do_apricodd, 
 						do_apricodd ? apricodd_epsilon  : 0, 
-						apricodd_type, true, -1, 
-						CONSTRAIN_NAIVELY , null  );
+						apricodd_type, true, -1, CONSTRAIN_NAIVELY, null  );
 			update_time.PauseTimer();
-
+			
 			final ADDRNode new_value_path = getValueGenState(backup._o1, actual_state, actual_action);
 			final ADDRNode new_policy_path = getPolicyGenState(backup._o2._o1, actual_state, actual_action);
 			ADDRNode new_lgg = getLeastGeneralGeneralization( new_value_path, 
@@ -331,9 +324,10 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 					_manager.quantify(best_seen_generalization, next_variable, 
 							DDQuantify.EXISTENTIAL );
 
-			final double new_elapsed_time = update_time.GetElapsedTimeInMinutes();
-			time_per_extension = updateTimeEstimate( time_per_extension, elapsedTimeInMinutes, 
-					new_elapsed_time , (int)Math.pow(2,num_missing_vars+1-1) );
+
+			//			time_per_extension = updateTimeEstimate( time_per_extension, elapsedTimeInMinutes, 
+//					new_elapsed_time , (int)Math.pow(2,num_missing_vars+1-1) );
+//			System.out.println(depth + " " + time_per_extension);
 			
 //			if( !isThereEnoughTime( time_per_extension, (int)Math.pow(2d, num_missing_vars+1-1),
 //					_time_per_state-elapsedTimeInMinutes ) ){
@@ -341,23 +335,22 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 //				System.out.println("timeout predicted");
 //				break;
 //			}
-			elapsedTimeInMinutes = new_elapsed_time;
 			if( best_seen_generalization_vars.isEmpty() ) {
 				done = true;
+				break;
 			}
-			
 				
-			if ( _time_per_state != -1 && elapsedTimeInMinutes >= _time_per_state ){
-					done = true;
-//					System.out.println("timeout happened");
-					break;
-			}
+//			if ( time_remaining != -1 && time_remaining <= 0 ){
+//					done = true;
+////					System.out.println("timeout happened");
+//					break;
+//			}
 			
 		}
 		
-		if( num_missing_vars > 0 ){
+		if( num_missing_vars >= 0 ){
 //			System.out.println("ignored total " + num_missing_vars );
-			++succesful_generalization;
+			succesful_generalization += num_missing_vars;
 		}
 		
 		return new UnorderedPair<>(updated_V,new UnorderedPair<>(updated_pi,0d));
@@ -620,8 +613,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 				START_STATE.valueOf( cmd.getOptionValue("initGen") ),
 				STOPPING_CONDITION.valueOf(cmd.getOptionValue("stopGen") ),
 				REMOVE_VAR_CONDITION.valueOf(cmd.getOptionValue("nextGen") ) ,
-				Integer.parseInt( cmd.getOptionValue("maxIgnoreDepth") ),
-				Double.parseDouble( cmd.getOptionValue("timePerState") ) );
+				Integer.parseInt( cmd.getOptionValue("maxIgnoreDepth") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
