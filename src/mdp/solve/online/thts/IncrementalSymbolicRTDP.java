@@ -293,6 +293,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 
 				//during the first backup
 				//the new paths will be the concrete state
+				//this is when current_X is set for the first time and 
+				//checkinvariance has not been called yet when next var is null
 				best_seen_generalization = next_generalization;
 				current_value_path = new_value_path;
 				current_policy_path = new_policy_path;
@@ -320,6 +322,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 //				System.out.println("no variable to be ignored");
 				done = true;
 				break;
+			}else{
+				ignore_vars.remove( next_variable );
 			}
 			
 			++num_tried_vars;
