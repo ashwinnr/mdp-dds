@@ -209,7 +209,9 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
 		ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
 		ADDRNode current_lgg = getLeastGeneralGeneralization( current_value_path, current_policy_path );
-		final ADDRNode save_lgg = current_lgg;
+		
+		final Set<String> ignore_vars = Sets.newTreeSet(_mdp.get_stateVars());
+		ignore_vars.removeAll( _manager.getVars(current_lgg).get(0) );
 		
 		//
 		final ADDRNode initial_path = InitializeGenState( 
@@ -239,6 +241,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 
 			update_time.ResumeTimer();
 			ADDRNode next_gen_uniq = 
+					updated_states.equals(_manager.DD_ZERO) ? 
+							next_generalization : 
 					_manager.BDDIntersection( next_generalization, 
 							_manager.BDDNegate(updated_states) ) ;
 //			System.out.println("updating " + _manager.enumeratePathsBDD(next_generalization).iterator().next().toString() );
@@ -308,8 +312,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 //				System.out.println("tried all variables to ignore (or) max depth reached");
 				break;
 			}
-			next_variable = pickNextVariable(best_seen_generalization_vars, 
-					actual_state, actual_action, save_lgg);
+			next_variable = pickNextVariable( best_seen_generalization_vars, 
+					actual_state, actual_action, ignore_vars );
 //			System.out.println("ignore " + next_variable );
 			
 			if( next_variable == null ){
@@ -389,9 +393,12 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 	}
 
 	private boolean checkInvariance(ADDRNode new_lgg, ADDRNode old_lgg) {
+		//a generalized update is good if it 
+		//strictly reduces the size of the lgg
 		if( new_lgg.equals(old_lgg) ){
-			return true;
+			return false;
 		}
+		
 		return _manager.BDDImplication(old_lgg, new_lgg).equals(_manager.DD_ONE);
 	}
 
@@ -491,9 +498,12 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			final Set<String> current_generalization_vars,
 			final FactoredState<RDDLFactoredStateSpace> actual_state,
 			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> actual_action, 
-			final ADDRNode lgg ) {
+			final Set<String> ignore_vars ) {
 		
 		if( current_generalization_vars.isEmpty() ){
+			return null;
+		}
+		if( ignore_vars.isEmpty() ){
 			return null;
 		}
 		
@@ -514,12 +524,11 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			ret = getRandomElementFromSet( current_generalization_vars, _rand );
 			break;
 		case FROM_LGG : 
-			final Set<String> lgg_vars = _manager.getVars( lgg ).iterator().next();
 			list_ordering = _manager.getOrdering();
 			for( int i =  list_ordering.size()-1 ; i >= 0 ; --i ){
 				final String s = list_ordering.get(i);
 				if( current_generalization_vars.contains(s) && 
-						_mdp.isStateVariable( s ) && !lgg_vars.contains(s) ){
+						_mdp.isStateVariable( s ) && ignore_vars.contains(s) ){
 					ret = s;
 					break;
 				}
