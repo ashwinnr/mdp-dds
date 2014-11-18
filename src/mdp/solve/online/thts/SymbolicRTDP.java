@@ -70,7 +70,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private int _maxRules;
 	
 	private boolean do_Xion = true;
-	
 	protected boolean _stationary_vfn = false;
 	
 	public SymbolicRTDP(

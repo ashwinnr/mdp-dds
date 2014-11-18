@@ -78,10 +78,11 @@ public class BaseLinePolicy implements Runnable{
 		if( _type.equals(BaseType.RANDOM) ){
 			_policy = new RandomPolicy(_manager, _mdp.getFactoredStateSpace(),
 					_mdp.getFactoredTransition(), _mdp.getFactoredReward(), 
-					_seed, _mdp, _dtr);
+					_seed, _mdp, _dtr, _mdp.getFactoredActionSpace() );
 		}else{
 			_policy = new NoOpPolicy(_manager, _mdp.getFactoredStateSpace(),
-					_mdp.getFactoredTransition(), _mdp.getFactoredReward(), _seed );
+					_mdp.getFactoredTransition(), _mdp.getFactoredReward(), _seed,
+					_mdp.getFactoredActionSpace() );
 		}
 		
 		try{
