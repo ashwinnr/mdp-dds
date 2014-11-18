@@ -25,8 +25,8 @@ public class NoOpPolicy extends ADDPolicy {
 		_nullMap = new TreeMap<String, Boolean>();
 	public NoOpPolicy(ADDManager man, RDDLFactoredStateSpace stateSpace,
 			RDDLFactoredTransition transition, RDDLFactoredReward reward,
-			long seed ) {
-		super(man, stateSpace, transition, reward);
+			long seed, RDDLFactoredActionSpace actionSpace ) {
+		super(man, stateSpace, transition, reward, actionSpace);
 	}
 	
 	public <T extends factored.mdp.define.FactoredState<RDDLFactoredStateSpace>, 
