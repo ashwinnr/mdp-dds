@@ -298,7 +298,7 @@ RDDLFactoredActionSpace> {
 
 		
 		ADDRNode value_ret = constrain_naively ? 
-				_manager.apply( primed, all_constraints_neg_inf, DDOper.ARITH_PLUS ): primed;
+				_manager.apply( primed, all_constraints_neg_inf, DDOper.ARITH_PLUS ) : primed;
 				
 		for( final String ns_var : _mdp.getSumOrder() ){
 			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
