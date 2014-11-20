@@ -91,14 +91,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //		NONE, BRTDP, FRTDP
 //	}
 	
-	public enum FORWARD_PRUNING{
-		NONE, PROB
-	}
-	
-	public enum BACKWARD_PRUNING{
-		NONE, BE
-	}
-	
 	public SymbolicTHTS( 
 			final String domain, 
 			final String instance, 
@@ -133,7 +125,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final Consistency[] cons,
 			final boolean  truncateTrials,
 			final boolean enableLabeling ,
-			final Random topLevel ) {
+			final Random topLevel  ) {
 		
 		super( domain, instance, FAR, debug, order, topLevel.nextLong(), useDiscounting, numStates, numRounds, init_state_conf,
 				init_state_prob ,

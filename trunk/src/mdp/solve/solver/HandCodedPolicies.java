@@ -19,11 +19,14 @@ public class HandCodedPolicies {
 	}
 	else if( domain_file.contains("sysadmin") ){
 		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}else if( domain_file.contains("traffic") ){
+	}
+	else if( domain_file.contains("traffic") ){
 		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}else if( domain_file.contains("skill_teaching") ){
+	}
+	else if( domain_file.contains("skill_teaching") ){
 		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}else if( domain_file.contains("game_of_life") ){
+	}
+	else if( domain_file.contains("game_of_life") ){
 		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
 	}
 //	else if( domain_file.contains("grid") ){
