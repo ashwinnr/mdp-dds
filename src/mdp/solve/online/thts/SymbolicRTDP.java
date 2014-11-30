@@ -1,10 +1,8 @@
 package mdp.solve.online.thts;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.NavigableMap;
 import java.util.Random;
-import java.util.Set;
 
 import mdp.generalize.trajectory.EBLGeneralization;
 import mdp.generalize.trajectory.Generalization;
@@ -16,7 +14,6 @@ import mdp.generalize.trajectory.parameters.EBLParams;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters;
-import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
 import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
 import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
 import mdp.generalize.trajectory.type.GeneralizationType;
@@ -26,9 +23,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 
-import com.google.common.collect.Maps;
-import com.sun.org.apache.xml.internal.utils.UnImplNode;
-
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
 import rddl.mdp.RDDLFactoredActionSpace;
@@ -36,16 +30,16 @@ import rddl.mdp.RDDLFactoredStateSpace;
 import util.InstantiateArgs;
 import util.Timer;
 import util.UnorderedPair;
-import add.ADDLeaf;
 import add.ADDRNode;
+
+import com.google.common.collect.Maps;
+
 import dd.DDManager.APPROX_TYPE;
 import dd.DDManager.DDOper;
-import dd.DDManager.DDQuantify;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
-import factored.mdp.define.FactoredStateSpace;
 
 public class SymbolicRTDP< T extends GeneralizationType, 
 	P extends GeneralizationParameters<T> > extends SymbolicTHTS< T, P >  {
@@ -104,7 +98,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final int maxRulesToLearn,
 			final LearningMode learningMode ,
 			final boolean do_Xion ,
-			final boolean stat_vfn ) {
+			final boolean stat_vfn,
+			final GLOBAL_INITIALIZATION global_init, 
+			final LOCAL_INITIALIZATION local_init,
+			final boolean truncateTrials  ) {
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type,
@@ -112,8 +109,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				init_state_conf, init_state_prob, BACKUP_TYPE.VI_FAR, nTrials, 
 				timeOutMins, steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
-				gen_rule, cons, false, false , 
-				new Random( topLevel.nextLong() )  );
+				gen_rule, cons, truncateTrials, false , 
+				new Random( topLevel.nextLong() ) , global_init, local_init );
 		
 		_learningMode = learningMode;
 		_maxRules = maxRulesToLearn;
@@ -314,13 +311,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-//			if( truncateTrials && !is_node_visited(cur_state, num_actions)   ){
-////				initilialize_node(cur_state, num_actions);
-////				visit_node(cur_state, num_actions);
-////				System.out.println("Truncating trial : " + num_actions );
-////				System.out.println("Truncating trial : " + cur_state );
-//				continue;
-//			}
+			if( !is_node_visited(cur_state, num_actions)   ){
+				initialize_node(cur_state, num_actions);
+				visit_node(cur_state, num_actions);
+//				System.out.println("Truncating trial : " + num_actions );
+//				System.out.println("Truncating trial : " + cur_state );
+				if( _truncateTrials ){
+					continue;
+				}
+			}
 			
 			
 			while( num_actions < steps_lookahead-1 ){
@@ -336,6 +335,52 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //					break;
 //				}
 
+				if( num_actions == steps_lookahead-1 ){
+					final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>>
+					gen_leaf = generalize_leaf( cur_state, num_actions);
+					if( _genStates ){
+						//changed 5/27/014
+						//find states that have the same reward
+						//not possible to find all
+						//only finding the BDD traversed by state in \sum_R
+						_valueDD[ num_actions ] = _manager.apply(
+								_manager.BDDIntersection( _valueDD[ num_actions ], _manager.BDDNegate(gen_leaf._o1) ),
+								_manager.scalarMultiply( gen_leaf._o1, gen_leaf._o2._o2 ) ,
+								DDOper.ARITH_PLUS );
+						_policyDD[ num_actions ] = _manager.BDDUnion(
+								_manager.BDDIntersection( _policyDD[ num_actions ], _manager.BDDNegate(gen_leaf._o1) ),
+								_manager.BDDIntersection(gen_leaf._o1, gen_leaf._o2._o1) );
+						
+//						System.out.println("leaf node : depth "  + num_actions + " " 
+//						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
+						visit_node( gen_leaf._o1, num_actions );
+					}else{
+						final ADDRNode flat_state = _manager.getProductBDDFromAssignment( cur_state.getFactoredState() );
+						_valueDD[ num_actions ] = _manager.apply(
+							_manager.BDDIntersection( _valueDD[ num_actions ],
+									_manager.BDDNegate( flat_state ) ),
+							_manager.scalarMultiply( flat_state, gen_leaf._o2._o2 ) ,
+							DDOper.ARITH_PLUS );
+						_policyDD[ num_actions ] = _manager.BDDUnion(
+								_manager.BDDIntersection( _policyDD[ num_actions ],
+										_manager.BDDNegate( flat_state ) ),
+								_manager.BDDIntersection( flat_state, gen_leaf._o2._o1 ) );
+						
+//						initialize_leaf(cur_state, num_actions);
+						visit_node(cur_state, num_actions);
+					}
+				}
+				else if( !is_node_visited(cur_state, num_actions) ){
+//					System.out.println("initializing " + cur_state );
+					initialize_node(cur_state, num_actions);
+//					visit_node( cur_state, num_actions );
+//					System.out.println("Truncating trial : " + num_actions );
+//					System.out.println("Truncating trial : " + cur_state );
+					if( _truncateTrials ){
+						break;
+					}
+				}
+				
 				trajectory_actions[ num_actions ].setFactoredAction( 
 						pick_successor_node(cur_state, num_actions).getFactoredAction() );
 
@@ -343,37 +388,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					System.out.println( cur_action.toString() );	
 				}
 
+				//				System.out.println( "Steps to go " + steps_to_go );
 				final FactoredState<RDDLFactoredStateSpace> next_state 
 				= pick_successor_node(cur_state, trajectory_actions[ num_actions ], num_actions);
 				cur_state = next_state;
-				//				System.out.println( "Steps to go " + steps_to_go );
 				++num_actions;
 				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-				if( num_actions == steps_lookahead-1 ){
-					if( _genStates ){
-						//changed 5/27/014
-						//find states that have the same reward
-						//not possible to find all
-						//only finding the BDD traversed by state in \sum_R
-						final ADDRNode gen_leaf = generalize_leaf( cur_state, num_actions);
-						
-//						System.out.println("leaf node : depth "  + num_actions + " " 
-//						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
-						
-						initialize_leaf( cur_state, num_actions, gen_leaf );
-//						visit_node( gen_leaf, num_actions );
-					}else{
-						initialize_leaf(cur_state, num_actions);
-//						visit_node(cur_state, num_actions);
-					}
-				}
-//					else if( truncateTrials && !is_node_visited(cur_state, num_actions) ){
-//					initilialize_node(cur_state, num_actions);
-//					visit_node( cur_state, num_actions );
-////					System.out.println("Truncating trial : " + num_actions );
-////					System.out.println("Truncating trial : " + cur_state );
-//					break;
-//				}
 				
 //				if( prob_traj < 0.01d ){
 //					break;
@@ -810,27 +830,27 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
 
 			//actual state must have new values and policy
-			if( get_value(actual_state, depth) != 
-					_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
-				try{
-					throw new Exception("actual state value not set properly " );
-				}catch( Exception e ) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
-			
-			//EXPENSIVE:
-			//remove
-			if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
-					equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
-				try{
-					throw new Exception("actual state policy not set properly " );
-				}catch( Exception e ) {
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if( get_value(actual_state, depth) != 
+//					_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
+//				try{
+//					throw new Exception("actual state value not set properly " );
+//				}catch( Exception e ) {
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
+//			
+//			//EXPENSIVE:
+//			//remove
+//			if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
+//					equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
+//				try{
+//					throw new Exception("actual state policy not set properly " );
+//				}catch( Exception e ) {
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 			
 		}
 		
@@ -1397,7 +1417,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Integer.valueOf( cmd.getOptionValue("maxRules") ),
 				LearningMode.valueOf( cmd.getOptionValue("learningMode")  ),
 				Boolean.parseBoolean( cmd.getOptionValue("do_Xion") ),
-				Boolean.parseBoolean( cmd.getOptionValue("stat_vfn") ) );
+				Boolean.parseBoolean( cmd.getOptionValue("stat_vfn") ),
+				GLOBAL_INITIALIZATION.valueOf( cmd.getOptionValue("global_init") ),
+				LOCAL_INITIALIZATION.valueOf( cmd.getOptionValue("local_init") ) ,
+				Boolean.valueOf( cmd.getOptionValue("truncate_trials") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
@@ -1406,40 +1429,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			System.exit(1);
 		}
 		return null;
-	}
-
-	@Override
-	public boolean is_node_visited(FactoredState<RDDLFactoredStateSpace> state,
-			int depth) {
-		try{
-			throw new UnsupportedOperationException();
-		}catch( Exception e ){
-			e.printStackTrace();
-			System.exit(1);
-		}
-		return false;
-	}
-
-	@Override
-	public void initilialize_node(FactoredState<RDDLFactoredStateSpace> state,
-			int depth) {
-		try{
-			throw new UnsupportedOperationException();
-		}catch( Exception e ){
-			e.printStackTrace();
-			System.exit(1);
-		}		
-	}
-
-	@Override
-	public void visit_node(FactoredState<RDDLFactoredStateSpace> state,
-			int depth) {
-		try{
-			throw new UnsupportedOperationException();
-		}catch( Exception e ){
-			e.printStackTrace();
-			System.exit(1);
-		}		
 	}
 
 	@Override

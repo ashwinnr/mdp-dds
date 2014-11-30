@@ -13,7 +13,6 @@ import mdp.generalize.trajectory.type.ValueGeneralizationType;
 public class RewardGeneralizationParameters extends GeneralizationParameters<RewardGeneralizationType> {
 
 	private List<ADDRNode> _rewards;
-	private List<ADDRNode> _maxRewards;
 	
 	public RewardGeneralizationParameters(
 			ADDManager _manager,
@@ -22,7 +21,6 @@ public class RewardGeneralizationParameters extends GeneralizationParameters<Rew
 			final boolean constrain_naively, final List<ADDRNode> max_rewards ) {
 		super(_manager, _genRule, constrain_naively );
 		_rewards = rewards;
-		_maxRewards = max_rewards;
 	}
 
 	public List<ADDRNode> get_rewards() {
@@ -31,14 +29,6 @@ public class RewardGeneralizationParameters extends GeneralizationParameters<Rew
 	
 	public void set_rewards(List<ADDRNode> _rewards) {
 		this._rewards = _rewards;
-	}
-
-	public void set_maxRewards(List<ADDRNode> _maxRewards) {
-		this._maxRewards = _maxRewards;
-	}
-
-	public List<ADDRNode> get_max_rewards() {
-		return _maxRewards;
 	}
 	
 }

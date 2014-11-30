@@ -10,7 +10,7 @@ public interface THTS<S extends FactoredStateSpace,A extends FactoredActionSpace
     public boolean is_node_visited( FactoredState<S> state , int depth );
     public boolean is_node_solved( FactoredState<S> state , int depth );
 
-    public void initilialize_node( FactoredState<S> state , int depth );
+    public void initialize_node( FactoredState<S> state , int depth );
     
     public FactoredState<S> pick_successor_node( FactoredState<S> state, 
     		FactoredAction<S,A> action , int depth );
