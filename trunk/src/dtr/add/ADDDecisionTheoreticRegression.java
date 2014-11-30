@@ -324,6 +324,7 @@ RDDLFactoredActionSpace> {
 		value_ret = constrain_naively ? 
 				_manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) : 
 					value_ret;
+				
 		
 		value_ret = _manager.scalarMultiply(value_ret, _mdp.getDiscount() );
 		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
@@ -2524,17 +2525,17 @@ RDDLFactoredActionSpace> {
 		return new UnorderedPair<ADDRNode, ADDRNode>( max, greedyPolicy );
 	}
 
-	public List<ADDRNode> maxActionVariables(List<ADDRNode> rewards,
-			ArrayList<String> elimOrder, List<Long> size_change,
-			boolean do_apricodd, double apricodd_epsilon,
-			APPROX_TYPE apricodd_type) {
-		final List<ADDRNode> ret = new ArrayList<ADDRNode>();
-		for( final ADDRNode rew : rewards ){
-			ret.add( maxActionVariables(rew, elimOrder, size_change, do_apricodd,
-					apricodd_epsilon, apricodd_type));
-		}
-		return Collections.unmodifiableList(ret);
-	}
+//	public List<ADDRNode> maxActionVariables(List<ADDRNode> rewards,
+//			ArrayList<String> elimOrder, List<Long> size_change,
+//			boolean do_apricodd, double apricodd_epsilon,
+//			APPROX_TYPE apricodd_type) {
+//		final List<ADDRNode> ret = new ArrayList<ADDRNode>();
+//		for( final ADDRNode rew : rewards ){
+//			ret.add( maxActionVariables(rew, elimOrder, size_change, do_apricodd,
+//					apricodd_epsilon, apricodd_type));
+//		}
+//		return Collections.unmodifiableList(ret);
+//	}
 
 	public double get_prob_transition(
 			final FactoredState<RDDLFactoredStateSpace> cur_state,
@@ -2590,6 +2591,10 @@ RDDLFactoredActionSpace> {
 	//	public void checkModel( final NavigableMap<String, Boolean> action ){
 	//		
 	//	}
+
+	public ADDRNode getDomainConstraints() {
+		return domain_constraints_neg_inf;
+	}
 
 	//	private static void testRegressAllActions() {
 	//		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp_same.rddl", "./rddl/sysadmin_uniring_1_3_0.rddl", 

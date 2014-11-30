@@ -1,6 +1,8 @@
 package mdp.solve.solver;
 
 import java.util.ArrayList;
+import java.util.Random;
+
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
@@ -13,6 +15,8 @@ import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.ADDValueFunction;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_VALUE;
 
 public class SeqHindsight implements Runnable {
 	
@@ -32,6 +36,9 @@ public class SeqHindsight implements Runnable {
 	private boolean DO_APRICODD;
 	private double APRICODD_EPSILON;
 	private APPROX_TYPE APRICODD_APRROX;
+	private boolean _stop = false;
+	private ADDRNode _valueDD;
+	private ADDPolicy _policy;
 	
 	public SeqHindsight(String domain, String instance, double epsilon,
 			DEBUG_LEVEL debug, ORDER order, final long seed,
@@ -42,7 +49,7 @@ public class SeqHindsight implements Runnable {
 			final boolean constrain_naively,
 			final boolean do_apricodd,
 			final double apricodd_epsilon,
-			final APPROX_TYPE approx_type ) {
+			final APPROX_TYPE approx_type, INITIAL_VALUE initial_VALUE ) {
 		_FAR = FAR;
 		CONSTRAIN_NAIVELY = constrain_naively;
 		EPSILON = epsilon;
@@ -63,9 +70,8 @@ public class SeqHindsight implements Runnable {
 	
 	public void run() {
 		
-		ADDRNode _valueDD = _manager.DD_ZERO;
-		ADDRNode _policyDD = _manager.DD_ZERO;
-		ADDPolicy _policy = null;
+		_valueDD = _manager.DD_ZERO;
+		_policy = null;
 		
 		int iter = 1;
 
@@ -107,14 +113,13 @@ public class SeqHindsight implements Runnable {
 			
 			++iter;
 			if( lastiter ){
+				_policy = newValueDD._o2;
 				break;
 			}
 			if( _dtr.terminate(error, iter, EPSILON, HORIZON) && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
 				lastiter = true;
 			}
 		}
-		
-		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetElapsedTimeInMinutes() );
@@ -125,17 +130,87 @@ public class SeqHindsight implements Runnable {
 //		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
 	}
 	
+	public void stop(){
+		_stop  = true;
+	}
+	
+	private ADDRNode getInitialStateADD(
+			final INITIAL_STATE_CONF init_conf, 
+			final Double init_prob) {
+		if( init_conf == null ){
+			return null;
+		}
+		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
+		return ret;
+	}
+
+	public ADDRNode getValueDD() {
+		return _valueDD;
+	}
+	
+	public ADDManager getManager() {
+		return _manager;
+	}
+	
+	public ADDDecisionTheoreticRegression getDTR() {
+		return _dtr;
+	}
+
+	public ADDPolicy getPolicy() {
+		return _policy;
+	}
+	
 	public static void main(String[] args) throws InterruptedException {
-		Runnable worker = new SeqHindsight(args[0], args[1], Double.parseDouble(args[2]), 
-				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
-				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
-				Integer.parseInt(args[6]), 
-				Boolean.parseBoolean(args[7] ), Boolean.parseBoolean(args[8]) ,
-				Boolean.parseBoolean(args[9]), Double.parseDouble(args[10]),
-				APPROX_TYPE.valueOf(args[11]) );
+		final int nStates = Integer.parseInt(args[5]);
+		final int nRounds = Integer.parseInt(args[6]);
+		final boolean useDisc = Boolean.parseBoolean( args[4] );
+		
+		final long seed = Long.parseLong(args[3]);
+		final Random topLevel = new Random( seed );
+		
+		final SeqHindsight worker = new SeqHindsight(args[0], args[1], Double.parseDouble(args[2]), 
+				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, topLevel.nextLong(), 
+				useDisc , nStates , 
+				nRounds, Boolean.parseBoolean(args[7]),
+				Boolean.parseBoolean( args[8] ), Boolean.parseBoolean( args[9] ),
+				Double.parseDouble( args[10] ),  APPROX_TYPE.valueOf( args[11] ) ,
+				INITIAL_VALUE.valueOf( args[12] )  );
+		
 		Thread t = new Thread( worker );
+		System.out.println("Timeout = " + args[13] ); 
 		t.start();
-		t.join();
+		t.join( (long) ( Double.parseDouble( args[13] ) * 60 * 1000 ) );
+		worker.stop();
+		
+		final ADDPolicy policy = worker.getPolicy();
+		
+		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
+		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
+		
+		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
+		
+		try{
+			policy.executePolicy( nRounds, nStates, useDisc, 
+					worker.getHorizon(), worker.getDiscount(), null, 
+					init_state, 
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() )
+					).printStats();
+		}catch( Exception e ){
+			e.printStackTrace();
+		}
+		
+		t.interrupt();
+		
+	}
+	
+	private int getHorizon() {
+		return HORIZON;
+	}
+	
+	private double getDiscount(){
+		return DISCOUNT;
 	}
 
 }

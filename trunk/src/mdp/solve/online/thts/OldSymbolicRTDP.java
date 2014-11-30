@@ -39,6 +39,8 @@ import mdp.generalize.trajectory.type.GeneralizationType;
 import mdp.solve.online.Exploration;
 import mdp.solve.online.thts.SymbolicRTDP.LearningMode;
 import mdp.solve.online.thts.SymbolicRTDP.LearningRule;
+import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
+import mdp.solve.online.thts.SymbolicTHTS.LOCAL_INITIALIZATION;
 
 public class OldSymbolicRTDP< T extends GeneralizationType, 
 	P extends GeneralizationParameters<T> >  extends SymbolicRTDP<T,P> {
@@ -64,7 +66,11 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 			Generalization<RDDLFactoredStateSpace, RDDLFactoredActionSpace, T, P> generalizer,
 			P generalize_parameters_wo_manager, boolean gen_fix_states,
 			boolean gen_fix_actions, int gen_num_states, int gen_num_actions,
-			GENERALIZE_PATH gen_rule, Consistency[] cons, Random topLevel ){
+			final GENERALIZE_PATH gen_rule, final Consistency[] cons, 
+			final Random topLevel, 
+			final GLOBAL_INITIALIZATION global_init,
+			final LOCAL_INITIALIZATION local_init,
+			final boolean truncateTrials ){
 		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, init_state_conf, init_state_prob, nTrials, timeOutMins,
@@ -72,9 +78,8 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, cons, topLevel, steps_lookahead, 
 				mdp.solve.online.thts.SymbolicRTDP.LearningRule.NONE, 
-				-1,
-				mdp.solve.online.thts.SymbolicRTDP.LearningMode.BATCH, 
-				false, false );
+				-1, mdp.solve.online.thts.SymbolicRTDP.LearningMode.BATCH, 
+				false, false, global_init, local_init, truncateTrials );
 	}
 	
 	@Override
@@ -329,17 +334,17 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 				INITIAL_STATE_CONF.valueOf( cmd.getOptionValue("initialStateConf") ),
 				Double.parseDouble( cmd.getOptionValue("initialStateProb") ),
 				Integer.parseInt( cmd.getOptionValue("numTrajectories") ),
-				timeOut,
-				Integer.parseInt( cmd.getOptionValue("stepsLookahead") ),
-				generalizer, 
-				inner_params, 
+				timeOut, Integer.parseInt( cmd.getOptionValue("stepsLookahead") ),
+				generalizer, inner_params, 
 				!Boolean.parseBoolean( cmd.getOptionValue("generalizeStates") ),
 				!Boolean.parseBoolean( cmd.getOptionValue("generalizeActions") ),
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedStates") ),
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedActions") ),
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-				consistency,
-				new Random( topLevel.nextLong() ) );
+				consistency, new Random( topLevel.nextLong() ),
+				GLOBAL_INITIALIZATION.valueOf( cmd.getOptionValue("global_init") ),
+				LOCAL_INITIALIZATION.valueOf( cmd.getOptionValue("local_init") ) ,
+				Boolean.valueOf( cmd.getOptionValue("truncate_trials") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

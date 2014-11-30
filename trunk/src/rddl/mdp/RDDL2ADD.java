@@ -1664,14 +1664,14 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		
 	}
 
-	public double getReward(final NavigableMap<String, Boolean> assign) {
-		//returns a lazy max if assign is a partial one
-		double ret = 0;
-		for( final ADDRNode rew : getRewards() ){
-			ret += _manager.restrict(rew, assign).getMax();
-		}
-		return ret;
-	}
+//	public double getReward(final NavigableMap<String, Boolean> assign) {
+//		//returns a lazy max if assign is a partial one
+//		double ret = 0;
+//		for( final ADDRNode rew : getRewards() ){
+//			ret += _manager.restrict(rew, assign).getMax();
+//		}
+//		return ret;
+//	}
 
 	public Boolean getDefaultValue(final String svar) {
 	    if( _stateVars.contains( svar ) ){
