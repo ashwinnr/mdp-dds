@@ -147,6 +147,7 @@ domain skill_teaching_mdp {
 		forall_{?s : skill}[ ~updateTurn => ~answeredRight(?s) ];
 		forall_{?s : skill}[ ~updateTurn => ~hintedRight(?s) ];
 		forall_{?s : skill}[ ~updateTurn => ~hintDelayVar(?s) ];
+		
 	};
 	
 }

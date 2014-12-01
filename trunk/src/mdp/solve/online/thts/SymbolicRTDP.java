@@ -321,7 +321,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}
 			}
 			
-			
 			while( num_actions < steps_lookahead-1 ){
 				if( DISPLAY_TRAJECTORY ){
 					System.out.println( cur_state.toString() );	
