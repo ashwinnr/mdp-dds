@@ -1,0 +1,129 @@
+////////////////////////////////////////////////////////////////////
+//
+//Simulation of H1N1 influenza
+//Actions  including inoculation and quarantine
+//  
+////////////////////////////////////////////////////////////////////
+domain influenza_mdp {
+
+	requirements = { reward-deterministic };
+	
+	types {
+		
+		person : object;
+	};
+	
+	pvariables {
+	
+		EDGE(person, person) : { non-fluent, bool, default = false }; //topology of contact network
+		EXF1 : { non-fluent, real, default = 0 }; //commonly, individuals do not have infectiveness during exposed period
+		EXF2 : { non-fluent, real, default = 0 }; 
+		INF1 : { non-fluent, real, default = 0 }; //individuals demonstrate infectiveness while infectious period
+		INF2 : { non-fluent, real, default = 0 };
+		INF3 : { non-fluent, real, default = 0 };
+		INF4 : { non-fluent, real, default = 0 };
+		INF5 : { non-fluent, real, default = 0 }; 
+		COST_OF_INOCULATE : { non-fluent, real, default = 1 };
+		COST_OF_QUARANTINE : { non-fluent, real, default = 10 };
+		//state and action fluent
+		susceptible(person) : { state-fluent, bool, default = true };  //S
+		exposedone(person)     : { state-fluent, bool, default = false }; //E of stage day 1
+		exposedtwo(person)     : { state-fluent, bool, default = false }; //E of stage day 2
+		infectedone(person)    : { state-fluent, bool, default = false }; //I of stage day 1
+		infectedtwo(person)    : { state-fluent, bool, default = false }; //I of stage day 2
+		infectedthree(person)    : { state-fluent, bool, default = false }; //I of stage day 3
+		infectedfour(person)	: { state-fluent, bool, default = false }; // I of stage day 4
+		infectedfive(person)	: { state-fluent, bool, default = false }; // I of stage day 5
+		resistant(person)   : { state-fluent, bool, default = false};  //R
+		
+		inoculate(person)   : { action-fluent, bool, default = false }; //vaccine
+		quarantine(person)  : { action-fluent, bool, default = false }; //quarantine
+	};//end of pvariables
+	
+	cpfs {
+	susceptible'(?p) = 
+	// A person can be infected by its neighbors who was infected or exposed mutiply infeciousness
+	// Firstly, we find the susceptible individual inoculated last time
+	// Individual p is inoculated and got immunity, and thus not susceptible anymore.
+ 	if  ( resistant(?p) ^ susceptible(?p) |
+		([sum_{?p2: person} (EDGE(?p, ?p2) ^ exposedone(?p2)) * EXF1 + (EDGE(?p, ?p2) ^ exposedtwo(?p2)) * EXF2
+		+ (EDGE(?p, ?p2) ^ infectedone(?p2)) * INF1 + (EDGE(?p, ?p2) ^ infectedtwo(?p2)) * INF2 
+		+ (EDGE(?p, ?p2) ^ infectedthree(?p2)) * INF3 + (EDGE(?p, ?p2) ^ infectedfour(?p2)) * INF4
+		+ (EDGE(?p, ?p2) ^ infectedfive(?p2)) * INF5] >= 1) )
+		then KronDelta( false )		
+	// then simulate the disease transmission
+	else if ( susceptible(?p) ^ ([sum_{?p2: person} (EDGE(?p, ?p2) ^ exposedone(?p2)) * EXF1 + (EDGE(?p, ?p2) ^ exposedtwo(?p2)) * EXF2
+		+ (EDGE(?p, ?p2) ^ infectedone(?p2)) * INF1 + (EDGE(?p, ?p2) ^ infectedtwo(?p2)) * INF2 
+		+ (EDGE(?p, ?p2) ^ infectedthree(?p2)) * INF3 + (EDGE(?p, ?p2) ^ infectedfour(?p2)) * INF4
+		+ (EDGE(?p, ?p2) ^ infectedfive(?p2)) * INF5] > 0)  )
+			 
+		then Bernoulli(1 - [sum_{?p2: person} (EDGE(?p, ?p2) ^ exposedone(?p2)) * EXF1 + (EDGE(?p, ?p2) ^ exposedtwo(?p2)) * EXF2
+		+ (EDGE(?p, ?p2) ^ infectedone(?p2)) * INF1 + (EDGE(?p, ?p2) ^ infectedtwo(?p2)) * INF2 
+		+ (EDGE(?p, ?p2) ^ infectedthree(?p2)) * INF3 + (EDGE(?p, ?p2) ^ infectedfour(?p2)) * INF4
+		+ (EDGE(?p, ?p2) ^ infectedfive(?p2)) * INF5] )
+	else 
+		KronDelta(susceptible(?p));
+	
+	// ~susceptible means infected
+	exposedone'(?p) = 
+	if ( ~susceptible(?p) ^ ~exposedone(?p) ^ ~exposedtwo(?p) ^ ~infectedone(?p) ^ ~infectedtwo(?p) ^ ~infectedthree(?p) ^ ~infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+	//exposed day 2	
+	exposedtwo'(?p) = 
+	if ( ~susceptible(?p) ^ exposedone(?p) ^ ~exposedtwo(?p) ^ ~infectedone(?p) ^ ~infectedtwo(?p) ^ ~infectedthree(?p) ^ ~infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+	//infected day 1	
+	infectedone'(?p) =
+	if ( ~susceptible(?p) ^ ~exposedone(?p) ^ exposedtwo(?p) ^ ~infectedone(?p) ^ ~infectedtwo(?p) ^ ~infectedthree(?p) ^ ~infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+	//infected day 2
+	infectedtwo'(?p) =
+	if ( ~susceptible(?p) ^ ~exposedone(?p) ^ ~exposedtwo(?p) ^ infectedone(?p) ^ ~infectedtwo(?p) ^ ~infectedthree(?p) ^ ~infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+	//infected day 3
+	infectedthree'(?p) =
+	if ( ~susceptible(?p) ^ ~exposedone(?p) ^ ~exposedtwo(?p) ^ ~infectedone(?p) ^ infectedtwo(?p) ^ ~infectedthree(?p) ^ ~infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+	//infected day 4
+	infectedfour'(?p) =
+	if ( ~susceptible(?p) ^ ~exposedone(?p) ^ ~exposedtwo(?p) ^ ~infectedone(?p) ^ ~infectedtwo(?p) ^ infectedthree(?p) ^ ~infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+	//infected day 5
+	infectedfive'(?p) =
+	if ( ~susceptible(?p) ^ ~exposedone(?p) ^ ~exposedtwo(?p) ^ ~infectedone(?p) ^ ~infectedtwo(?p) ^ ~infectedthree(?p) ^ infectedfour(?p) ^ ~infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( false );
+		
+	//resistant
+	resistant'(?p) =
+	//action inoculation that makes the individual immunity
+	if ( susceptible(?p) ^ inoculate(?p) )
+		//then KronDelta( true ) // 100% successful probability
+		then Bernoulli(0.95) // the immunity has 95% probability of effectiveness
+	//action quaratine that isolates the individual and incur heavy cost
+	else if( (infectedone(?p) | infectedtwo(?p) | infectedthree(?p) | infectedfour(?p) | infectedfive(?p) ) ^ quarantine(?p) )
+	//if( (infectedone(?p) | infectedtwo(?p) | infectedthree(?p) | infectedfour(?p) | infectedfive(?p) ) ^ quarantine(?p) )
+		then KronDelta( true )
+	//state transition
+	else if ( ~susceptible(?p) ^ ~exposedone(?p) ^ ~exposedtwo(?p) ^ ~infectedone(?p) ^ ~infectedtwo(?p) ^ ~infectedthree(?p) ^ ~infectedfour(?p) ^ infectedfive(?p) ^ ~resistant(?p) )
+		then KronDelta( true )
+	else
+		KronDelta( resistant(?p) );
+	
+	};//end of cpfs
+	
+	reward = -1 * [sum_{?p: person} exposedone(?p) + exposedtwo(?p) + infectedone(?p) + infectedtwo(?p) + infectedthree(?p) + infectedfour(?p) + infectedfive(?p) + inoculate(?p) * COST_OF_INOCULATE + quarantine(?p) * COST_OF_QUARANTINE];//cost of influenza, everyday -1, count exposed and infected
+} //end of domain
