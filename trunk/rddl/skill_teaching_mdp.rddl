@@ -143,11 +143,11 @@ domain skill_teaching_mdp {
     
 	reward = [sum_{?s : skill} [SKILL_WEIGHT(?s) * ( proficiencyHigh(?s) - ~proficiencyMed(?s) ) ] ];
 
-	state-action-constraints {
-		forall_{?s : skill}[ updateTurn => ~answeredRight(?s) ];
-		forall_{?s : skill}[ updateTurn => ~hintedRight(?s) ];
-		forall_{?s : skill}[ updateTurn => ~hintDelayVar(?s) ];
-	};
+	//state-action-constraints {
+		//forall_{?s : skill}[ ~updateTurn => ~answeredRight(?s) ];
+		//forall_{?s : skill}[ ~updateTurn => ~hintedRight(?s) ];
+//		forall_{?s : skill}[ ~updateTurn => ~hintDelayVar(?s) ];
+	//};
 	
 }
 
