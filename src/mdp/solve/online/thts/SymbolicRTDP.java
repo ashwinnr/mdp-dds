@@ -47,8 +47,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 	public final static boolean  DISPLAY_TRAJECTORY = false;
 
-	protected boolean _genStates;
-
 	protected int _onPolicyDepth;
 
 	public enum LearningRule{
@@ -65,7 +63,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	
 	private boolean do_Xion = true;
 	protected boolean _stationary_vfn = false;
-	
+
 	public SymbolicRTDP(
 			String domain,
 			String instance,
@@ -305,7 +303,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		final Timer act_time = new Timer();
 		int numSamples = 0;
 		
-		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) ){// && ( !enableLabelling || !solved ) ){
+		final int numStateVars = _mdp.getNumStateVars();
+		final NavigableMap<String, Boolean> initStateAssign = init_state.getFactoredState();
+		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) ){
+//				&& ( !_enableLabelling || !is_node_solved(init_state, 0) ) ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
 			int num_actions = 0;//steps_lookahead;
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
@@ -353,7 +354,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //						System.out.println("leaf node : depth "  + num_actions + " " 
 //						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
 						visit_node( gen_leaf._o1, num_actions );
-					}else{
+					}
+					else{
 						final ADDRNode flat_state = _manager.getProductBDDFromAssignment( cur_state.getFactoredState() );
 						_valueDD[ num_actions ] = _manager.apply(
 							_manager.BDDIntersection( _valueDD[ num_actions ],
@@ -366,10 +368,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 								_manager.BDDIntersection( flat_state, gen_leaf._o2._o1 ) );
 						
 //						initialize_leaf(cur_state, num_actions);
-						visit_node(cur_state, num_actions);
+						visit_node(flat_state, num_actions);
 					}
 				}
-				else if( !is_node_visited(cur_state, num_actions) ){
+				else if( _genStates && !is_node_visited(cur_state, num_actions) ){
 //					System.out.println("initializing " + cur_state );
 					initialize_node(cur_state, num_actions);
 //					visit_node( cur_state, num_actions );
@@ -394,12 +396,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				++num_actions;
 				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
 				
-//				if( prob_traj < 0.01d ){
-//					break;
-//				}
-				
-//				System.out.print("-");
-				
 			}
 			if( DISPLAY_TRAJECTORY ){
 				System.out.println( cur_state.toString() );
@@ -415,8 +411,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] 
 					trajectory_actions_non_null =  Arrays.copyOfRange(trajectory_actions, 0, num_actions);
 			
-			final ADDRNode[] gen_trajectory = generalize_trajectory( trajectory_states_non_null,
+			ADDRNode[] gen_trajectory = null;
+			
+			if( _genStates ){
+				gen_trajectory = generalize_trajectory( trajectory_states_non_null,
 					trajectory_actions_non_null );
+			}
 			
 //			System.out.println(gen_trajectory.length);
 //			_DPTimer.ResumeTimer();			
@@ -445,18 +445,18 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
 				
 				System.out.println( "\nValue of init state " + 
-						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).getMax() );
+						_manager.evaluate(_valueDD[0], initStateAssign ).getMax() );
 				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 				
 				System.out.println("root node action : " + root_action.toString() );
 				
 				System.out.print("description of value of init state ");
 				
-				final ADDRNode path_aroo = _manager.get_path(_valueDD[0], init_state.getFactoredState() );
+				final ADDRNode path_aroo = _manager.get_path(_valueDD[0], initStateAssign );
 				
 				System.out.println(  
 								(_manager.enumeratePathsBDD( 
-										path_aroo).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
+										path_aroo).iterator().next().size()-1.0d)/(1.0d*numStateVars) );
 				
 				
 				System.out.println( "Value : " + 
@@ -467,11 +467,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 				final ADDRNode policy_roo = _manager.get_path(
 						_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
-						init_state.getFactoredState() ) ;
+						initStateAssign ) ;
 				
 				System.out.println( "Policy : " + 
 						(_manager.enumeratePathsBDD( 
-								policy_roo ).iterator().next().size()-1) / (1.0d*_mdp.getNumStateVars()) );
+								policy_roo ).iterator().next().size()-1) / (1.0d*numStateVars) );
 				
 				System.out.println( "Policy : " + 
 						_manager.enumeratePathsBDD( 
@@ -498,7 +498,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
 		
 		System.out.println( "Value of init state " + 
-				_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
+				_manager.evaluate(_valueDD[0], initStateAssign ).toString() );
 		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 		
 		System.out.println("root node action : " + root_action.toString() );
@@ -508,26 +508,27 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		System.out.println(  
 						(_manager.enumeratePathsBDD( 
 								_manager.get_path(
-										_valueDD[0], init_state.getFactoredState() )).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
+										_valueDD[0], initStateAssign )).iterator().next().size()-1.0d)/(1.0d*numStateVars) );
 		
 		
 		System.out.println( "Value : " + 
-				_manager.enumeratePathsBDD( _manager.get_path(_valueDD[0], init_state.getFactoredState() ) ) );
+				_manager.enumeratePathsBDD( _manager.get_path(_valueDD[0], initStateAssign ) ) );
 		
 		System.out.print("description of policy of init state ");
 		
 
+		final NavigableMap<String, Boolean> rootNodeFactoredAction = root_action.getFactoredAction();
 		System.out.println( "Policy : " + 
 				(_manager.enumeratePathsBDD( 
 						_manager.get_path(
-								_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
-								init_state.getFactoredState() ) ).iterator().next().size()-1) / (1.0d*_mdp.getNumStateVars()) );
+								_manager.restrict(_policyDD[0], rootNodeFactoredAction), 
+								initStateAssign ) ).iterator().next().size()-1) / (1.0d*numStateVars) );
 		
 		System.out.println( "Policy : " + 
 				_manager.enumeratePathsBDD( 
 						_manager.get_path(
-								_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
-								init_state.getFactoredState() ) ) );
+								_manager.restrict(_policyDD[0], rootNodeFactoredAction), 
+								initStateAssign ) ) );
 		
 	}
 
@@ -556,17 +557,53 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		while( i >= 2 ){
 		
 //	    	System.out.println("Updating trajectories " + j );
-	    	
-	    	ADDRNode this_next_states, this_states, this_actions;
-	    	ADDRNode source_val, target_val, target_policy;
-	    	
-	    	
-	    	this_next_states = trajectory[i--];
-			this_actions = trajectory[i--];
-			this_states = trajectory[i];
-		    
+			ADDRNode source_val, target_val, target_policy;
 			target_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j-1 ];
 			target_policy = _stationary_vfn ? _policyDD[0] : _policyDD[ j-1 ];
+			source_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j ];
+			_DPTimer.ResumeTimer();
+			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup = null;
+			
+			if( _genStates ){
+				ADDRNode this_next_states, this_states, this_actions;
+	    	
+				this_next_states = trajectory[i--];
+				this_actions = trajectory[i--];
+				this_states = trajectory[i];
+		    
+				if( j-1 < _onPolicyDepth ){
+					backup = _dtr.backup( 
+							target_val, target_policy, source_val, 
+						this_states, BACKUP_TYPE.VI_FAR, 
+						do_apricodd, 
+						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0 , 
+								apricodd_type, true, -1 , CONSTRAIN_NAIVELY, null  );
+				}else{
+					backup = _dtr.backup( target_val, target_policy, source_val, 
+							this_states, BACKUP_TYPE.VI_FAR, 
+							do_apricodd, 
+							do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
+									apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy );
+				}
+				setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, 
+						_stationary_vfn ? 0 : j-1 , 
+						trajectory_states[j-1], trajectory_states[j] );
+			}else{
+				backup = _dtr.backup( target_val, target_policy, source_val, 
+							_manager.getProductBDDFromAssignment(trajectory_states[j-1].getFactoredState()), 
+							BACKUP_TYPE.VI_FAR, 
+						do_apricodd, 
+						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
+								apricodd_type, true, -1, 
+								CONSTRAIN_NAIVELY , null  );
+				_valueDD[ j-1 ] = backup._o1;
+				_policyDD[ j-1 ] = backup._o2._o1;
+
+			}
+				
+			_DPTimer.PauseTimer();
+			
+			--j;
 			
 //			final ADDRNode next_states = _dtr.BDDImageAction( this_states, DDQuantify.EXISTENTIAL,
 //					this_actions, true, _actionVars );//WARNING : constant true
@@ -587,30 +624,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			if( !image_not_visited.equals(_manager.DD_ZERO) ){
 //				source_val = initilialize_node_temp( _valueDD[j], image_not_visited, j);
 //			}else{
-			
-			source_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j ];
 //			}
-			
-			_DPTimer.ResumeTimer();
-			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup = null;
-			if( _genStates ){
+//			if( _genStates ){
 //				final int index_cur_partition = _dtr.addStateConstraint( 
 //						_manager.getRandomSubset( trajectory_states[ j-1 ].getFactoredState() ) ); 
 //				
-				if( j-1 < _onPolicyDepth ){
-					backup = _dtr.backup( 
-							target_val, target_policy, source_val, 
-						this_states, BACKUP_TYPE.VI_FAR, 
-						do_apricodd, 
-						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0 , 
-								apricodd_type, true, -1 , CONSTRAIN_NAIVELY, null  );
-				}else{
-					backup = _dtr.backup( target_val, target_policy, source_val, 
-							this_states, BACKUP_TYPE.VI_FAR, 
-							do_apricodd, 
-							do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
-									apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy );
-				}
 //				if( !_dtr.removeStateConstraint(index_cur_partition) ){
 //					try{
 //						throw new Exception("state constraint could not be removed");
@@ -619,53 +637,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //						System.exit(1);
 //					}
 //				}
-				
-				
-			}else{
-				backup = _dtr.backup( target_val, target_policy, source_val, this_states, BACKUP_TYPE.VI_FAR, 
-						do_apricodd, 
-						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
-								apricodd_type, true, -1, 
-								CONSTRAIN_NAIVELY , null  );
+//			}else{
 //				System.out.println( backup._o2._o2 );
-			}
-			_DPTimer.PauseTimer();
-			
-			setValuePolicyVisited( backup._o1, backup._o2._o1, this_states, 
-					_stationary_vfn ? 0 : j-1 , 
-					trajectory_states[j-1], trajectory_states[j] );
-			
-//			if( enableLabelling  ){
-//				final ADDRNode diff = _manager.apply( target_val, backup._o1, DDOper.ARITH_MINUS );
-//				final ADDRNode threshed 
-//				= _manager.BDDIntersection( this_states, _manager.threshold( diff, EPSILON, false) );
-//				//remove from threshed those that were not updated
-//				
-//				//for state s, thresh = 1 ^ solved = 1 for image(s)
-//				final Set<NavigableMap<String, Boolean>> small_error_paths 
-//				= _manager.enumeratePaths(threshed, false, true, _manager.DD_ONE, false);
-//				if( small_error_paths.isEmpty() ){
-//					final NavigableMap<String, Boolean> state_path = trajectory_states[j-1].getFactoredState();
-//					final ADDRNode this_path 
-//					= _manager.getProductBDDFromAssignment(state_path);
-//					final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
-//					final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
-//					if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-//						mark_node_solved(state_path, j-1);
-//					}
-//				}else{
-//					for( final NavigableMap<String, Boolean> path : small_error_paths ){
-//						final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
-//						final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
-//						final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
-//						if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-//							mark_node_solved(path, j-1);
-//						}
-//					}	
-//				}
-//				
 //			}
-			
 			//even though the backup is assigned to v[j-1]
 			//the backup for v[j-2] will not use these values if visited=0
 			//changed - 5/1
@@ -675,8 +649,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			//the error parameter controls the width of the tree
 			//e.g. the difference in value must be atleast as large as the difference
 			//in the on trajectory state
-			
-
 //			if( j-1 == 0 && ( ( _manager.evaluate(target_val, trajectory_states[j-1].getFactoredState() ).getMax()
 //					) - ( _manager.evaluate(_valueDD[j-1], trajectory_states[j-1].getFactoredState() ).getMax() ) ) != 0 ){
 //				_successful_update++;
@@ -697,16 +669,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			if( BACK_CHAIN ){
 //			    visit_save_j = visit_node( this_states, j-1 );
 //			}
-			
-			
 //			System.out.println(j + " " + backup._o2._o2 );
-			--j;
-			
 //			System.out.println(j + " " +
 //			_manager.enumeratePaths(this_states, false, true,
 //					(ADDLeaf)(_manager.DD_ONE.getNode()), false ).size() );
-			
-			
 		}
 //		_visited = visit_save;
 //		display(_valueDD, _policyDD);
@@ -753,33 +719,16 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			// current partition subseteq update_states must contain actual_state
 			// unless consistency is used! - in which case current_partition 
 			// can be a superset
-			ADDRNode current_parition = null;
+			ADDRNode current_partition = null;
 			if( do_Xion ){
-				current_parition = findNewGeneralizedPartition( new_val,
+				current_partition = findNewGeneralizedPartition( new_val,
 				new_policy, update_states, depth, actual_state, next_state );
-				current_parition = _manager.BDDIntersection( current_parition, update_states );
+				current_partition = _manager.BDDIntersection( current_partition, update_states );
 			}else{
-				current_parition = update_states;
+				current_partition = update_states;
 			}
-			
-//			System.out.println( "gen state " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
-//			System.out.println( "updated state " + depth + " " + _manager.enumeratePathsBDD(update_states).toString() );
-			
 
-//			System.out.println( depth + " " + 
-//					_manager.enumeratePathsBDD(current_parition).iterator().next().size()/(1.0d*_mdp.getNumStateVars()) );
-//			
-//			System.out.println( "gen state* " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
-			//check to see wasteful work
-			//update ^ ~current_part
-			
-//			final int terms_current_partition = _manager.countPathsBDD(current_parition);
-//			generalization += terms_current_partition;
-//
-//			final int terms_current_partition_after_cons = _manager.countPathsBDD(current_parition);
-//			generalization_cons += terms_current_partition_after_cons;
-			
-			if( !_manager.evaluate(current_parition, actual_state.getFactoredState() ).equals(_manager.DD_ONE) ){
+			if( !_manager.evaluate(current_partition, actual_state.getFactoredState() ).equals(_manager.DD_ONE) ){
 				try{
 					throw new Exception("current partition does not contain actual state" );
 				}catch( Exception e ) {
@@ -787,326 +736,62 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					System.exit(1);
 				}
 			}
-			
-//			_visited[ depth ] = _manager.BDDUnion( _visited[depth], current_parition );
-			
-			//actual state must be visited
-//			if( !is_node_visited(actual_state, depth) ){
-//				try{
-//					throw new Exception("actual state has not been visited");
-//				}catch( Exception e ) {
-//					e.printStackTrace();
-//					System.exit(1);
-//				}
-//			}
-			
-			_valueDD[ depth ]  =
-//					_manager.constrain( new_val, _visited[ depth ], _manager.DD_NEG_INF );
-					_manager.apply( 
-							_manager.BDDIntersection( new_val, current_parition ),
-							_manager.BDDIntersection( _valueDD[depth], _manager.BDDNegate(current_parition)),
-							DDOper.ARITH_PLUS );
-							
-//							
-//							_manager.constrain(new_val, _visited[depth], _manager.DD_NEG_INF );
-//			
-			//updated state - value not = neg inf
-//			if( _manager.BDDIntersection(_valueDD[ depth ], current_parition ).getMin() 
-//					== _manager.getNegativeInfValue() ){
-//			    try{
-//			    	throw new Exception("Updated state has value -inf");
-//			    }catch( Exception e ){
-//			    	e.printStackTrace();
-//					System.exit(1);
-//			    }
-//			}
-			_policyDD[ depth ] =
-//				_manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
-					_manager.BDDUnion( _manager.BDDIntersection(new_policy, current_parition) ,
-							_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_parition) ) );
-			
-					//_manager.constrain(new_policy, _visited[depth], _manager.DD_ONE );
-//			_policyDD[ depth ] = _dtr.applyMDPConstraints(_policyDD[depth], null, _manager.DD_ZERO, false, null);
 
-			//actual state must have new values and policy
-//			if( get_value(actual_state, depth) != 
-//					_manager.evaluate(new_val, actual_state.getFactoredState() ).getMax() ){
-//				try{
-//					throw new Exception("actual state value not set properly " );
-//				}catch( Exception e ) {
-//					e.printStackTrace();
-//					System.exit(1);
-//				}
-//			}
-//			
-//			//EXPENSIVE:
-//			//remove
-//			if( !_manager.restrict(_policyDD[depth], actual_state.getFactoredState() ).
-//					equals( _manager.restrict(new_policy, actual_state.getFactoredState() ) ) ){
-//				try{
-//					throw new Exception("actual state policy not set properly " );
-//				}catch( Exception e ) {
-//					e.printStackTrace();
-//					System.exit(1);
-//				}
-//			}
+			final ADDRNode newly_updated_values = _manager.BDDIntersection( new_val, current_partition );
+			_valueDD[ depth ]  =
+					_manager.apply( 
+							newly_updated_values,
+							_manager.BDDIntersection( _valueDD[depth], _manager.BDDNegate(current_partition)),
+							DDOper.ARITH_PLUS );
+
+			final ADDRNode newly_updated_policy = _manager.BDDIntersection(new_policy, current_partition);
+			_policyDD[ depth ] =
+					_manager.BDDUnion( newly_updated_policy ,
+							_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_partition) ) );
 			
-		}
-		
-		//method 1 + method 2 BDD
-//		final ADDRNode - lets just do this for mow
-		
-		
+			
+//			if( _enableLabelling  ){
+//				//solved states in next layer
+//				//S(s) = \forall_s',a [ T(s,a,s') S(s') ]
+//				//set X, S(X) = \forall_x',a T S'
+//				//     = \min_{x',a_i} \prod_T(s,a,x') blah blah
+//				ADDRNode new_solved = _manager.remapVars( _solved[depth+1]  , _mdp.getPrimeRemap() );
 				
-//		if( !_manager.apply( new_val, _manager.BDDNegate( update_states ), 
-//				DDOper.ARITH_PROD ).equals( _manager.DD_ZERO) ){
-//			System.out.println( "other states are updated"); 
-//		}
-		
-		//SANITY : value not -inf should only decrease
-//    	final ADDRNode diff_check = _manager.apply(
-//    			_manager.BDDIntersection(_valueDD[depth], _visited[depth] ),
-//    			_manager.BDDIntersection(new_val, _visited[depth] ),
-//    			DDOper.ARITH_MINUS );
-//		if( diff_check.getMin() < 0 ){
-//    		try{
-//    			throw new Exception ("value of state has increased wrt previous value " 
-//    		+ diff_check.getMin() +"\nDepth = " + depth );
-//    		}catch( Exception e ){
-//    			e.printStackTrace();
-//    			final ADDRNode error = _manager.threshold( diff_check, diff_check.getMin(), false );
-//				System.out.println( _manager.enumeratePaths(error, true, true, 
-//						(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
+//				final ADDRNode threshed 
+//				= _manager.BDDIntersection( this_states, _manager.threshold( diff, EPSILON, false) );
+//				//remove from threshed those that were not updated
 //				
-//				System.out.println( _manager.enumeratePaths(
-//						_manager.BDDIntersection(_valueDD[depth], error), true, true, 
-//						(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
+//				//for state s, thresh = 1 ^ solved = 1 for image(s)
+//				final Set<NavigableMap<String, Boolean>> small_error_paths 
+//				= _manager.enumeratePaths(threshed, false, true, _manager.DD_ONE, false);
+//				if( small_error_paths.isEmpty() ){
+//					final NavigableMap<String, Boolean> state_path = trajectory_states[j-1].getFactoredState();
+//					final ADDRNode this_path 
+//					= _manager.getProductBDDFromAssignment(state_path);
+//					final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
+//					final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
+//					if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
+//						mark_node_solved(state_path, j-1);
+//					}
+//				}else{
+//					for( final NavigableMap<String, Boolean> path : small_error_paths ){
+//						final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
+//						final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
+//						final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
+//						if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
+//							mark_node_solved(path, j-1);
+//						}
+//					}	
+//				}
 //				
-//				System.out.println( _manager.enumeratePaths(
-//						_manager.BDDIntersection(new_val, error), true, true, 
-//						(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-//				
-//				System.out.println("Current Heuristic value : " + 
-//				_manager.enumeratePaths( initilialize_node_temp(update_states, update_states, depth) ) );
-////				System.exit(1);
-//    		}
-//    	}
-		
-//		if( _genStates ){
-//			//restricting to partition containing cur state
-//			//so can inc # partitions in V by at most 1
-//			
-//		}
-//		
-//		if( _genStates ){
-//		    
-//		    	if( _visited[depth].equals(_manager.DD_ONE) ){
-//		    	    _valueDD[depth] = new_val;
-//		    	    _policyDD[depth] = new_policy;
-//		    	    return;
-//		    	}
-//		    	
-//		    	
-//		    	
-//		    //changed : quality for generalization judged only for newly visited states
-//		    	//states that are not visited and have been updated
-//		    	//include actual state
-//		    	//find updates for unvisited states that are small
-//		    	//convert to constraint
-//		    	final ADDRNode this_dd = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
-//		    	
-//		    	//care = update ^ !visited
-//		    	final ADDRNode care_states =  
-//		    			_manager.BDDUnion( 
-//		    					this_dd,
-//		    					_manager.BDDIntersection(update_states, 
-//		    							_manager.BDDNegate(_visited[depth]  ) ) );
-//		    	
-//		    	if( care_states.equals(_manager.DD_ZERO) ){
-//		    	    //no new states to check
-//		    	    _valueDD[depth] = new_val;
-//		    	    _policyDD[depth] = new_policy;
-//		    	    return;
-//		    	}
-//		    	
-//			final ADDRNode heur = initilialize_node_temp(care_states, care_states, depth);
-//			//!care => heur = 0
-//			
-//			ADDRNode diff = _manager.apply( 
-//					heur, 
-//					_manager.BDDIntersection(new_val, care_states),
-//					DDOper.ARITH_MINUS  );//how much did the value change with respect to the heuristic
-//			//so diff will be zero for states outside of update_states
-//			//careful when threshold
-//			//remove non updated states from diff
-//			
-////			final ADDRNode checker = _manager.BDDIntersection(diff, care_states );
-//			if( diff.getMin() < 0  ){
-//				try{
-//					throw new Exception("Some values have increased wrt heuristic value " + " depth = " + depth  );
-//				}catch(Exception e ){
-//					e.printStackTrace();
-//					final ADDRNode error = _manager.threshold( diff, diff.getMin(), false );
-//					System.out.println( _manager.enumeratePaths(error, true, true, 
-//							(ADDLeaf)_manager.DD_ONE.getNode(), false ) );
-//					
-//					System.out.println( _manager.enumeratePaths(
-//							_manager.BDDIntersection(heur, error), true, true, 
-//							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-//					
-//					System.out.println( _manager.enumeratePaths(
-//							_manager.BDDIntersection(new_val, error), true, true, 
-//							(ADDLeaf)_manager.DD_ZERO.getNode(), true ) );
-//					
-//					System.exit(1);
-//				}
 //			}
-//			diff = _manager.constrain(diff, care_states, _manager.DD_NEG_INF);
-//			//!care => diff = -inf
+
+//			System.out.println( "gen state " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
+//			System.out.println( "updated state " + depth + " " + _manager.enumeratePathsBDD(update_states).toString() );
+//			System.out.println( depth + " " + 
+//					_manager.enumeratePathsBDD(current_parition).iterator().next().size()/(1.0d*_mdp.getNumStateVars()) );
 //			
-//			//changed : 5/5 - removed backChainThresh
-//			//instead use delta of actual state as thresh
-//			//remember changes that were at least as large as actual state
-//			//therefore strictly more work than rtdp
-//			//WARNING : laziness
-//			backChainThreshold = _manager.evaluate(diff, actual_state.getFactoredState() ).getMax(); 
-////			System.out.println("State : " + actual_state.getFactoredState() );
-////			System.out.println( "Threshold : " + backChainThreshold );
-//			
-//			//threshold
-//			//small_change ^ care --> 1 
-//			final ADDRNode small_change_care =   _manager.threshold(diff, backChainThreshold, true );
-////			, 
-////							update_states );//un updated states --> 0
-//			
-//			//large change useful for masking value fn
-//			//small change ^ care --> 0
-//			//!small OR !care --> 1
-//			final ADDRNode throw_away_mask = _manager.BDDNegate( small_change_care );
-//			//un updated states --> 1
-//			//!small AND care --> 1
-//			final ADDRNode keep_states_update_only = _manager.BDDIntersection(throw_away_mask, 
-//				care_states ); 
-//			//un updated states --> 0
-//			
-//			good_updates += _manager.enumeratePaths( keep_states_update_only
-//					, false, true, _manager.DD_ONE, false ).size();
-//			
-////			if( throw_away_mask.equals(_manager.DD_ONE ) ){
-////				System.out.println("Good updates all around");
-////			}
-//			
-//			if( throw_away_mask.equals(_manager.DD_ZERO ) ){
-//				//just truncating the trajectory here
-//				++truncated_backup;
-//				return;
-////	//			try{
-////	//				throw new Exception("For thresholld " + backChainThreshold + 
-////	//						" no update took place" + ".\nThe max update was = " + diff.getMax() );
-////	//			}catch(Exception e ){
-////	//				e.printStackTrace();
-////	//				System.exit(1);
-////	//			}
-//			}
-//			//updates for visited, v and pi
-//			final ADDRNode new_visited = _manager.BDDUnion( _visited[depth], keep_states_update_only );
-//			//_visited => new_vis
-//			// == !_vis OR new_vis
-//			if( ! _manager.BDDUnion( _manager.BDDNegate(_visited[depth]) , new_visited ).equals(_manager.DD_ONE) ){
-//			    try{
-//				throw new Exception("visited turned from one to zero");
-//			    }catch( Exception e ){
-//				e.printStackTrace();
-//				System.exit(1);
-//			    }
-//			}
-//			
-//			if( new_visited.equals( _manager.DD_ONE ) && !_visited[depth].equals(_manager.DD_ONE) ){
-//				System.out.println("visited is one. Depth " + depth );
-//			}
-//			
-//			//visited = 1 => value != -inf
-//			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
-//				try{
-//				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
-//				}catch( Exception e ){
-//				    e.printStackTrace();
-//				    System.exit(1);
-//				}
-//			}
-//			
-//			_visited[ depth ] = new_visited;
-//
-////			_valueDD[ depth ] = 
-////				new_val;
-////					_manager.BDDIntersection( new_val, large_change );
-//			//must be OK here tio use intersection as diff already has the vars of new_val
-//			//and so good_update has the same vars
-////			
-////					_manager.BDDIntersection( new_val, large_change );
-//			
-//			//TODO :
-//			//does it happen that a visited node has small change
-//			//so put -inf 
-//			//but does not reset visited
-//			//and how does this happen the first time
-//			// if this is the case, visited and value will not be coherent!
-//			
-////			_valueDD[ depth] = _manager.BDDIntersection( new_val, throw_away_mask );
-//			_valueDD[ depth ] = _manager.constrain( new_val, _visited[ depth ], _manager.DD_NEG_INF);
-//					//			( new_val, 
-////						large_change//no good and updated -> 0
-////							, _manager.DD_NEG_INF ); //getVMax( depth ) );//!(^) = good | no update -> 1
-//			
-//			if( _manager.evaluate( _visited[depth], actual_state.getFactoredState() ).getMax() == 
-//				0.0d || _manager.evaluate( _valueDD[depth], actual_state.getFactoredState() ).getMax() != 
-//				_manager.evaluate( new_val, actual_state.getFactoredState() ).getMax() ) {
-//			    try{
-//				throw new Exception( "value of actual state is not set");
-//			    }catch (Exception e ){
-//				e.printStackTrace();
-//				System.exit(1);
-//			    }
-//			}
-//
-//			//visited = 1 => value != -inf
-//			if( _manager.BDDIntersection( _visited[depth], _valueDD[depth] ).getMin() == _manager.getNegativeInfValue() ){
-//				try{
-//				    throw new Exception("visited is one but value -inf");//THIS IS HAPPENING
-//				}catch( Exception e ){
-//				    e.printStackTrace();
-//				    System.exit(1);
-//				}
-//			}
-//
-//			//visited = 0 => value == -inf
-//			
-//			_policyDD[ depth ] =
-//					_manager.constrain( new_policy, _visited[depth], _manager.DD_ONE ) ;
-//			// new_policy; 
-////				new_policy;//, large_change_update_only, _manager.DD_ONE ); 
-//					//new_policy;
-////					_manager.BDDIntersection( new_policy, large_change );
-////					_manager.BDDUnion( 
-////							_manager.BDDIntersection(_baseLinePolicy, _manager.BDDNegate( _visited[depth] ) ),
-////							_manager.BDDIntersection( new_policy, 
-////							_visited[ depth ] ) );//no good and updated -> 0
-////							, _manager.DD_ONE );
-//		}
-		else{
-//	    	_visited[ depth ] = _manager.BDDUnion( _visited[depth], update_states );
-		    
-			_valueDD[ depth ] = new_val;
-//			, 
-//					good_or_no_update_constraint//no good and updated -> 0
-//							, _manager.DD_ZERO );//!(^) = good | no update -> 1
-			_policyDD[ depth ] = new_policy;
-//			_manager.constrain( new_policy, 
-//					good_or_no_update_constraint//no good and updated -> 0
-//							, _manager.DD_ONE );
 		}
-		
-		//have set visited and v and pi
 	}
 
 //

@@ -71,6 +71,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected ADDRNode[] _policyDD;
 	protected ADDRNode[] _visited; 
 //	protected ADDRNode[] _solved;
+	
 //	private ADDRNode _baseLinePolicy;
 	
 //	protected static final FactoredAction[] EMPTY_ACTION_ARRAY = {};
@@ -103,6 +104,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected LOCAL_INITIALIZATION _local_init;
 	protected boolean _truncateTrials;
 	protected boolean _markVisited;
+	
+//	protected boolean _enableLabelling;
+	protected boolean _genStates;
 	
 	public SymbolicTHTS( 
 			final String domain, 
@@ -201,10 +205,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		throwAwayEverything();
 
-		//_solved = new ADDRNode[ steps_lookahead ];
-		//for( int depth =  0; depth < steps_lookahead-1; ++depth ){
-		//    _solved[ depth ] = _manager.DD_ZERO;
-		//}
+//		_solved = new ADDRNode[ steps_lookahead ];
+//		for( int depth =  0; depth < steps_lookahead-1; ++depth ){
+//		    _solved[ depth ] = _manager.DD_ZERO;
+//		}
 		//_solved[ steps_lookahead-1 ] = _manager.DD_ONE;
 
 		_DPTimer = new Timer();
@@ -291,10 +295,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //		System.out.println("Greedy action : " + greedy_action_assign );
 		
 		//now get path
-		ADDRNode path_ret = _manager.DD_ZERO;
+		ADDRNode path_ret = _manager.DD_ONE;
 		for( final ADDRNode rew : rewards_list ){
 			final ADDRNode r2 = _manager.restrict(rew, greedy_action_assign);
-			path_ret = _manager.BDDUnion(path_ret, _manager.get_path(r2, state_path) );
+			final ADDRNode this_path = _manager.get_path(r2, state_path);
+			path_ret = _manager.BDDIntersection(path_ret, this_path );
 		}
 		
 		if( _manager.getVars(max_actions ).contains( _mdp.get_action_vars() ) ){
@@ -448,18 +453,18 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //			final int depth) {
 //		return is_node_solved( assign.getFactoredState() , depth );
 //	}
-	
-//	public boolean is_node_solved(
+//	
+///	public boolean is_node_solved(
 //			final NavigableMap<String, Boolean> assign,
 //			final int depth) {
 //		return _manager.restrict( _solved[depth], assign ).equals(_manager.DD_ONE);
 //	}
-	
+//	
 //	public void mark_node_solved( final FactoredState<RDDLFactoredStateSpace> assign,
 //			final int depth ){
 //		mark_node_solved(assign.getFactoredState(), depth);
 //	}
-
+//
 //	public void mark_node_solved( final NavigableMap<String, Boolean> assign,
 //			final int depth ){
 //		_solved[depth] = _manager.BDDUnion( _solved[depth], 
@@ -538,6 +543,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	}
 	
 	public void visit_node(final ADDRNode states, int depth) {
+//		if( _enableLabelling && depth == steps_lookahead-1 ){
+//			mark_node_solved(states, depth);
+//		}
+		
 		if( _markVisited ){
 			_visited[depth] = _manager.BDDUnion( _visited[depth], states );
 			return;
@@ -550,6 +559,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //		}		
 	}
 	
+//	private void mark_node_solved(final ADDRNode states, final int depth) {
+//		_solved[depth] = _manager.BDDUnion( _solved[depth], states );
+//	}
+
 	@Override
 	public FactoredState<RDDLFactoredStateSpace> pick_successor_node(
 			FactoredState<RDDLFactoredStateSpace> state,
