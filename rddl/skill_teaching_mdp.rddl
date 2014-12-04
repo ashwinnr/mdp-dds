@@ -40,8 +40,8 @@
 domain skill_teaching_mdp {
   	
 	requirements = { 
-		reward-deterministic,
-		constrained-state
+		constrained-state,
+		reward-deterministic 
 	};
 
 	types { 
@@ -74,7 +74,7 @@ domain skill_teaching_mdp {
 		proficiencyMed(skill) : { state-fluent, bool, default = false };
 		proficiencyHigh(skill) : { state-fluent, bool, default = false };
 
-		updateTurn : {state-fluent, bool, default = false};//true if proficiencies are updated
+		updateTurn(skill) : {state-fluent, bool, default = false};
 
 		answeredRight(skill): {state-fluent, bool, default = false};
 		hintedRight(skill): {state-fluent, bool, default = false};
@@ -87,41 +87,42 @@ domain skill_teaching_mdp {
   
 	cpfs {
 
-		updateTurn' = 
-			KronDelta( ~updateTurn ^ exists_{?s : skill}[ (askProb(?s) | giveHint(?s)) ] ); //false while no questions asked
+		updateTurn'(?s) = 
+			KronDelta( [forall_{?s2: skill} ~updateTurn(?s2)] ^ (askProb(?s) | giveHint(?s)) ); 
+
+		//without intermediate nodes, we need to keep ``on'' all proficiency levels that have been attained		
 
 		answeredRight'(?s) = 
-			if ( ~updateTurn ^ askProb(?s) ^ proficiencyHigh(?s) ) 
+			if ([forall_{?s2: skill} ~updateTurn(?s2)] ^ askProb(?s) ^ proficiencyHigh(?s)) 
 				then Bernoulli(PROB_HIGH(?s))
-			else if ( ~updateTurn ^ askProb(?s) ^ proficiencyMed(?s) ^ forall_{?s3: skill}[PRE_REQ(?s3, ?s) => proficiencyHigh(?s3)] ) 
+			else if ([forall_{?s2: skill} ~updateTurn(?s2)] ^ askProb(?s) ^ proficiencyMed(?s) ^forall_{?s3: skill}[PRE_REQ(?s3, ?s) => proficiencyHigh(?s3)]) 
 				then Bernoulli(PROB_ALL_PRE_MED(?s))
-		    else if ( ~updateTurn ^ askProb(?s) ^proficiencyMed(?s) ^ askProb(?s)) 
+		    else if ([forall_{?s2: skill} ~updateTurn(?s2)] ^ askProb(?s) ^proficiencyMed(?s) ^ askProb(?s)) 
 		    	then Bernoulli(sum_{?s2: skill}[PRE_REQ(?s2, ?s) * PROB_PER_PRE_MED(?s)])
-			else if ( ~updateTurn ^ askProb(?s) ^forall_{?s2: skill}[PRE_REQ(?s2, ?s) => proficiencyHigh(?s2)]) 
+			else if ([forall_{?s3: skill} ~updateTurn(?s3)] ^ askProb(?s) ^forall_{?s2: skill}[PRE_REQ(?s2, ?s) => proficiencyHigh(?s2)]) 
 				then Bernoulli(PROB_ALL_PRE(?s))
-		    else if ( ~updateTurn ^ askProb(?s)  ^ askProb(?s)) 
+		    else if ([forall_{?s2: skill} ~updateTurn(?s2)] ^ askProb(?s)  ^ askProb(?s)) 
 		    	then Bernoulli(sum_{?s2: skill}[PRE_REQ(?s2, ?s) * PROB_PER_PRE(?s)])
 			else
 				KronDelta( false );
 
 		hintedRight'(?s) = 
-			KronDelta( ~updateTurn ^ giveHint(?s) ^ forall_{?s2: skill}[PRE_REQ(?s2, ?s) => proficiencyHigh(?s2)] );
+			KronDelta( [forall_{?s3: skill} ~updateTurn(?s3)] ^ giveHint(?s) ^ forall_{?s2: skill}[PRE_REQ(?s2, ?s) => proficiencyHigh(?s2)] );
 			
 		hintDelayVar'(?s) = 
-			KronDelta( ~updateTurn ^ giveHint(?s) );
+			KronDelta( [forall_{?s2: skill} ~updateTurn(?s2)] ^ giveHint(?s) );
 
-		//without intermediate nodes, we need to keep ``on'' all proficiency levels that have been attained		
 		//proficiencyMed can be reached through a hint if all preconditions are known or by a problem answered correctly
 		proficiencyMed'(?s) =
-		    if ( ~updateTurn )
-		    	then KronDelta( proficiencyMed(?s) )
-		    else if ( updateTurn ^ hintedRight(?s)) 
+		    if (~updateTurn(?s) ^ proficiencyMed(?s)) 
 		    	then KronDelta( true )
-		    else if ( updateTurn ^ answeredRight(?s)) 
+		    else if (updateTurn(?s) ^ hintedRight(?s)) 
+		    	then KronDelta( true )
+		    else if (updateTurn(?s) ^ answeredRight(?s)) 
 		    	then KronDelta( true )
 		    else if (proficiencyHigh(?s)) //may come down
 		    	then KronDelta( true )
-		    else if (proficiencyMed(?s) ^ updateTurn ^ hintDelayVar(?s)) 
+		    else if (proficiencyMed(?s) ^ updateTurn(?s) ^ hintDelayVar(?s)) 
 		    	then KronDelta( true ) //can't lose it on a hint
 	        else 
 	        	KronDelta( false );
@@ -129,24 +130,24 @@ domain skill_teaching_mdp {
 		//high proficiency is reached by getting a question and having proficiencyMed
 		//but you can lose it too if you get questions wrong  
 		proficiencyHigh'(?s) =
-		    if ( ~updateTurn ) //student turn
+		    if (forall_{?s2: skill}[~updateTurn(?s2)])  //student turn
 		    	then KronDelta( proficiencyHigh(?s) )
-		    else if (~updateTurn ^ proficiencyHigh(?s)) 
+		    else if (~updateTurn(?s) ^ proficiencyHigh(?s)) 
 		    	then Bernoulli(1.0 - LOSE_PROB(?s))
-		    else if (proficiencyMed(?s) ^ updateTurn ^ answeredRight(?s)) 
+		    else if (proficiencyMed(?s) ^ updateTurn(?s) ^ answeredRight(?s)) 
 		    	then KronDelta( true )
-		    else if (proficiencyHigh(?s) ^ updateTurn ^ (hintDelayVar(?s) | answeredRight(?s))) //can't lose it on a hint
+		    else if (proficiencyHigh(?s) ^ updateTurn(?s) ^ (hintDelayVar(?s) | answeredRight(?s))) //can't lose it on a hint
 		    	then KronDelta( true )
 		    else KronDelta( false );
 
 	};
     
-	reward = [sum_{?s : skill} [SKILL_WEIGHT(?s) * ( proficiencyHigh(?s) - ~proficiencyMed(?s) ) ] ];
+	 reward = [sum_{?s : skill} [SKILL_WEIGHT(?s) * ( proficiencyHigh(?s) - ~proficiencyMed(?s) ) ]];
 
-	state-action-constraints {
-		forall_{?s : skill}[ ~updateTurn => ~answeredRight(?s) ];
-		forall_{?s : skill}[ ~updateTurn => ~hintedRight(?s) ];
-		forall_{?s : skill}[ ~updateTurn => ~hintDelayVar(?s) ];
+	 state-action-constraints {
+		forall_{?s : skill}[ ~updateTurn(?s) => ~answeredRight(?s) ];
+		forall_{?s : skill}[ ~updateTurn(?s) => ~hintedRight(?s) ];
+		forall_{?s : skill}[ ~updateTurn(?s) => ~hintDelayVar(?s) ];
 		
 	};
 	
