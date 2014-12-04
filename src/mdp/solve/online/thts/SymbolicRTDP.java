@@ -554,7 +554,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		int j = num_states-1;
 //		System.out.println("num states " + num_states );
 			
-		while( i >= 2 ){
+		while( j > 0 ){
 		
 //	    	System.out.println("Updating trajectories " + j );
 			ADDRNode source_val, target_val, target_policy;

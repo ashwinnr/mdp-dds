@@ -434,12 +434,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	public static void main(String[] args) throws Exception {
 		
-		testPathsToLeaf();
+//		testPathsToLeaf();
 //	    testGetProductDD( );
 //	    testAssignDD();
 //	    testGetProductFromAssign();
 //		testApricodd();
-//		testBreakTies();
+		testBreakTies();
 		//		testAddPair();
 		//		testgetINode();
 		//		testIndicators();
@@ -1541,11 +1541,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 					man.getINode("Y", z, man.DD_ONE ),
 					man.getINode("Y", z, man.DD_ZERO ) );
 			
-			man.showGraph( inod1 );
-			final Set<String> tiesIn = Collections.singleton("X");
-			final ADDRNode tie_true = man.breakTiesInBDD( inod1, tiesIn, true );
-			final ADDRNode tie_false = man.breakTiesInBDD( inod1, tiesIn, false );
-			man.showGraph( tie_true, tie_false );
+			System.out.println( man.enumeratePathsBDD(inod1) );
+			
+			final ADDRNode tie_true_X = man.breakTiesInBDD( inod1, Collections.singleton("X"), true );
+			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, Collections.singleton("Y"), false );
+			
+			System.out.println( man.enumeratePathsBDD(tie_true_X) );
+			System.out.println( man.enumeratePathsBDD(tie_false_Y) );
+			
+//			man.showGraph( inod1 );
+//			man.showGraph( tie_true, tie_false );
 			
 	}
 
