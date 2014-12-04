@@ -35,16 +35,16 @@ public class RandomPolicy extends ADDPolicy {
 		_rand = new Random(seed);
 		_actionVars = mdp.getFactoredActionSpace().getActionVariables();
 		final ADDRNode uniform = man.DD_ONE ;
-		final ADDRNode unnormalized_constrained 
+		final ADDRNode constrained 
 			= dtr.applyMDPConstraintsNaively(uniform, null, man.DD_ZERO, null);
-		final Set<ADDLeaf> unnormalized_leaves 
-			= man.getLeaves(unnormalized_constrained);
-		double sum = 0.0d;
-		for( final ADDLeaf leaf : unnormalized_leaves ){
-			sum += leaf.getMax();
-		}
-		final ADDRNode normalized_constrained = man.scalarMultiply(unnormalized_constrained, 1.0d/sum );
-		_randPolicy = normalized_constrained;
+//		final Set<ADDLeaf> unnormalized_leaves 
+//			= man.getLeaves(unnormalized_constrained);
+//		double sum = 0.0d;
+//		for( final ADDLeaf leaf : unnormalized_leaves ){
+//			sum += leaf.getMax();
+//		}
+//		final ADDRNode normalized_constrained = man.scalarMultiply(unnormalized_constrained, 1.0d/sum );
+		_randPolicy = constrained;
 //		_manager.showGraph(_randPolicy);
 	}
 	
