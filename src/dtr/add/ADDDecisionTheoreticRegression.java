@@ -2597,7 +2597,9 @@ RDDLFactoredActionSpace> {
 	}
 
 	public ADDRNode getGreedyAction( final ADDRNode state_dd ) {
-		ADDRNode max_actions = applyMDPConstraintsNaively(state_dd ,
+		final ADDRNode state_dd_neg_inf = _manager.apply( 
+				_manager.BDDNegate( state_dd ), _manager.DD_NEG_INF, DDOper.ARITH_PROD );
+		ADDRNode max_actions = applyMDPConstraintsNaively(state_dd_neg_inf ,
 				null, _manager.DD_NEG_INF, null );
 		for( final ADDRNode rew : _mdp.getRewards() ){
 			max_actions = _manager.apply( max_actions, rew, DDOper.ARITH_PLUS );
