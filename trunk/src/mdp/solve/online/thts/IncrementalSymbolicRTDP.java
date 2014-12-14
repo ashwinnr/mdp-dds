@@ -44,11 +44,12 @@ import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.type.GeneralizationType;
 import mdp.solve.online.Exploration;
-import mdp.solve.online.thts.IncrementalSymbolicRTDP.REMOVE_VAR_CONDITION;
 import mdp.solve.online.thts.IncrementalSymbolicRTDP.START_STATE;
-import mdp.solve.online.thts.IncrementalSymbolicRTDP.STOPPING_CONDITION;
 import mdp.solve.online.thts.SymbolicRTDP.LearningMode;
 import mdp.solve.online.thts.SymbolicRTDP.LearningRule;
+import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
+import mdp.solve.online.thts.SymbolicTHTS.LOCAL_INITIALIZATION;
+import mdp.solve.online.thts.SymbolicTHTS.REMEMBER_MODE;
 
 //this class implements an iterative update scheme
 //for updating the value of a path p(set of states)
@@ -70,57 +71,75 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 	public static enum START_STATE{
 		FROM_SPECIFIC,CONCRETE_STATE
 	}
-	private START_STATE _init_mode;
-	public static enum STOPPING_CONDITION{
-		INVARIANCE,TIMEOUT,INVARIANCE_AND_TIMEOUT
+	private START_STATE _firstState;
+	
+	public static enum SECOND_STATE{
+		LGG, MORE_GENERAL
 	}
-	private STOPPING_CONDITION _stop_mode;
-	public static enum REMOVE_VAR_CONDITION{
-		RANDOM,FROM_LGG,LOWEST_ORDER
+	private SECOND_STATE _secondState;
+	
+	protected boolean _ignoreIncrementally;
+	
+	public enum ON_TIMEOUT{
+		QUIT, MAX
 	}
-	private REMOVE_VAR_CONDITION _remove_mode;
+	
+//	public static enum STOPPING_CONDITION{
+//		INVARIANCE,TIMEOUT,INVARIANCE_AND_TIMEOUT
+//	}
+//	private STOPPING_CONDITION _stop_mode;
+//	
+//	public static enum REMOVE_VAR_CONDITION{
+//		RANDOM, LOWEST_FROM_LGG, LOWEST_FROM_ORDER
+//	}
+//	private REMOVE_VAR_CONDITION _remove_mode;
+
 	private Random _rand;
-	private int _max_ignore_vars;
-	private int succesful_generalization;
+//	private int _max_ignore_vars;
+//	private int succesful_generalization;
 
 	public IncrementalSymbolicRTDP(
-			String domain,
-			String instance,
-			double epsilon,
-			DEBUG_LEVEL debug,
-			ORDER order,
-			boolean useDiscounting,
-			int numStates,
-			int numRounds,
-			boolean constrain_naively,
-			boolean do_apricodd,
-			double[] apricodd_epsilon,
-			APPROX_TYPE apricodd_type,
-			INITIAL_STATE_CONF init_state_conf,
-			double init_state_prob,
-			int nTrials,
-			double timeOutMins,
-			int steps_lookahead,
-			Random topLevel,
-			int onPolicyDepth,
-			mdp.solve.online.thts.SymbolicRTDP.LearningRule learningRule,
-			int maxRulesToLearn,
-			mdp.solve.online.thts.SymbolicRTDP.LearningMode learningMode, 
-			START_STATE init_mode, STOPPING_CONDITION stop_mode, 
-			REMOVE_VAR_CONDITION remove_mode,
-			final int max_ignore_vars ){
-		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
+			final String domain,
+			final String instance,
+			final double epsilon,
+			final DEBUG_LEVEL debug,
+			final ORDER order,
+			final boolean useDiscounting,
+			final int numStates,
+			final int numRounds,
+			final boolean constrain_naively,
+			final boolean do_apricodd,
+			final double[] apricodd_epsilon,
+			final APPROX_TYPE apricodd_type,
+			final INITIAL_STATE_CONF init_state_conf,
+			final double init_state_prob,
+			final int nTrials,
+			final double timeOutMins,
+			final int steps_lookahead,
+			final Random topLevel,
+			final int onPolicyDepth,
+			final mdp.solve.online.thts.SymbolicRTDP.LearningRule learningRule,
+			final int maxRulesToLearn,
+			final mdp.solve.online.thts.SymbolicRTDP.LearningMode learningMode, 
+			final START_STATE init_mode, final STOPPING_CONDITION stop_mode, 
+			final REMOVE_VAR_CONDITION remove_mode, 
+			final GLOBAL_INITIALIZATION global_init, 
+			final LOCAL_INITIALIZATION local_init, 
+			final boolean truncate_trials, final boolean mark_visited, 
+			final boolean mark_solved, final REMEMBER_MODE remember_mode, 
+			final boolean reward_init ){
+		super( domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, init_state_conf, init_state_prob, nTrials, timeOutMins,
 				steps_lookahead, null, null,
 				false, false, -1, -1, null, null, topLevel, 
 				onPolicyDepth, learningRule, maxRulesToLearn,
-				learningMode, true, false);
+				learningMode, true, false, global_init, local_init, truncate_trials, mark_visited, mark_solved, 
+				remember_mode, reward_init );
 		_init_mode = init_mode;
 		_stop_mode = stop_mode;
 		_remove_mode = remove_mode;
 		_rand = new Random( topLevel.nextLong() );
-		_max_ignore_vars = max_ignore_vars;
 	}
 	
 	protected void update_generalized_trajectory(
@@ -199,161 +218,175 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			final boolean constrain_naively, 
 			final ADDRNode policy_constraint, 
 			final FactoredState<RDDLFactoredStateSpace> actual_state, 
-			FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace> actual_action,
+			final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace> actual_action,
 			final int depth  ){
 
 		ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
 		ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
 		ADDRNode current_lgg = getLeastGeneralGeneralization( current_value_path, current_policy_path );
 		
-		final Set<String> ignore_vars = Sets.newTreeSet(_mdp.get_stateVars());
-		ignore_vars.removeAll( _manager.getVars(current_lgg).get(0) );
+		//update flat state
+		//measure time
+		//update LGG state
+		//if timeout(=2x flat time?)
+			//max out next state vars X'
+			//add Rmax
+			//check if value decreases
+			//take those values?
+		//does it converge?
 		
-		//
-		final ADDRNode initial_path = InitializeGenState( 
-				actual_state, actual_action,
-				depth, current_value_path, current_policy_path );
-		ADDRNode best_seen_generalization = null;
-		final Set<String> best_seen_generalization_vars = _manager.getVars(initial_path).get(0);
-		//current generalized state being updated 
-		//INVARIANT : current_path => ~updated_states
-		//BDD to maintain updated states
-		//INVARIANT : updated_states => this_states
-		//INVARIANT : actual_state => updated_states
-		//USE :  to avoid double updates
-		ADDRNode updated_states = _manager.DD_ZERO;
-		boolean done = false;
-//		double time_per_extension = 0.0d,;
-		final Timer update_time = new Timer();
-		int num_missing_vars = 0;
-		ADDRNode updated_V = target_val, updated_pi = target_policy;
-		String next_variable = null;
-		ADDRNode next_generalization = initial_path;
-		int num_tried_vars = 0;
 		
-		while ( !done ){
-
-			update_time.ResetTimer();
-			update_time.ResumeTimer();
-			
-			ADDRNode next_gen_uniq = 
-					updated_states.equals(_manager.DD_ZERO) ? 
-							next_generalization : 
-					_manager.BDDIntersection( next_generalization, _manager.BDDNegate(updated_states) ) ;
-//			System.out.println("updating " + _manager.enumeratePathsBDD(next_generalization).iterator().next().toString() );
-			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup 
-				= _dtr.backup( updated_V, updated_pi, source_val, 
-						next_gen_uniq, BACKUP_TYPE.VI_FAR, do_apricodd, 
-						do_apricodd ? apricodd_epsilon  : 0, 
-						apricodd_type, true, -1, CONSTRAIN_NAIVELY, null  );
-			update_time.PauseTimer();
-			
-			final ADDRNode new_value_path = getValueGenState(backup._o1, actual_state, actual_action);
-			final ADDRNode new_policy_path = getPolicyGenState(backup._o2._o1, actual_state, actual_action);
-			ADDRNode new_lgg = getLeastGeneralGeneralization( new_value_path, 
-					new_policy_path );
-			
-			final boolean is_invariant = 
-					next_variable == null ? true : 
-					checkInvariance( new_lgg, current_lgg ) ;
-				
-			if( !is_invariant && (next_variable != null ) ){
-				//path did not change
-				//no generalization
-//				System.out.println("no change - reverting " + next_variable );
-				backup._o1 = null;
-				backup._o2 = null;
-				backup = null;
-				new_lgg = null;
-				next_generalization = best_seen_generalization;
-				best_seen_generalization_vars.remove(next_variable);
-				
-				if( _stop_mode.equals(STOPPING_CONDITION.INVARIANCE) || 
-						_stop_mode.equals(STOPPING_CONDITION.INVARIANCE_AND_TIMEOUT) ){
-					done = true;
-//					System.out.println("failed invariance test - stopping LDS");
-					break;
-				}
-				//fallout of if to pick nexxt variable
-
-			}else if( is_invariant || ( next_variable == null ) ){
-				//take shorter path
-				//can become longer
-				//best path => new path
-				updated_V = backup._o1;
-				updated_pi = backup._o2._o1;
-				updated_states = _manager.BDDUnion(updated_states, next_generalization );
-
-				//during the first backup
-				//the new paths will be the concrete state
-				//this is when current_X is set for the first time and 
-				//checkinvariance has not been called yet when next var is null
-				best_seen_generalization = next_generalization;
-				current_value_path = new_value_path;
-				current_policy_path = new_policy_path;
-				current_lgg = new_lgg;
-				
-				if( next_variable != null ){
-//					System.out.println("invariance holds for ignoring " + next_variable );
-					best_seen_generalization_vars.remove(next_variable);
-					++num_missing_vars;
-				}
-			}
-				
-			//next generalization
-			if( ( _max_ignore_vars==-1 && num_tried_vars == _mdp.getNumStateVars() ) ||
-					( _max_ignore_vars!=-1 && num_tried_vars == _max_ignore_vars ) ){
-				done = true;
-//				System.out.println("tried all variables to ignore (or) max depth reached");
-				break;
-			}
-			next_variable = pickNextVariable( best_seen_generalization_vars, 
-					actual_state, actual_action, ignore_vars );
-//			System.out.println("ignore " + next_variable );
-			
-			if( next_variable == null ){
-//				System.out.println("no variable to be ignored");
-				done = true;
-				break;
-			}else{
-				ignore_vars.remove( next_variable );
-			}
-			
-			++num_tried_vars;
-			next_generalization = 
-					_manager.quantify(best_seen_generalization, next_variable, 
-							DDQuantify.EXISTENTIAL );
-
-
-			//			time_per_extension = updateTimeEstimate( time_per_extension, elapsedTimeInMinutes, 
-//					new_elapsed_time , (int)Math.pow(2,num_missing_vars+1-1) );
-//			System.out.println(depth + " " + time_per_extension);
-			
-//			if( !isThereEnoughTime( time_per_extension, (int)Math.pow(2d, num_missing_vars+1-1),
-//					_time_per_state-elapsedTimeInMinutes ) ){
+//		
+//		
+//		
+//		final Set<String> ignore_vars = Sets.newTreeSet(_mdp.get_stateVars());
+//		ignore_vars.removeAll( _manager.getVars(current_lgg).get(0) );
+//		
+//		//
+//		final ADDRNode initial_path = InitializeGenState( 
+//				actual_state, actual_action,
+//				depth, current_value_path, current_policy_path );
+//		ADDRNode best_seen_generalization = null;
+//		final Set<String> best_seen_generalization_vars = _manager.getVars(initial_path).get(0);
+//		//current generalized state being updated 
+//		//INVARIANT : current_path => ~updated_states
+//		//BDD to maintain updated states
+//		//INVARIANT : updated_states => this_states
+//		//INVARIANT : actual_state => updated_states
+//		//USE :  to avoid double updates
+//		ADDRNode updated_states = _manager.DD_ZERO;
+//		boolean done = false;
+////		double time_per_extension = 0.0d,;
+//		final Timer update_time = new Timer();
+//		int num_missing_vars = 0;
+//		ADDRNode updated_V = target_val, updated_pi = target_policy;
+//		String next_variable = null;
+//		ADDRNode next_generalization = initial_path;
+//		int num_tried_vars = 0;
+//		
+//		while ( !done ){
+//
+//			update_time.ResetTimer();
+//			update_time.ResumeTimer();
+//			
+//			ADDRNode next_gen_uniq = 
+//					updated_states.equals(_manager.DD_ZERO) ? 
+//							next_generalization : 
+//					_manager.BDDIntersection( next_generalization, _manager.BDDNegate(updated_states) ) ;
+////			System.out.println("updating " + _manager.enumeratePathsBDD(next_generalization).iterator().next().toString() );
+//			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup 
+//				= _dtr.backup( updated_V, updated_pi, source_val, 
+//						next_gen_uniq, BACKUP_TYPE.VI_FAR, do_apricodd, 
+//						do_apricodd ? apricodd_epsilon  : 0, 
+//						apricodd_type, true, -1, CONSTRAIN_NAIVELY, null  );
+//			update_time.PauseTimer();
+//			
+//			final ADDRNode new_value_path = getValueGenState(backup._o1, actual_state, actual_action);
+//			final ADDRNode new_policy_path = getPolicyGenState(backup._o2._o1, actual_state, actual_action);
+//			ADDRNode new_lgg = getLeastGeneralGeneralization( new_value_path, 
+//					new_policy_path );
+//			
+//			final boolean is_invariant = 
+//					next_variable == null ? true : 
+//					checkInvariance( new_lgg, current_lgg ) ;
+//				
+//			if( !is_invariant && (next_variable != null ) ){
+//				//path did not change
+//				//no generalization
+////				System.out.println("no change - reverting " + next_variable );
+//				backup._o1 = null;
+//				backup._o2 = null;
+//				backup = null;
+//				new_lgg = null;
+//				next_generalization = best_seen_generalization;
+//				best_seen_generalization_vars.remove(next_variable);
+//				
+//				if( _stop_mode.equals(STOPPING_CONDITION.INVARIANCE) || 
+//						_stop_mode.equals(STOPPING_CONDITION.INVARIANCE_AND_TIMEOUT) ){
+//					done = true;
+////					System.out.println("failed invariance test - stopping LDS");
+//					break;
+//				}
+//				//fallout of if to pick nexxt variable
+//
+//			}else if( is_invariant || ( next_variable == null ) ){
+//				//take shorter path
+//				//can become longer
+//				//best path => new path
+//				updated_V = backup._o1;
+//				updated_pi = backup._o2._o1;
+//				updated_states = _manager.BDDUnion(updated_states, next_generalization );
+//
+//				//during the first backup
+//				//the new paths will be the concrete state
+//				//this is when current_X is set for the first time and 
+//				//checkinvariance has not been called yet when next var is null
+//				best_seen_generalization = next_generalization;
+//				current_value_path = new_value_path;
+//				current_policy_path = new_policy_path;
+//				current_lgg = new_lgg;
+//				
+//				if( next_variable != null ){
+////					System.out.println("invariance holds for ignoring " + next_variable );
+//					best_seen_generalization_vars.remove(next_variable);
+//					++num_missing_vars;
+//				}
+//			}
+//				
+//			//next generalization
+//			if( ( _max_ignore_vars==-1 && num_tried_vars == _mdp.getNumStateVars() ) ||
+//					( _max_ignore_vars!=-1 && num_tried_vars == _max_ignore_vars ) ){
 //				done = true;
-//				System.out.println("timeout predicted");
+////				System.out.println("tried all variables to ignore (or) max depth reached");
 //				break;
 //			}
-			if( best_seen_generalization_vars.isEmpty() ) {
-				done = true;
-				break;
-			}
-				
-//			if ( time_remaining != -1 && time_remaining <= 0 ){
-//					done = true;
-////					System.out.println("timeout happened");
-//					break;
+//			next_variable = pickNextVariable( best_seen_generalization_vars, 
+//					actual_state, actual_action, ignore_vars );
+////			System.out.println("ignore " + next_variable );
+//			
+//			if( next_variable == null ){
+////				System.out.println("no variable to be ignored");
+//				done = true;
+//				break;
+//			}else{
+//				ignore_vars.remove( next_variable );
 //			}
-			
-		}
-		
-		if( num_missing_vars >= 0 ){
-//			System.out.println("ignored total " + num_missing_vars );
-			succesful_generalization += num_missing_vars;
-		}
-		
-		return new UnorderedPair<>(updated_V,new UnorderedPair<>(updated_pi,0d));
+//			
+//			++num_tried_vars;
+//			next_generalization = 
+//					_manager.quantify(best_seen_generalization, next_variable, 
+//							DDQuantify.EXISTENTIAL );
+//
+//
+//			//			time_per_extension = updateTimeEstimate( time_per_extension, elapsedTimeInMinutes, 
+////					new_elapsed_time , (int)Math.pow(2,num_missing_vars+1-1) );
+////			System.out.println(depth + " " + time_per_extension);
+//			
+////			if( !isThereEnoughTime( time_per_extension, (int)Math.pow(2d, num_missing_vars+1-1),
+////					_time_per_state-elapsedTimeInMinutes ) ){
+////				done = true;
+////				System.out.println("timeout predicted");
+////				break;
+////			}
+//			if( best_seen_generalization_vars.isEmpty() ) {
+//				done = true;
+//				break;
+//			}
+//				
+////			if ( time_remaining != -1 && time_remaining <= 0 ){
+////					done = true;
+//////					System.out.println("timeout happened");
+////					break;
+////			}
+//			
+//		}
+//		
+//		if( num_missing_vars >= 0 ){
+////			System.out.println("ignored total " + num_missing_vars );
+//			succesful_generalization += num_missing_vars;
+//		}
+//		
+//		return new UnorderedPair<>(updated_V,new UnorderedPair<>(updated_pi,0d));
 
 	}
 

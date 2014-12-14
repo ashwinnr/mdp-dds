@@ -76,9 +76,8 @@ domain academic_advising_mdp {
 
   // A student is assessed a cost for taking each course and a penalty for not completing their program   
   reward = 
- 	  [sum_{?c : course} [COURSE_COST(?c) * (takeCourse(?c) ^ ~taken(?c))]]
- 	+ [sum_{?c : course} [COURSE_RETAKE_COST(?c) * (takeCourse(?c) ^ taken(?c))]]
- 	+ [PROGRAM_INCOMPLETE_PENALTY * ~[forall_{?c : course} (PROGRAM_REQUIREMENT(?c) => passed(?c))]];
+ 	  [ sum_{?c : course} [ COURSE_COST(?c) * ( takeCourse(?c) ^ ~taken(?c))  +  COURSE_RETAKE_COST(?c) * ( takeCourse(?c) ^ taken(?c) ) ] ]
+ 	+ [ PROGRAM_INCOMPLETE_PENALTY * ~[ forall_{?c : course} ( PROGRAM_REQUIREMENT(?c) => passed(?c) ) ] ];
 
 }     
  

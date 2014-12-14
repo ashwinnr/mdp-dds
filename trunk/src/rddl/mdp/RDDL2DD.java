@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
+import com.google.common.collect.Maps;
+
 import add.ADDRNode;
 
 
@@ -244,7 +246,10 @@ DI extends DDINode<D,DR,? extends Collection<DR> >,
 	}
 	
 	public NavigableMap<String, DR> getTransitionRelationFAR(){
-		return _transitionRelation;
+		if( !isTransitionRelationReady( true ) ){
+			makeTransitionRelationFAR();	
+		}
+		return Maps.unmodifiableNavigableMap( _transitionRelation );
 	}
 }
 
