@@ -449,6 +449,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			_policyDD[ depth ] = _manager.BDDUnion(
 					_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(state_dd) ),
 					_manager.BDDIntersection( state_dd, action_dd ) );
+			visit_node(state_dd, depth);
 			return;
 		}
 		

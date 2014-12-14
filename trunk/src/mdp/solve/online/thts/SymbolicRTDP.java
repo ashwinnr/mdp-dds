@@ -315,7 +315,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-			if( _genStates && !is_node_visited(cur_state, num_actions)   ){
+			if( !is_node_visited(cur_state, num_actions)   ){
 				initialize_node(cur_state, num_actions);
 //				visit_node(cur_state, num_actions);
 //				System.out.println("Truncating trial : " + num_actions );
