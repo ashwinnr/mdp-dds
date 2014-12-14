@@ -2,48 +2,37 @@ package mdp.solve.online.thts;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeMap;
 
-import javax.xml.bind.annotation.XmlElementDecl.GLOBAL;
+import mdp.generalize.trajectory.Generalization;
+import mdp.generalize.trajectory.GenericTransitionGeneralization;
+import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
+import mdp.generalize.trajectory.parameters.GeneralizationParameters;
+import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
+import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
+import mdp.generalize.trajectory.parameters.OptimalActionParameters;
+import mdp.generalize.trajectory.type.GeneralizationType;
+import mdp.solve.online.RDDLOnlineActor;
+import mdp.solve.solver.HandCodedPolicies;
+import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
+import rddl.mdp.RDDL2DD.ORDER;
+import rddl.mdp.RDDLFactoredActionSpace;
+import rddl.mdp.RDDLFactoredStateSpace;
+import util.Timer;
+import util.UnorderedPair;
+import add.ADDINode;
+import add.ADDRNode;
 
 import com.google.common.collect.Maps;
 
-import add.ADDINode;
-import add.ADDRNode;
-import rddl.mdp.RDDLFactoredActionSpace;
-import rddl.mdp.RDDLFactoredStateSpace;
-import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
-import rddl.mdp.RDDL2DD.ORDER;
-import rddl.viz.CrossingTrafficDisplay;
-import rddl.viz.StateViz;
-import rddl.viz.SysAdminScreenDisplay;
-import util.Timer;
-import util.UnorderedPair;
 import dd.DDManager.APPROX_TYPE;
 import dd.DDManager.DDOper;
-import dd.DDManager.DDQuantify;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
-import mdp.generalize.trajectory.EBLGeneralization;
-import mdp.generalize.trajectory.Generalization;
-import mdp.generalize.trajectory.GenericTransitionGeneralization;
-import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
-import mdp.generalize.trajectory.parameters.EBLParams;
-import mdp.generalize.trajectory.parameters.GeneralizationParameters;
-import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
-import mdp.generalize.trajectory.parameters.OptimalActionParameters;
-import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
-import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
-import mdp.generalize.trajectory.type.GeneralizationType;
-import mdp.solve.online.Exploration;
-import mdp.solve.online.RDDLOnlineActor;
-import mdp.solve.solver.HandCodedPolicies;
 
 public abstract class SymbolicTHTS< T extends GeneralizationType, 
 P extends GeneralizationParameters<T> > extends RDDLOnlineActor 
@@ -55,7 +44,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	
 	protected boolean CONSTRAIN_NAIVELY = false;
 	protected double	EPSILON;
-	protected Timer _DPTimer = null;
 	
 	protected APPROX_TYPE apricodd_type;
 	protected double[] apricodd_epsilon;
@@ -70,7 +58,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected ADDRNode[] _valueDD;
 	protected ADDRNode[] _policyDD;
 	protected ADDRNode[] _visited; 
-//	protected ADDRNode[] _solved;
+	protected ADDRNode[] _solved;
 	
 //	private ADDRNode _baseLinePolicy;
 	
@@ -82,15 +70,12 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	protected static FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> cur_action 
 		= new FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>( );
 	
-//	protected boolean truncateTrials;
-	protected double _RMAX;
-//	protected boolean enableLabelling;
+	protected boolean _enableLabelling;
+	
 	protected ADDRNode _baseLinePolicy;
-//	protected int heuristic_sharing;
 	private Random _stateSelectionRand = null;
 	protected Random _actionSelectionRandom = null;
-//	private List<ADDRNode>  max_rewards = null;
-	protected final boolean INIT_REWARD = false;
+	protected boolean INIT_REWARD = false;
 	
 	public enum GLOBAL_INITIALIZATION{
 		VMAX, HRMAX
@@ -107,6 +92,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	
 //	protected boolean _enableLabelling;
 	protected boolean _genStates;
+	
+	public enum REMEMBER_MODE{
+		ALL, SOLVED, NONE
+	}
+	private REMEMBER_MODE _rememberMode;
+	private double _RMAX;
+	
 	
 	public SymbolicTHTS( 
 			final String domain, 
@@ -144,7 +136,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final boolean enableLabeling ,
 			final Random topLevel, 
 			final GLOBAL_INITIALIZATION global_init,
-			final LOCAL_INITIALIZATION local_init  ) {
+			final LOCAL_INITIALIZATION local_init,
+			final boolean mark_visited,
+			final boolean mark_solved,
+			final REMEMBER_MODE remember_mode,
+			final boolean init_reward ) {
 		
 		super( domain, instance, FAR, debug, order, topLevel.nextLong(), useDiscounting, numStates, numRounds, init_state_conf,
 				init_state_prob ,
@@ -160,15 +156,14 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			}
 		}
 		
+		_markVisited = mark_visited;
+		_enableLabelling = mark_solved;
+		INIT_REWARD = init_reward;
 		_actionSelectionRandom = new Random( topLevel.nextLong() );
 		_stateSelectionRand = new Random( topLevel.nextLong() );
+		_mdp.makeTransitionRelation(true); 
 		
-		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
-//		this.exploration = exploration; 
-//		
-//		this.truncateTrials = truncateTrials;
-//		this.enableLabelling = enableLabeling;
-		
+		_baseLinePolicy = _manager.DD_ZERO;//HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 		_generalizer = new GenericTransitionGeneralization<T, P>( _dtr, cons );
 
 		_genaralizeParameters = new GenericTransitionParameters<T, P, 
@@ -179,19 +174,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		EPSILON = epsilon;
 		this.timeOutMins = timeOutMins;
 		this.steps_lookahead = steps_lookahead;
-
+		_RMAX = _mdp.getRMax();
 		this.nTrials = nTrials;
 		_manager = _mdp.getManager();
 		CONSTRAIN_NAIVELY = constrain_naively;
 		this.do_apricodd = do_apricodd;
 		this.apricodd_epsilon = apricodd_epsilon;
 		this.apricodd_type = apricodd_type;
-//		this.MB = MB;
-//		this.dp_type = dp_type;
-		//heuristic too bad anyways
-		//final UnorderedPair<ADDRNode, ADDRNode> init 
-		//	= _dtr.computeLAOHeuristic( steps_heuristic, heuristic_type, CONSTRAIN_NAIVELY,
-		//		false, 0.0d, apricodd_type, MB, time_heuristic_mins );
 
 		_truncateTrials = truncateTrials;
 		this._global_init  = global_init;
@@ -202,50 +191,27 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}else if( _truncateTrials ){
 			_markVisited = true;
 		}
+		_rememberMode = remember_mode;
+		if( _rememberMode.equals(REMEMBER_MODE.SOLVED) && !_enableLabelling){
+			try{
+				throw new Exception("incompatible options");
+			}catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		
 		throwAwayEverything();
 
-//		_solved = new ADDRNode[ steps_lookahead ];
-//		for( int depth =  0; depth < steps_lookahead-1; ++depth ){
-//		    _solved[ depth ] = _manager.DD_ZERO;
-//		}
-		//_solved[ steps_lookahead-1 ] = _manager.DD_ONE;
-
-		_DPTimer = new Timer();
-		_DPTimer.PauseTimer();
-		
-		_RMAX = _mdp.getRMax();
-		
-//		max_rewards  = _dtr.maxActionVariables(_mdp.getRewards(), _mdp.getElimOrder(), 
-//				null , do_apricodd, 
-//				do_apricodd ? apricodd_epsilon[steps_lookahead-1] : 0, 
-//				apricodd_type) ;
-		
 		final P inner_params = _genaralizeParameters.getParameters();
 		if( inner_params != null ){
 			inner_params.set_manager(_manager);
 		}
 		
-		if( inner_params instanceof EBLParams ){
-			((EBLParams)inner_params).set_dtr( _dtr );
-		}
-//		else if( inner_params instanceof RewardGeneralizationParameters ){
-//			final List<ADDRNode> rewards = _mdp.getRewards();
-//			((RewardGeneralizationParameters)inner_params).set_rewards( rewards );
-//			((RewardGeneralizationParameters)inner_params).set_maxRewards(
-//					max_rewards );
-//		}
-		else if( inner_params instanceof OptimalActionParameters ){
+		if( inner_params instanceof OptimalActionParameters ){
 			((OptimalActionParameters)inner_params).set_actionVars( _mdp.get_actionVars() );
 		}
 		
-		//try {
-		//	base_line = ADDDecisionTheoreticRegression.getRebootDeadPolicy(_manager, _dtr, _mdp.get_actionVars() );
-		//} catch (EvalException e) {
-		//	e.printStackTrace();
-		//}
-//		this.dp_type = dp_type;
-		//display(_valueDD, _policyDD);
 
 	}
 	
@@ -261,7 +227,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		for( final ADDRNode rew : rewards_list ){
 			final ADDRNode term = _manager.restrict(rew, state_path);
 			sum = _manager.apply( sum, term, DDOper.ARITH_PLUS );
+			sum = _manager.restrict( sum, state_path );
 		}
+				
 		//sum is a leaf node if no action costs
 		//otherwise sum has only action vars
 		//max actions is leaf node in any case
@@ -447,33 +415,43 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		return _manager.restrict( _valueDD[depth], state.getFactoredState() ).getMax();
 	}
 	
-//	@Override
-//	public boolean is_node_solved(
-//			final FactoredState<RDDLFactoredStateSpace> assign,
-//			final int depth) {
-//		return is_node_solved( assign.getFactoredState() , depth );
-//	}
-//	
-///	public boolean is_node_solved(
-//			final NavigableMap<String, Boolean> assign,
-//			final int depth) {
-//		return _manager.restrict( _solved[depth], assign ).equals(_manager.DD_ONE);
-//	}
-//	
-//	public void mark_node_solved( final FactoredState<RDDLFactoredStateSpace> assign,
-//			final int depth ){
-//		mark_node_solved(assign.getFactoredState(), depth);
-//	}
-//
-//	public void mark_node_solved( final NavigableMap<String, Boolean> assign,
-//			final int depth ){
-//		_solved[depth] = _manager.BDDUnion( _solved[depth], 
-//				_manager.getProductBDDFromAssignment(assign) );
-//	}
+	@Override
+	public boolean is_node_solved(
+			final FactoredState<RDDLFactoredStateSpace> assign,
+			final int depth) {
+		return is_node_solved( assign.getFactoredState() , depth );
+	}
 	
+	public boolean is_node_solved(
+			final NavigableMap<String, Boolean> assign,
+			final int depth) {
+		return _manager.restrict( _solved[depth], assign ).equals(_manager.DD_ONE);
+	}
+	
+	public void mark_node_solved( final FactoredState<RDDLFactoredStateSpace> assign,
+			final int depth ){
+		mark_node_solved(assign.getFactoredState(), depth);
+	}
+
+	public void mark_node_solved( final NavigableMap<String, Boolean> assign,
+			final int depth ){
+		_solved[depth] = _manager.BDDUnion( _solved[depth], 
+				_manager.getProductBDDFromAssignment(assign) );
+	}
+
 	//do local init here
 	@Override
 	public void initialize_node(FactoredState<RDDLFactoredStateSpace> state, int depth) {
+		if( !_genStates ){
+			final ADDRNode state_dd = _manager.getProductBDDFromAssignment(state.getFactoredState());
+			//just initialize action
+			final ADDRNode action_dd = _dtr.getGreedyAction( state_dd );
+			_policyDD[ depth ] = _manager.BDDUnion(
+					_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(state_dd) ),
+					_manager.BDDIntersection( state_dd, action_dd ) );
+			return;
+		}
+		
 		final double disc = _mdp.getDiscount();
 		switch( _local_init ){
 		case VMAX : 
@@ -494,13 +472,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			double remaining = 0;
 			double cur_disc = disc;
 			for( int i = depth+1; i < (steps_lookahead); ++i ){
-				remaining += cur_disc*_mdp.getRMax();
+				remaining += cur_disc*_RMAX;
 				cur_disc *= disc;
 			}
 
 			final ADDRNode scaled  = _manager.apply( 
-					rew_path._o1, 
-					_manager.BDDIntersection(rew_path._o1, _manager.getLeaf(remaining) ), 
+					_manager.scalarMultiply( rew_path._o1, rew_path._o2._o2 ), 
+					_manager.scalarMultiply( rew_path._o1, remaining ), 
 					DDOper.ARITH_PLUS );
 			
 			_valueDD[depth] = _manager.apply(
@@ -543,10 +521,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	}
 	
 	public void visit_node(final ADDRNode states, int depth) {
-//		if( _enableLabelling && depth == steps_lookahead-1 ){
-//			mark_node_solved(states, depth);
-//		}
-		
 		if( _markVisited ){
 			_visited[depth] = _manager.BDDUnion( _visited[depth], states );
 			return;
@@ -559,9 +533,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //		}		
 	}
 	
-//	private void mark_node_solved(final ADDRNode states, final int depth) {
-//		_solved[depth] = _manager.BDDUnion( _solved[depth], states );
-//	}
+	protected void mark_node_solved(final ADDRNode states, final int depth) {
+		_solved[depth] = _manager.BDDUnion( _solved[depth], states );
+	}
 
 	@Override
 	public FactoredState<RDDLFactoredStateSpace> pick_successor_node(
@@ -657,10 +631,122 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 //	}
 	
 	protected void throwAwayEverything() {
-		_policyDD = null;
-		_policyDD = new ADDRNode[ steps_lookahead ];
-		Arrays.fill(_policyDD, _baseLinePolicy );
+
+		if( _policyDD == null ){
+			_policyDD = new ADDRNode[ steps_lookahead ];
+			Arrays.fill( _policyDD, _baseLinePolicy );
+		}else{
+			switch( _rememberMode ){
+			case NONE :  			
+				_policyDD = null;
+				_policyDD = new ADDRNode[ steps_lookahead ];
+				Arrays.fill( _policyDD, _baseLinePolicy );
+				break;
+			case ALL : break;
+			case SOLVED :  
+				for( int i = 0 ; i < steps_lookahead; ++i ){
+					_policyDD[i] = 
+							_manager.BDDUnion( 
+									_manager.BDDIntersection(_policyDD[i], _solved[i] ),
+									_manager.BDDIntersection(_baseLinePolicy, _manager.BDDNegate( _solved[i] ) ) );
+				}
+				break;
+			}
+		}
 		
+		if( _valueDD == null ){
+			initValue();
+		}else{
+			switch( _rememberMode ){
+			case NONE : 
+				initValue();
+				break;
+			case ALL : break;
+			case SOLVED : 
+				for( int i = 0 ; i < steps_lookahead; ++i ){
+					_valueDD[i] = _manager.apply(
+							_manager.BDDIntersection( _valueDD[i], _solved[i] ),
+							_manager.BDDIntersection( _mdp.getVMax(i, steps_lookahead ) , _manager.BDDNegate( _solved[i] ) ),
+							DDOper.ARITH_PLUS );
+				}
+				break;
+			}
+		}
+		
+		trajectory_states = null;
+		trajectory_states = new FactoredState[ steps_lookahead ];
+		trajectory_actions = null;
+		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
+		for( int i = 0 ; i < steps_lookahead-1; ++i ){
+		    trajectory_actions[i] = new FactoredAction( );
+		    trajectory_states[i] = new FactoredState( );
+		}
+		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
+		
+//		_solved = new ADDRNode[ steps_lookahead ];
+//		Arrays.fill( _solved, _manager.DD_ZERO );
+//		_solved[ _solved.length-1 ] = _manager.DD_ONE;
+		
+		if( _markVisited ){
+			if( _visited == null ){
+				_visited = new ADDRNode[ steps_lookahead ];
+				Arrays.fill( _visited, _manager.DD_ZERO );	
+			}else{
+				switch( _rememberMode ){
+				case ALL : break;
+				case NONE : 
+					_visited = new ADDRNode[ steps_lookahead ];
+					Arrays.fill( _visited, _manager.DD_ZERO );
+					if( INIT_REWARD ){
+						_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
+					}
+					break;
+				case SOLVED : 
+					for( int i = 0 ; i < steps_lookahead; ++i ){
+						_visited[i] = _manager.BDDIntersection( _visited[i], _solved[i] );
+					}
+					if( INIT_REWARD ){
+						_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
+					}
+				}
+			}
+		}
+		
+		if( _enableLabelling ){
+			if( _solved == null ){
+				_solved = new ADDRNode[ steps_lookahead ];
+				for( int depth =  0; depth < steps_lookahead; ++depth ){
+				    _solved[ depth ] = _manager.DD_ZERO;
+				}
+				if( INIT_REWARD ){
+					_solved[ steps_lookahead-1 ] = _manager.DD_ONE;
+				}
+			}else{
+				switch( _rememberMode ){
+				case ALL :  break;
+				case NONE : _solved = null;
+				_solved = new ADDRNode[ steps_lookahead ];
+				for( int depth =  0; depth < steps_lookahead; ++depth ){
+				    _solved[ depth ] = _manager.DD_ZERO;
+				}
+				if( INIT_REWARD ){
+					_solved[ steps_lookahead-1 ] = _manager.DD_ONE;
+				}
+				break;
+				case SOLVED : break; 
+				}
+			}
+			
+		}
+//		_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
+		
+//		_manager.clearNodes();
+		
+//		System.gc();
+		
+	}
+
+	private void initValue() {
 		_valueDD = null;
 		_valueDD = new ADDRNode[ steps_lookahead ];
 		for( int i = 0 ; i < steps_lookahead; ++i ){
@@ -692,35 +778,12 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					}
 				}
 			}
-		}
-		
-		trajectory_states = null;
-		trajectory_states = new FactoredState[ steps_lookahead ];
-		trajectory_actions = null;
-		trajectory_actions = new FactoredAction[ steps_lookahead - 1 ];
-		for( int i = 0 ; i < steps_lookahead-1; ++i ){
-		    trajectory_actions[i] = new FactoredAction( );
-		    trajectory_states[i] = new FactoredState( );
-		}
-		trajectory_states[ steps_lookahead - 1 ] = new FactoredState();
-		
-//		_solved = new ADDRNode[ steps_lookahead ];
-//		Arrays.fill( _solved, _manager.DD_ZERO );
-//		_solved[ _solved.length-1 ] = _manager.DD_ONE;
-		
-		_visited = new ADDRNode[ steps_lookahead ];
-		Arrays.fill( _visited, _manager.DD_ZERO );
-//		_visited[ steps_lookahead-1 ] = _manager.DD_ONE;
-		
-//		_manager.clearNodes();
-		
-//		System.gc();
-		
+		}	
 	}
 
-	protected ADDRNode getVMax(final int depth ) {
-		return _manager.getLeaf( _RMAX * (steps_lookahead-depth) );
-	}
+//	protected ADDRNode getVMax(final int depth ) {
+//		return _manager.getLeaf( _RMAX * (steps_lookahead-depth) );
+//	}
 
 	protected void display(  ) {
 		for( int i = 0 ; i < _valueDD.length; ++i ){

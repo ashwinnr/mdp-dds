@@ -6,11 +6,10 @@ import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
 import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
-import mdp.solve.online.thts.IncrementalSymbolicRTDP.REMOVE_VAR_CONDITION;
 import mdp.solve.online.thts.IncrementalSymbolicRTDP.START_STATE;
-import mdp.solve.online.thts.IncrementalSymbolicRTDP.STOPPING_CONDITION;
 import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
 import mdp.solve.online.thts.SymbolicTHTS.LOCAL_INITIALIZATION;
+import mdp.solve.online.thts.SymbolicTHTS.REMEMBER_MODE;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -80,18 +79,23 @@ public class InstantiateArgs {
 	ret.addOption("do_Xion", true, "invariance of abstract states" );
 	ret.addOption("stat_vfn", true, "stationary value fn" );
 
-	ret.addOption( "initGen", true, "initialization for generalized state " 
-			+ Arrays.toString( START_STATE.values() ) );
-	ret.addOption("stopGen", true, "stoping condition for generalization" 
-			+ Arrays.toString( STOPPING_CONDITION.values() ) );
-	ret.addOption( "nextGen", true, "how to generate subsequent generalizations - " + 
-			Arrays.toString( REMOVE_VAR_CONDITION.values()) );
-	ret.addOption( "maxIgnoreDepth", true, "maximum variables that can be ignored" );
-	ret.addOption( "timePerState", true, "time(mins) per state" );
+//	ret.addOption( "initGen", true, "initialization for generalized state " 
+//			+ Arrays.toString( START_STATE.values() ) );
+//	ret.addOption("stopGen", true, "stoping condition for generalization" 
+//			+ Arrays.toString( STOPPING_CONDITION.values() ) );
+//	ret.addOption( "nextGen", true, "how to generate subsequent generalizations - " + 
+//			Arrays.toString( REMOVE_VAR_CONDITION.values()) );
+//	ret.addOption( "maxIgnoreDepth", true, "maximum variables that can be ignored" );
+//	ret.addOption( "timePerState", true, "time(mins) per state" );
 	
 	ret.addOption( "global_init", true, "Global initialization " + GLOBAL_INITIALIZATION.values() );
 	ret.addOption( "local_init", true, "time(mins) per state " + LOCAL_INITIALIZATION.values() );
 	ret.addOption("truncate_trials", true, "whether to truncate trial on new state" );
+	ret.addOption("mark_visited", true, "whether to maintain BDD of visitation");
+	ret.addOption("mark_solved", true, "whether to label BDD" );
+	ret.addOption("remember_mode", true, "remember across decisions " + 
+			Arrays.toString( REMEMBER_MODE.values() ) );
+	ret.addOption("init_reward", true, "whether to start with reward function" );
 	
 	return ret;
     }   

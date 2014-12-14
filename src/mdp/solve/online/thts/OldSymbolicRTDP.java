@@ -41,6 +41,7 @@ import mdp.solve.online.thts.SymbolicRTDP.LearningMode;
 import mdp.solve.online.thts.SymbolicRTDP.LearningRule;
 import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
 import mdp.solve.online.thts.SymbolicTHTS.LOCAL_INITIALIZATION;
+import mdp.solve.online.thts.SymbolicTHTS.REMEMBER_MODE;
 
 public class OldSymbolicRTDP< T extends GeneralizationType, 
 	P extends GeneralizationParameters<T> >  extends SymbolicRTDP<T,P> {
@@ -67,11 +68,8 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 			P generalize_parameters_wo_manager, boolean gen_fix_states,
 			boolean gen_fix_actions, int gen_num_states, int gen_num_actions,
 			final GENERALIZE_PATH gen_rule, final Consistency[] cons, 
-			final Random topLevel, 
-			final GLOBAL_INITIALIZATION global_init,
-			final LOCAL_INITIALIZATION local_init,
-			final boolean truncateTrials ){
-		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
+			final Random topLevel ){
+		super( domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, init_state_conf, init_state_prob, nTrials, timeOutMins,
 				steps_lookahead, generalizer, generalize_parameters_wo_manager,
@@ -79,7 +77,8 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 				gen_rule, cons, topLevel, steps_lookahead, 
 				mdp.solve.online.thts.SymbolicRTDP.LearningRule.NONE, 
 				-1, mdp.solve.online.thts.SymbolicRTDP.LearningMode.BATCH, 
-				false, false, global_init, local_init, truncateTrials );
+				false, false, GLOBAL_INITIALIZATION.VMAX, LOCAL_INITIALIZATION.VMAX,
+				false, false, false, REMEMBER_MODE.NONE, false );
 	}
 	
 	@Override
@@ -127,18 +126,16 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 					= _generalizer.generalize_state(cur_state, cur_action, next_state, _genaralizeParameters, 0);
 				
 				//update
-				UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> the_update = _dtr.backup(_valueDD[0], _policyDD[0], _valueDD[0], gen_state, 
+				UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> the_update
+				= _dtr.backup( _valueDD[0], _policyDD[0], _valueDD[0], gen_state, 
 						BACKUP_TYPE.VI_FAR, 
 						do_apricodd, do_apricodd ? apricodd_epsilon[0] : 0d, 
 								apricodd_type,
 						true, -1, CONSTRAIN_NAIVELY, null );
 				_valueDD[0] = the_update._o1;
 				_policyDD[0] = the_update._o2._o1;
-				
 				cur_state = next_state;
-				
 				++num_actions;
-				
 			}
 			
 			System.out.print("*");	
@@ -154,24 +151,18 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 				
 				System.out.println( "\nValue of init state " + 
 						_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).getMax() );
-				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
-				
 				System.out.println("root node action : " + root_action.toString() );
-				
 				System.out.print("description of value of init state ");
-				
 				final ADDRNode path_aroo = _manager.get_path(_valueDD[0], init_state.getFactoredState() );
 				
 				System.out.println(  
 								(_manager.enumeratePathsBDD( 
 										path_aroo).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
 				
-				
 				System.out.println( "Value : " + 
 						_manager.enumeratePathsBDD( path_aroo ) );
 				
 				System.out.print("description of policy of init state ");
-				
 
 				final ADDRNode policy_roo = _manager.get_path(
 						_manager.restrict(_policyDD[0], root_action.getFactoredAction()), 
@@ -184,23 +175,20 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 				System.out.println( "Policy : " + 
 						_manager.enumeratePathsBDD( 
 								policy_roo ) );
-				
 			}
-			
 			if( !timeOut ){
 				act_time.ResumeTimer();
 			}
-			
 		}
 		
 		System.out.println();
 		System.out.println("num samples : " + numSamples );
 		
-		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action = pick_successor_node(init_state, 0);
+		FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> root_action
+			= pick_successor_node(init_state, 0);
 		
 		System.out.println( "Value of init state " + 
 				_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
-		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
 		
 		System.out.println("root node action : " + root_action.toString() );
 		
@@ -211,12 +199,10 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 								_manager.get_path(
 										_valueDD[0], init_state.getFactoredState() )).iterator().next().size()-1.0d)/(1.0d*_mdp.getNumStateVars()) );
 		
-		
 		System.out.println( "Value : " + 
 				_manager.enumeratePathsBDD( _manager.get_path(_valueDD[0], init_state.getFactoredState() ) ) );
 		
 		System.out.print("description of policy of init state ");
-		
 
 		System.out.println( "Policy : " + 
 				(_manager.enumeratePathsBDD( 
@@ -341,10 +327,7 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedStates") ),
 				Integer.parseInt( cmd.getOptionValue("limitGeneralizedActions") ),
 				GENERALIZE_PATH.valueOf( cmd.getOptionValue("generalizationRule") ), 
-				consistency, new Random( topLevel.nextLong() ),
-				GLOBAL_INITIALIZATION.valueOf( cmd.getOptionValue("global_init") ),
-				LOCAL_INITIALIZATION.valueOf( cmd.getOptionValue("local_init") ) ,
-				Boolean.valueOf( cmd.getOptionValue("truncate_trials") ) );
+				consistency, new Random( topLevel.nextLong() ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

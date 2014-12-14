@@ -14,24 +14,18 @@ public class HandCodedPolicies {
     		final ADDDecisionTheoreticRegression dtr, ADDManager manager, 
     		Set<String> actionVars ){
     	
-	if( domain_file.contains("crossing_traffic") ){
-		return manager.getIndicatorDiagram("delta_y_2".intern(), true);
-	}
-	else if( domain_file.contains("sysadmin") ){
-		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}
-	else if( domain_file.contains("traffic") ){
-		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}
-	else if( domain_file.contains("skill_teaching") ){
-		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}
-	else if( domain_file.contains("game_of_life") ){
-		return dtr.applyMDPConstraintsNaively(manager.DD_ONE, null, manager.DD_ZERO, null );
-	}
-//	else if( domain_file.contains("grid") ){
-//		return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
-//	}
-	return ADDDecisionTheoreticRegression.getNoOpPolicy(actionVars, manager);
+		if( domain_file.contains("crossing_traffic") ){
+			return manager.getIndicatorDiagram("delta_y_2".intern(), true);
+		}else if( domain_file.contains("academic_advising" ) ){
+			//noop
+			return dtr.getNoOpPolicy(actionVars, manager);
+		}
+		else {
+			//random
+			final ADDRNode random = manager.DD_ONE;
+			final ADDRNode random_constrained = dtr.applyMDPConstraintsNaively(random, null, manager.DD_ZERO, null );
+			final ADDRNode random_constrained_ties = manager.breakTiesInBDD(random_constrained, actionVars, false);
+			return random_constrained_ties;
+		}
     }
 }

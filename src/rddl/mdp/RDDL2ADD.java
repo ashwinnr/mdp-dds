@@ -1065,14 +1065,12 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 		}else{
 			if( getDiscount() == 1 ){
 				
-				return _manager.getLeaf( getRMax() * (steps_lookahead-1-depth) );
+				return _manager.getLeaf( getRMax() * (steps_lookahead-depth) );
 			}else{
 				double ret = 0;
 				double cur_disc = 1;
-				for( int i = 0; i < steps_lookahead; ++i ){
-					if( i >= depth ){
-						ret += getRMax() * cur_disc;
-					}
+				for( int i = depth; i < steps_lookahead; ++i ){
+					ret += getRMax() * cur_disc;
 					cur_disc = cur_disc * getDiscount();
 				}
 				return _manager.getLeaf( ret );

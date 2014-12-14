@@ -36,6 +36,7 @@ import com.google.common.collect.Maps;
 
 import dd.DDManager.APPROX_TYPE;
 import dd.DDManager.DDOper;
+import dd.DDManager.DDQuantify;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
@@ -64,6 +65,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private boolean do_Xion = true;
 	protected boolean _stationary_vfn = false;
 
+	private double _avgDPTime = 0;
+	private int _numUpdates = 0;
+	
 	public SymbolicRTDP(
 			String domain,
 			String instance,
@@ -99,8 +103,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			final boolean stat_vfn,
 			final GLOBAL_INITIALIZATION global_init, 
 			final LOCAL_INITIALIZATION local_init,
-			final boolean truncateTrials  ) {
-		super(domain, instance, epsilon, debug, order, useDiscounting, numStates,
+			final boolean truncateTrials,
+			final boolean mark_visited,
+			final boolean mark_solved,
+			final REMEMBER_MODE remember_mode,
+			final boolean reward_init ) {
+		super( domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, true, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type,
 				BACKUP_TYPE.VI_FAR, 10, 1, -1, 
@@ -108,7 +116,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				timeOutMins, steps_lookahead, generalizer, generalize_parameters_wo_manager,
 				gen_fix_states, gen_fix_actions, gen_num_states, gen_num_actions,
 				gen_rule, cons, truncateTrials, false , 
-				new Random( topLevel.nextLong() ) , global_init, local_init );
+				new Random( topLevel.nextLong() ) , global_init, local_init,
+				mark_visited, mark_solved, remember_mode, reward_init );
 		
 		_learningMode = learningMode;
 		_maxRules = maxRulesToLearn;
@@ -169,14 +178,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			display(  );//_valueDD, _policyDD );
 //		}
 //		display();
-		
 //		final ADDRNode action_dd 
 //			= _manager.restrict(_policyDD[0] ,  state.getFactoredState() );
-		
 //		_manager.flushCaches();
-		
-		
-		
 		//remember root node description of policy?
 		//options : testing on/off
 		//testingRule : decision list of actions at root node/
@@ -184,7 +188,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		//testingTraj ratio : between training and testing samples from new state
 		//0 for only act - 1 for training again
 		//put back rule - 0/1 after testing - add back to d'list? - same rule as testingRule
-		
 //		System.out.println("testing hypothesis" );
 //		final NavigableMap<String, Boolean> state_descr = Maps.unmodifiableNavigableMap( _manager.enumeratePathsBDD( 
 //				_manager.get_path(_valueDD[0], state.getFactoredState() ) ).iterator().next() );
@@ -305,16 +308,16 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		final int numStateVars = _mdp.getNumStateVars();
 		final NavigableMap<String, Boolean> initStateAssign = init_state.getFactoredState();
-		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) ){
-//				&& ( !_enableLabelling || !is_node_solved(init_state, 0) ) ){
+		while( trials_to_go --> 0 && ( (timeOutMins == -1) || !timeOut ) 
+				&& ( !_enableLabelling || !is_node_solved(init_state, 0) ) ){
 			FactoredState<RDDLFactoredStateSpace> cur_state = init_state;
 			int num_actions = 0;//steps_lookahead;
 //			System.out.println("value of init state : " + _manager.evaluate(value_fn, init_state.getFactoredState() ).getNode().toString() );
 			
 			trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-			if( !is_node_visited(cur_state, num_actions)   ){
+			if( _genStates && !is_node_visited(cur_state, num_actions)   ){
 				initialize_node(cur_state, num_actions);
-				visit_node(cur_state, num_actions);
+//				visit_node(cur_state, num_actions);
 //				System.out.println("Truncating trial : " + num_actions );
 //				System.out.println("Truncating trial : " + cur_state );
 				if( _truncateTrials ){
@@ -328,16 +331,45 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				}
 				
 				//				System.out.println(_manager.evaluate(value_fn, cur_state.getFactoredState() ).getNode().toString() );
-			    
 //				System.out.println( cur_state.toString() );
-
 //				if( enableLabelling && is_node_solved(cur_state, num_actions) ){
 //					break;
 //				}
 
+				if( !is_node_visited(cur_state, num_actions) ){
+//					System.out.println("initializing " + cur_state );
+					initialize_node(cur_state, num_actions);
+//					visit_node( cur_state, num_actions );
+//					System.out.println("Truncating trial : " + num_actions );
+//					System.out.println("Truncating trial : " + cur_state );
+					if( _truncateTrials ){
+						break;
+					}
+				}
+				
+				trajectory_actions[ num_actions ].setFactoredAction( 
+						pick_successor_node(cur_state, num_actions).getFactoredAction() );
+				if( DISPLAY_TRAJECTORY ){
+					System.out.println( num_actions + " " + cur_action.toString() );	
+				}
+
+				//				System.out.println( "Steps to go " + steps_to_go );
+				final FactoredState<RDDLFactoredStateSpace> next_state 
+				= pick_successor_node(cur_state, trajectory_actions[ num_actions ], num_actions);
+				cur_state = next_state;
+				++num_actions;
+				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
+				if( _enableLabelling && num_actions < steps_lookahead-1 && 
+						is_node_solved(cur_state, num_actions) ){
+					if( DISPLAY_TRAJECTORY ){
+						System.out.println(cur_state.toString() + " state marked as solved " + num_actions );
+					}
+					break;
+				}
+				
 				if( num_actions == steps_lookahead-1 ){
 					final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>>
-					gen_leaf = generalize_leaf( cur_state, num_actions);
+					gen_leaf = generalize_leaf( cur_state, num_actions );
 					if( _genStates ){
 						//changed 5/27/014
 						//find states that have the same reward
@@ -353,7 +385,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 						
 //						System.out.println("leaf node : depth "  + num_actions + " " 
 //						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
-						visit_node( gen_leaf._o1, num_actions );
+						if( _markVisited ){
+							visit_node( gen_leaf._o1, num_actions );							
+						}
+						if( _enableLabelling ){
+							mark_node_solved( gen_leaf._o1, num_actions );
+						}
 					}
 					else{
 						final ADDRNode flat_state = _manager.getProductBDDFromAssignment( cur_state.getFactoredState() );
@@ -368,56 +405,31 @@ public class SymbolicRTDP< T extends GeneralizationType,
 								_manager.BDDIntersection( flat_state, gen_leaf._o2._o1 ) );
 						
 //						initialize_leaf(cur_state, num_actions);
-						visit_node(flat_state, num_actions);
+						if( _markVisited ){
+							visit_node(flat_state, num_actions);
+						}
+						if( _enableLabelling ){
+							mark_node_solved( flat_state, num_actions );
+						}
 					}
 				}
-				else if( _genStates && !is_node_visited(cur_state, num_actions) ){
-//					System.out.println("initializing " + cur_state );
-					initialize_node(cur_state, num_actions);
-//					visit_node( cur_state, num_actions );
-//					System.out.println("Truncating trial : " + num_actions );
-//					System.out.println("Truncating trial : " + cur_state );
-					if( _truncateTrials ){
-						break;
-					}
-				}
-				
-				trajectory_actions[ num_actions ].setFactoredAction( 
-						pick_successor_node(cur_state, num_actions).getFactoredAction() );
-
-				if( DISPLAY_TRAJECTORY ){
-					System.out.println( cur_action.toString() );	
-				}
-
-				//				System.out.println( "Steps to go " + steps_to_go );
-				final FactoredState<RDDLFactoredStateSpace> next_state 
-				= pick_successor_node(cur_state, trajectory_actions[ num_actions ], num_actions);
-				cur_state = next_state;
-				++num_actions;
-				trajectory_states[ num_actions ].setFactoredState( cur_state.getFactoredState() );
-				
 			}
 			if( DISPLAY_TRAJECTORY ){
-				System.out.println( cur_state.toString() );
+				System.out.println( num_actions + " " + cur_state.toString() );
 			}
-			
 //			trajectory_states[ trajectory_states.length-1 ].setFactoredState( cur_state.getFactoredState() );
-			
 //			System.out.println("Updating : " + _manager.countPaths(trajectory_states) );
 //			System.out.println("Prob. trajectory = " + prob_traj );
-			
 			final FactoredState<RDDLFactoredStateSpace>[] trajectory_states_non_null 
 				=  Arrays.copyOfRange(trajectory_states, 0, num_actions+1);
 			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>[] 
 					trajectory_actions_non_null =  Arrays.copyOfRange(trajectory_actions, 0, num_actions);
 			
 			ADDRNode[] gen_trajectory = null;
-			
 			if( _genStates ){
 				gen_trajectory = generalize_trajectory( trajectory_states_non_null,
 					trajectory_actions_non_null );
 			}
-			
 //			System.out.println(gen_trajectory.length);
 //			_DPTimer.ResumeTimer();			
 			update_generalized_trajectory( trajectory_states_non_null, trajectory_actions_non_null, 
@@ -432,6 +444,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //			display();
 			
 			act_time.PauseTimer();
+//			System.out.println( act_time.GetElapsedTimeInMinutes() + " " + timeOutMins );
 			if( act_time.GetElapsedTimeInMinutes() >= timeOutMins ){
 				timeOut = true;
 			}
@@ -446,7 +459,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				
 				System.out.println( "\nValue of init state " + 
 						_manager.evaluate(_valueDD[0], initStateAssign ).getMax() );
-				System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+				System.out.println("average DP time: " + _avgDPTime );
 				
 				System.out.println("root node action : " + root_action.toString() );
 				
@@ -486,7 +499,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			
 //			System.out.println( "Value of init state " + 
 //					_manager.evaluate(_valueDD[0], init_state.getFactoredState() ).toString() );
-			
+			if( _enableLabelling && is_node_solved(init_state, 0) ){
+				System.out.println("initial state marked as solved");
+				break;
+			}
 		}
 		System.out.println();
 		System.out.println("num samples : " + numSamples );
@@ -499,7 +515,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		
 		System.out.println( "Value of init state " + 
 				_manager.evaluate(_valueDD[0], initStateAssign ).toString() );
-		System.out.println("DP time: " + _DPTimer.GetElapsedTimeInMinutes() );
+		System.out.println("avg DP time: " + _avgDPTime );
 		
 		System.out.println("root node action : " + root_action.toString() );
 		
@@ -561,9 +577,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			target_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j-1 ];
 			target_policy = _stationary_vfn ? _policyDD[0] : _policyDD[ j-1 ];
 			source_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j ];
-			_DPTimer.ResumeTimer();
+
 			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup = null;
-			
+			Timer dp_time = new Timer();
 			if( _genStates ){
 				ADDRNode this_next_states, this_states, this_actions;
 	    	
@@ -589,8 +605,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 						_stationary_vfn ? 0 : j-1 , 
 						trajectory_states[j-1], trajectory_states[j] );
 			}else{
+				final ADDRNode flat_state_bdd = _manager.getProductBDDFromAssignment(trajectory_states[j-1].getFactoredState());
 				backup = _dtr.backup( target_val, target_policy, source_val, 
-							_manager.getProductBDDFromAssignment(trajectory_states[j-1].getFactoredState()), 
+							flat_state_bdd, 
 							BACKUP_TYPE.VI_FAR, 
 						do_apricodd, 
 						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
@@ -598,11 +615,21 @@ public class SymbolicRTDP< T extends GeneralizationType,
 								CONSTRAIN_NAIVELY , null  );
 				_valueDD[ j-1 ] = backup._o1;
 				_policyDD[ j-1 ] = backup._o2._o1;
-
-			}
+				if( _markVisited ){
+					visit_node(flat_state_bdd, j-1 );
+				}
+				if( _enableLabelling ){
+					ADDRNode new_solved = getSolvedStates(j-1, flat_state_bdd);
+					mark_node_solved(new_solved, j-1);
+				}
+				saveValuePolicy();
 				
-			_DPTimer.PauseTimer();
-			
+			}
+
+			dp_time.StopTimer();
+			final double this_time = dp_time.GetElapsedTimeInMinutes();
+			++_numUpdates;
+			_avgDPTime = ( ( _numUpdates-1 )*_avgDPTime + this_time ) / _numUpdates;
 			--j;
 			
 //			final ADDRNode next_states = _dtr.BDDImageAction( this_states, DDQuantify.EXISTENTIAL,
@@ -713,17 +740,24 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			System.exit(1);
 		    }
 		}
-		
+
 		if( _genStates ){
 			//method 1 BDD
 			// current partition subseteq update_states must contain actual_state
 			// unless consistency is used! - in which case current_partition 
 			// can be a superset
+
+			//take all solved states too?
+			ADDRNode new_solved  = _enableLabelling ? getSolvedStates( depth, update_states ) : null;
 			ADDRNode current_partition = null;
 			if( do_Xion ){
 				current_partition = findNewGeneralizedPartition( new_val,
-				new_policy, update_states, depth, actual_state, next_state );
+						new_policy, update_states, depth, actual_state, next_state );
 				current_partition = _manager.BDDIntersection( current_partition, update_states );
+				new_solved = _manager.BDDIntersection( new_solved, current_partition );
+//				if( _enableLabelling ){
+//					current_partition = _manager.BDDUnion(current_partition, new_solved );
+//				}
 			}else{
 				current_partition = update_states;
 			}
@@ -748,44 +782,15 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			_policyDD[ depth ] =
 					_manager.BDDUnion( newly_updated_policy ,
 							_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_partition) ) );
-			
-			
-//			if( _enableLabelling  ){
-//				//solved states in next layer
-//				//S(s) = \forall_s',a [ T(s,a,s') S(s') ]
-//				//set X, S(X) = \forall_x',a T S'
-//				//     = \min_{x',a_i} \prod_T(s,a,x') blah blah
-//				ADDRNode new_solved = _manager.remapVars( _solved[depth+1]  , _mdp.getPrimeRemap() );
-				
-//				final ADDRNode threshed 
-//				= _manager.BDDIntersection( this_states, _manager.threshold( diff, EPSILON, false) );
-//				//remove from threshed those that were not updated
-//				
-//				//for state s, thresh = 1 ^ solved = 1 for image(s)
-//				final Set<NavigableMap<String, Boolean>> small_error_paths 
-//				= _manager.enumeratePaths(threshed, false, true, _manager.DD_ONE, false);
-//				if( small_error_paths.isEmpty() ){
-//					final NavigableMap<String, Boolean> state_path = trajectory_states[j-1].getFactoredState();
-//					final ADDRNode this_path 
-//					= _manager.getProductBDDFromAssignment(state_path);
-//					final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
-//					final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
-//					if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-//						mark_node_solved(state_path, j-1);
-//					}
-//				}else{
-//					for( final NavigableMap<String, Boolean> path : small_error_paths ){
-//						final ADDRNode this_path = _manager.getProductBDDFromAssignment(path);
-//						final ADDRNode this_path_image = _dtr.BDDImage(this_path, true, DDQuantify.EXISTENTIAL);
-//						final ADDRNode this_path_image_not = _manager.BDDNegate(this_path_image);
-//						if( _manager.BDDUnion( this_path_image_not, _solved[ j ] ).equals(_manager.DD_ONE) ){
-//							mark_node_solved(path, j-1);
-//						}
-//					}	
-//				}
-//				
-//			}
 
+			if( _markVisited ){
+				visit_node(current_partition, depth);
+			}
+			if( _enableLabelling ){
+				mark_node_solved( new_solved, depth);
+			}
+			
+			saveValuePolicy();
 //			System.out.println( "gen state " + depth + " " + _manager.enumeratePathsBDD(current_parition).toString() );
 //			System.out.println( "updated state " + depth + " " + _manager.enumeratePathsBDD(update_states).toString() );
 //			System.out.println( depth + " " + 
@@ -840,6 +845,33 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	private ADDRNode visit_node(ADDRNode states, int depth) {
 //	    return  _manager.BDDUnion(_visited[depth], states );
 //	}
+
+	private ADDRNode getSolvedStates( final int depth, final ADDRNode update_states ) {
+		//solved states in next layer
+		//S(s) = \forall_s',a [ T(s,a,s') => S(s') ]
+		//S = \forall_{X',A} \or ~T_i \or S' 
+		//push X' inside
+		//S_X = \forall_{X',A} [ T \or ~X => S' \and X ] 
+		//= \forall_{X',A} [ ( ~T \and X ) \or ( S' \and X ) ]
+		//= \forall_{X',A}[ ([\or ~T_i] \and X) \or ( S' \and X ) ]
+		//= \forall_{X',A}[ [\or (~T_i \and X)] \or (S' \and X) ]
+		//X=0 => S_X = 0
+		//push X_i' inside till T_i
+		
+		final NavigableMap<String, ADDRNode> transition_relation = _mdp.getTransitionRelationFAR();
+		ADDRNode new_solved = _manager.remapVars( _solved[depth+1]  , _mdp.getPrimeRemap() );
+		new_solved = _manager.BDDIntersection( new_solved, update_states );
+		for( final String next_var : _mdp.getSumOrder() ){
+			ADDRNode this_trans = transition_relation.get( next_var );
+			ADDRNode this_trans_neg = _manager.BDDNegate(this_trans);
+			ADDRNode this_trans_neg_and = _manager.BDDIntersection( this_trans_neg, update_states );
+			new_solved = _manager.BDDUnion( new_solved, this_trans_neg_and );
+			new_solved = _manager.quantify(new_solved, next_var, DDQuantify.UNIVERSAL);
+		}
+		//marginalize actions
+		new_solved = _manager.quantify(new_solved, _mdp.get_actionVars(), DDQuantify.UNIVERSAL);
+		return new_solved;
+	}
 
 	private ADDRNode findNewGeneralizedPartition(final ADDRNode new_val,
 			final ADDRNode new_policy, 
@@ -930,7 +962,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //		
 //		return ret; 
 //	}
-	
 
 //	private ADDRNode initilialize_node_temp( final ADDRNode value_fn, 
 //			final ADDRNode states, final int depth ) {
@@ -1010,7 +1041,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		t.join();
 	}
 
-
 	public static SymbolicRTDP instantiateMe(String[] args) {
 		
 		final Options options = InstantiateArgs.createOptions();
@@ -1060,8 +1090,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			}
 		}
 		
-		Exploration exploration = null;
-		
 		final String[] const_options = ( cmd.getOptionValues("consistencyRule") );
 		final Consistency[] consistency = new Consistency[ const_options.length ];
 		for( int i = 0 ; i < const_options.length; ++i ){
@@ -1104,7 +1132,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 				Boolean.parseBoolean( cmd.getOptionValue("stat_vfn") ),
 				GLOBAL_INITIALIZATION.valueOf( cmd.getOptionValue("global_init") ),
 				LOCAL_INITIALIZATION.valueOf( cmd.getOptionValue("local_init") ) ,
-				Boolean.valueOf( cmd.getOptionValue("truncate_trials") ) );
+				Boolean.valueOf( cmd.getOptionValue("truncate_trials") ),
+				Boolean.valueOf( cmd.getOptionValue("mark_visited") ),
+				Boolean.valueOf( cmd.getOptionValue("mark_solved") ),
+				REMEMBER_MODE.valueOf( cmd.getOptionValue("remember_mode") ),
+				Boolean.valueOf( cmd.getOptionValue("init_reward") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
@@ -1115,16 +1147,16 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		return null;
 	}
 
-	@Override
-	public boolean is_node_solved(FactoredState<RDDLFactoredStateSpace> state,
-			int depth) {
-		try{
-			throw new UnsupportedOperationException();
-		}catch( Exception e ){
-			e.printStackTrace();
-			System.exit(1);
-		}
-		return false;
-	}
+//	@Override
+//	public boolean is_node_solved(FactoredState<RDDLFactoredStateSpace> state,
+//			int depth) {
+//		try{
+//			throw new UnsupportedOperationException();
+//		}catch( Exception e ){
+//			e.printStackTrace();
+//			System.exit(1);
+//		}
+//		return false;
+//	}
 
 }

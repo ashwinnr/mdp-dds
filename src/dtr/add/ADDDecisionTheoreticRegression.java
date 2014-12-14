@@ -2596,6 +2596,20 @@ RDDLFactoredActionSpace> {
 		return domain_constraints_neg_inf;
 	}
 
+	public ADDRNode getGreedyAction( final ADDRNode state_dd ) {
+		ADDRNode max_actions = applyMDPConstraintsNaively(state_dd ,
+				null, _manager.DD_NEG_INF, null );
+		for( final ADDRNode rew : _mdp.getRewards() ){
+			max_actions = _manager.apply( max_actions, rew, DDOper.ARITH_PLUS );
+		}
+		final ADDRNode state_value = maxActionVariables(max_actions, _mdp.getElimOrder(), 
+				null, false, 0, null );
+		ADDRNode diff = _manager.apply( state_value, max_actions, DDOper.ARITH_PLUS );
+		ADDRNode policy = _manager.threshold(diff, 0, false );
+		ADDRNode policy_deterministic = _manager.breakTiesInBDD(policy, _mdp.get_actionVars(), false);
+		return policy_deterministic;
+	}
+
 	//	private static void testRegressAllActions() {
 	//		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp_same.rddl", "./rddl/sysadmin_uniring_1_3_0.rddl", 
 	//				false, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS);
