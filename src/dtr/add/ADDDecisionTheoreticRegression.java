@@ -2596,21 +2596,39 @@ RDDLFactoredActionSpace> {
 		return domain_constraints_neg_inf;
 	}
 
-	public ADDRNode getGreedyAction( final ADDRNode state_dd ) {
-		final ADDRNode state_dd_neg_inf = _manager.apply( 
-				_manager.BDDNegate( state_dd ), _manager.DD_NEG_INF, DDOper.ARITH_PROD );
-		ADDRNode max_actions = applyMDPConstraintsNaively(state_dd_neg_inf ,
-				null, _manager.DD_NEG_INF, null );
-		for( final ADDRNode rew : _mdp.getRewards() ){
-			max_actions = _manager.apply( max_actions, rew, DDOper.ARITH_PLUS );
-		}
-		final ADDRNode state_value = maxActionVariables(max_actions, _mdp.getElimOrder(), 
-				null, false, 0, null );
-		ADDRNode diff = _manager.apply( state_value, max_actions, DDOper.ARITH_PLUS );
-		ADDRNode policy = _manager.threshold(diff, 0, false );
-		ADDRNode policy_deterministic = _manager.breakTiesInBDD(policy, _mdp.get_actionVars(), false);
-		return policy_deterministic;
-	}
+//	public ADDRNode getGreedyAction( final ADDRNode state_dd ) {
+//		final ADDRNode state_dd_neg_inf = _manager.apply( 
+//				_manager.BDDNegate( state_dd ), _manager.DD_NEG_INF, DDOper.ARITH_PROD );
+//		ADDRNode max_actions = applyMDPConstraintsNaively(state_dd_neg_inf ,
+//				null, _manager.DD_NEG_INF, null );
+//		for( final ADDRNode rew : _mdp.getRewards() ){
+//			max_actions = _manager.apply( max_actions, rew, DDOper.ARITH_PLUS );
+//		}
+//		final ADDRNode state_value = maxActionVariables(max_actions, _mdp.getElimOrder(), 
+//				null, false, 0, null );
+//		ADDRNode diff = _manager.apply( state_value, max_actions, DDOper.ARITH_PLUS );
+//		ADDRNode policy = _manager.threshold(diff, 0, false );
+//		if( policy.equals(_manager.DD_ZERO ) ){
+//			try{
+//				throw new Exception("policy not initialized properly");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+//		
+//		ADDRNode policy_deterministic = _manager.breakTiesInBDD(policy, _mdp.get_actionVars(), false);
+//		if( policy_deterministic.equals(_manager.DD_ZERO ) ){
+//			try{
+//				throw new Exception("policy not initialized properly");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+//		
+//		return policy_deterministic;
+//	}
 
 	//	private static void testRegressAllActions() {
 	//		RDDL2ADD mdp = new RDDL2ADD("./rddl/sysadmin_mdp_same.rddl", "./rddl/sysadmin_uniring_1_3_0.rddl", 

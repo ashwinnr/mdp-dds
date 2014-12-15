@@ -250,6 +250,15 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		final ADDRNode greedy_actions = _manager.threshold( diff, 0.0d, false );
 		final ADDRNode greedy_actions_ties
 			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false);
+		if( greedy_actions_ties.equals( _manager.DD_ZERO ) ){ 
+			try {
+				throw new Exception("no/or not unnique greedy action");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
 		Set<NavigableMap<String, Boolean>> greedy_action_assigns = _manager.enumeratePathsBDD(greedy_actions_ties);
 		if( greedy_action_assigns.size() != 1 ){
 			try {
@@ -259,6 +268,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				System.exit(1);
 			}
 		}
+		
 		NavigableMap<String, Boolean> greedy_action_assign = greedy_action_assigns.iterator().next();
 //		System.out.println("Greedy action : " + greedy_action_assign );
 		
@@ -442,64 +452,80 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	//do local init here
 	@Override
 	public void initialize_node(FactoredState<RDDLFactoredStateSpace> state, int depth) {
-		if( !_genStates ){
-			final ADDRNode state_dd = _manager.getProductBDDFromAssignment(state.getFactoredState());
-			//just initialize action
-			final ADDRNode action_dd = _dtr.getGreedyAction( state_dd );
-			_policyDD[ depth ] = _manager.BDDUnion(
-					_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(state_dd) ),
-					_manager.BDDIntersection( state_dd, action_dd ) );
-			visit_node(state_dd, depth);
-			return;
-		}
 		
+		final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>>
+			gen_leaf = generalize_leaf( state, depth );
+		final ADDRNode the_state 
+		= _genStates ? gen_leaf._o1 :  
+				_manager.getProductBDDFromAssignment( state.getFactoredState() );
+		final ADDRNode the_state_neg = _manager.BDDNegate(the_state);
+		if( gen_leaf._o2._o1.equals( _manager.DD_ZERO ) ){ 
+			try {
+				throw new Exception("no/or not unnique greedy action");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+	
 		final double disc = _mdp.getDiscount();
+		double remaining = 0;
+		double cur_disc = disc;
+		for( int i = depth+1; i < (steps_lookahead); ++i ){
+			remaining += cur_disc*_RMAX;
+			cur_disc *= disc;
+		}
+		final ADDRNode scaled = _manager.apply( 
+				_manager.scalarMultiply( the_state, gen_leaf._o2._o2 ), 
+				_manager.scalarMultiply( the_state, remaining ), 
+				DDOper.ARITH_PLUS );
+		
 		switch( _local_init ){
-		case VMAX : 
-			if( !_global_init.equals(GLOBAL_INITIALIZATION.VMAX) ){
+			case HRMAX :
+				
+				_valueDD[depth] = _manager.apply(
+					_manager.BDDIntersection(_valueDD[depth], the_state_neg ),
+					scaled, DDOper.ARITH_PLUS );
+				_policyDD[depth] = _manager.BDDUnion(
+					_manager.BDDIntersection( _policyDD[depth], the_state_neg ),
+					_manager.BDDIntersection( the_state, gen_leaf._o2._o1 ) );
+				
+				if( _markVisited ){
+					visit_node(the_state, depth);	
+				}
+				if( _enableLabelling && depth == steps_lookahead-1 ){
+					mark_node_solved(the_state, depth);
+				}
+				break;
+				
+			default :
 				try{
-					throw new Exception("local init undoing global.");
+					throw new UnsupportedOperationException();
 				}catch( Exception e ){
 					e.printStackTrace();
 					System.exit(1);
 				}
-			}
-//			ret = _manager.apply(bdd, _mdp.getVMax(depth, steps_lookahead) , DDOper.ARITH_PLUS );
-			break;
-		case HRMAX :
+		}
 			
-			final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> rew_path = generalize_leaf(state, depth);
-
-			double remaining = 0;
-			double cur_disc = disc;
-			for( int i = depth+1; i < (steps_lookahead); ++i ){
-				remaining += cur_disc*_RMAX;
-				cur_disc *= disc;
-			}
-
-			final ADDRNode scaled  = _manager.apply( 
-					_manager.scalarMultiply( rew_path._o1, rew_path._o2._o2 ), 
-					_manager.scalarMultiply( rew_path._o1, remaining ), 
-					DDOper.ARITH_PLUS );
-			
-			_valueDD[depth] = _manager.apply(
-					_manager.BDDIntersection(_valueDD[depth], _manager.BDDNegate(rew_path._o1) ),
-					scaled, DDOper.ARITH_PLUS );
-			_policyDD[depth] = _manager.BDDUnion(
-					_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(rew_path._o1) ),
-					_manager.BDDIntersection( rew_path._o1, rew_path._o2._o1 ) );
-			visit_node(rew_path._o1, depth);
-			
-			break;
-			
-		default :
+		//check
+//		if( _manager.restrict( _policyDD[depth], state.getFactoredState() ).equals(_manager.DD_ZERO) ){
+//			try{
+//				throw new Exception("policy did not initialize properly" );
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+		
+		if( !is_node_visited(state, depth) ){
 			try{
-				throw new UnsupportedOperationException();
+				throw new Exception("policy did not initialize properly" );
 			}catch( Exception e ){
 				e.printStackTrace();
 				System.exit(1);
 			}
 		}
+		
 	}
 
 	public boolean is_node_visited( final FactoredState<RDDLFactoredStateSpace> state,
@@ -515,8 +541,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}
 		
 		if( _markVisited ){
-			_visited[depth] = _manager.BDDUnion( _visited[depth], 
-					_manager.getProductBDDFromAssignment(state.getFactoredState()) );
+			final ADDRNode state_assign = _manager.getProductBDDFromAssignment(state.getFactoredState());
+			_visited[depth] = _manager.BDDUnion( _visited[depth], state_assign );
 			return;
 		}
 	}
@@ -660,6 +686,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}else{
 			switch( _rememberMode ){
 			case NONE : 
+				_valueDD = null;
 				initValue();
 				break;
 			case ALL : break;

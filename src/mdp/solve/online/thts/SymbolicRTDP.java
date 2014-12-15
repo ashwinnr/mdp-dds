@@ -336,19 +336,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //					break;
 //				}
 
-				if( !is_node_visited(cur_state, num_actions) ){
-//					System.out.println("initializing " + cur_state );
-					initialize_node(cur_state, num_actions);
-//					visit_node( cur_state, num_actions );
-//					System.out.println("Truncating trial : " + num_actions );
-//					System.out.println("Truncating trial : " + cur_state );
-					if( _truncateTrials ){
-						break;
-					}
-				}
+				final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace>
+					greedy_action = pick_successor_node(cur_state, num_actions);
+				final NavigableMap<String, Boolean> greedy_action_assign = greedy_action.getFactoredAction();
+				trajectory_actions[ num_actions ].setFactoredAction( greedy_action_assign );
 				
-				trajectory_actions[ num_actions ].setFactoredAction( 
-						pick_successor_node(cur_state, num_actions).getFactoredAction() );
 				if( DISPLAY_TRAJECTORY ){
 					System.out.println( num_actions + " " + cur_action.toString() );	
 				}
@@ -365,52 +357,14 @@ public class SymbolicRTDP< T extends GeneralizationType,
 						System.out.println(cur_state.toString() + " state marked as solved " + num_actions );
 					}
 					break;
-				}
-				
-				if( num_actions == steps_lookahead-1 ){
-					final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>>
-					gen_leaf = generalize_leaf( cur_state, num_actions );
-					if( _genStates ){
-						//changed 5/27/014
-						//find states that have the same reward
-						//not possible to find all
-						//only finding the BDD traversed by state in \sum_R
-						_valueDD[ num_actions ] = _manager.apply(
-								_manager.BDDIntersection( _valueDD[ num_actions ], _manager.BDDNegate(gen_leaf._o1) ),
-								_manager.scalarMultiply( gen_leaf._o1, gen_leaf._o2._o2 ) ,
-								DDOper.ARITH_PLUS );
-						_policyDD[ num_actions ] = _manager.BDDUnion(
-								_manager.BDDIntersection( _policyDD[ num_actions ], _manager.BDDNegate(gen_leaf._o1) ),
-								_manager.BDDIntersection(gen_leaf._o1, gen_leaf._o2._o1) );
-						
-//						System.out.println("leaf node : depth "  + num_actions + " " 
-//						+ _manager.enumeratePathsBDD(gen_leaf).toString() );
-						if( _markVisited ){
-							visit_node( gen_leaf._o1, num_actions );							
-						}
-						if( _enableLabelling ){
-							mark_node_solved( gen_leaf._o1, num_actions );
-						}
-					}
-					else{
-						final ADDRNode flat_state = _manager.getProductBDDFromAssignment( cur_state.getFactoredState() );
-						_valueDD[ num_actions ] = _manager.apply(
-							_manager.BDDIntersection( _valueDD[ num_actions ],
-									_manager.BDDNegate( flat_state ) ),
-							_manager.scalarMultiply( flat_state, gen_leaf._o2._o2 ) ,
-							DDOper.ARITH_PLUS );
-						_policyDD[ num_actions ] = _manager.BDDUnion(
-								_manager.BDDIntersection( _policyDD[ num_actions ],
-										_manager.BDDNegate( flat_state ) ),
-								_manager.BDDIntersection( flat_state, gen_leaf._o2._o1 ) );
-						
-//						initialize_leaf(cur_state, num_actions);
-						if( _markVisited ){
-							visit_node(flat_state, num_actions);
-						}
-						if( _enableLabelling ){
-							mark_node_solved( flat_state, num_actions );
-						}
+				}else if( !is_node_visited(cur_state, num_actions) ){
+//					System.out.println("initializing " + cur_state );
+					initialize_node(cur_state, num_actions);
+//					visit_node( cur_state, num_actions );
+//					System.out.println("Truncating trial : " + num_actions );
+//					System.out.println("Truncating trial : " + cur_state );
+					if( _truncateTrials ){
+						break;
 					}
 				}
 			}
