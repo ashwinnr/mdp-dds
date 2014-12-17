@@ -497,6 +497,14 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					mark_node_solved(the_state, depth);
 				}
 				break;
+			case VMAX : 
+				if( _markVisited ){
+					visit_node(the_state, depth);	
+				}
+				if( _enableLabelling && depth == steps_lookahead-1 ){
+					mark_node_solved(the_state, depth);
+				}
+				break;
 				
 			default :
 				try{
