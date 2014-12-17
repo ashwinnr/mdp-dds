@@ -235,6 +235,8 @@ public class SPUDDFAR implements Runnable{
 		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
 		NavigableMap<String, Boolean> partial_state = _manager.enumeratePathsBDD(ret).iterator().next();
+		System.out.println("partial_state : " + partial_state );
+		
 		NavigableMap<String, Boolean> full_state = Maps.newTreeMap( partial_state );
 		for( final String svar  : _mdp.get_stateVars() ){
 			if( partial_state.get( svar ) == null ){
