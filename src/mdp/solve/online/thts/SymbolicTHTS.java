@@ -453,6 +453,15 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	@Override
 	public void initialize_node(FactoredState<RDDLFactoredStateSpace> state, int depth) {
 		
+		if( is_node_visited(state, depth) ){
+			try {
+				throw new Exception("initializing already visited node");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
 		final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>>
 			gen_leaf = generalize_leaf( state, depth );
 		final ADDRNode the_state 
@@ -498,6 +507,10 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				}
 				break;
 			case VMAX : 
+				
+				_policyDD[depth] = _manager.BDDUnion(
+						_manager.BDDIntersection( _policyDD[depth], the_state_neg ),
+						_manager.BDDIntersection( the_state, gen_leaf._o2._o1 ) );
 				if( _markVisited ){
 					visit_node(the_state, depth);	
 				}
@@ -727,6 +740,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			if( _visited == null ){
 				_visited = new ADDRNode[ steps_lookahead ];
 				Arrays.fill( _visited, _manager.DD_ZERO );	
+				if( INIT_REWARD ){
+					_visited[ steps_lookahead - 1 ] = _manager.DD_ONE;
+				}
 			}else{
 				switch( _rememberMode ){
 				case ALL : break;
