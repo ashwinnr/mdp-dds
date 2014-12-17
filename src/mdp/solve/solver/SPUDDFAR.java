@@ -232,6 +232,9 @@ public class SPUDDFAR implements Runnable{
 			return null;
 		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
+		NavigableMap<String, Boolean> one_state = _manager.enumeratePathsBDD(ret).iterator().next();
+		System.out.println("state : " + one_state );
+		System.out.println("value of state : " + _manager.evaluate( _valueDD, one_state ).toString() );
 		return ret;
 	}
 
