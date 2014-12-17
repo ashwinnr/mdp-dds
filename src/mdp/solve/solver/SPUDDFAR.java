@@ -12,6 +12,8 @@ import java.util.NavigableMap;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
+import com.google.common.collect.Maps;
+
 import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression;
 
@@ -232,9 +234,16 @@ public class SPUDDFAR implements Runnable{
 			return null;
 		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
-		NavigableMap<String, Boolean> one_state = _manager.enumeratePathsBDD(ret).iterator().next();
-		System.out.println("state : " + one_state );
-		System.out.println("value of state : " + _manager.evaluate( _valueDD, one_state ).toString() );
+		NavigableMap<String, Boolean> partial_state = _manager.enumeratePathsBDD(ret).iterator().next();
+		NavigableMap<String, Boolean> full_state = Maps.newTreeMap( partial_state );
+		for( final String svar  : _mdp.get_stateVars() ){
+			if( partial_state.get( svar ) == null ){
+				full_state.put( svar, false );
+			}
+		}
+		
+		System.out.println("state : " + full_state );
+		System.out.println("value of state : " + _manager.evaluate( _valueDD, full_state ).toString() );
 		return ret;
 	}
 
