@@ -536,7 +536,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			Timer dp_time = new Timer();
 			if( _genStates ){
 				ADDRNode this_next_states, this_states, this_actions;
-	    	
 				this_next_states = trajectory[i--];
 				this_actions = trajectory[i--];
 				this_states = trajectory[i];
@@ -577,7 +576,6 @@ public class SymbolicRTDP< T extends GeneralizationType,
 					mark_node_solved(new_solved, j-1);
 				}
 				saveValuePolicy();
-				
 			}
 
 			dp_time.StopTimer();
@@ -702,18 +700,20 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			// can be a superset
 
 			//take all solved states too?
-			ADDRNode new_solved  = _enableLabelling ? getSolvedStates( depth, update_states ) : null;
+			ADDRNode new_solved  = null;
 			ADDRNode current_partition = null;
 			if( do_Xion ){
 				current_partition = findNewGeneralizedPartition( new_val,
 						new_policy, update_states, depth, actual_state, next_state );
 				current_partition = _manager.BDDIntersection( current_partition, update_states );
-				new_solved = _manager.BDDIntersection( new_solved, current_partition );
 //				if( _enableLabelling ){
 //					current_partition = _manager.BDDUnion(current_partition, new_solved );
 //				}
 			}else{
 				current_partition = update_states;
+			}
+			if( _enableLabelling ){
+				new_solved = getSolvedStates( depth, current_partition );
 			}
 
 			if( !_manager.evaluate(current_partition, actual_state.getFactoredState() ).equals(_manager.DD_ONE) ){
