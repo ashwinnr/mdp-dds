@@ -235,7 +235,7 @@ public class SPUDDFAR implements Runnable{
 		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
 
-		System.out.println("value of state : " + _manager.BDDIntersection( _valueDD, ret ).getMax() );
+		System.out.println("value of state : " + _manager.constrain( _valueDD, ret, _manager.DD_NEG_INF ).getMax() );
 		return ret;
 	}
 

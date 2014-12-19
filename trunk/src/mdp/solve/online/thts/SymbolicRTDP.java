@@ -46,7 +46,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	P extends GeneralizationParameters<T> > extends SymbolicTHTS< T, P >  {
 
 
-	public final static boolean  DISPLAY_TRAJECTORY = false;
+	public static boolean  DISPLAY_TRAJECTORY = false;
 
 	protected int _onPolicyDepth;
 
@@ -65,8 +65,8 @@ public class SymbolicRTDP< T extends GeneralizationType,
 	private boolean do_Xion = true;
 	protected boolean _stationary_vfn = false;
 
-	private double _avgDPTime = 0;
-	private int _numUpdates = 0;
+	protected double _avgDPTime = 0;
+	protected int _numUpdates = 0;
 	
 	public SymbolicRTDP(
 			String domain,
@@ -567,7 +567,11 @@ public class SymbolicRTDP< T extends GeneralizationType,
 								apricodd_type, true, -1, 
 								CONSTRAIN_NAIVELY , null  );
 				_valueDD[ j-1 ] = backup._o1;
-				_policyDD[ j-1 ] = backup._o2._o1;
+				ADDRNode greedy_action = _dtr.breakActionTies( backup._o2._o1, trajectory_states[j-1] );
+				_policyDD[ j-1 ] = _manager.BDDUnion(
+										_manager.BDDIntersection( greedy_action, flat_state_bdd ),
+										_manager.BDDIntersection( _policyDD[ j-1 ] , _manager.BDDNegate(flat_state_bdd) ) );
+				
 				if( _markVisited ){
 					visit_node(flat_state_bdd, j-1 );
 				}
@@ -712,6 +716,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			}else{
 				current_partition = update_states;
 			}
+			
 			if( _enableLabelling ){
 				new_solved = getSolvedStates( depth, current_partition );
 			}
@@ -732,7 +737,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 							_manager.BDDIntersection( _valueDD[depth], _manager.BDDNegate(current_partition)),
 							DDOper.ARITH_PLUS );
 
-			final ADDRNode newly_updated_policy = _manager.BDDIntersection(new_policy, current_partition);
+			ADDRNode newly_updated_policy = _manager.BDDIntersection(new_policy, current_partition);
 			_policyDD[ depth ] =
 					_manager.BDDUnion( newly_updated_policy ,
 							_manager.BDDIntersection( _policyDD[depth], _manager.BDDNegate(current_partition) ) );
@@ -800,7 +805,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 //	    return  _manager.BDDUnion(_visited[depth], states );
 //	}
 
-	private ADDRNode getSolvedStates( final int depth, final ADDRNode update_states ) {
+	protected ADDRNode getSolvedStates( final int depth, final ADDRNode update_states ) {
 		//solved states in next layer
 		//S(s) = \forall_s',a [ T(s,a,s') => S(s') ]
 		//S = \forall_{X',A} \or ~T_i \or S' 
