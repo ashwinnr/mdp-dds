@@ -220,17 +220,16 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final FactoredState<RDDLFactoredStateSpace> state, final int depth ) {
 		final NavigableMap<String, Boolean> state_path = state.getFactoredState();
 		final ADDRNode state_bdd = _manager.getProductBDDFromAssignment( state_path );
-		final ADDRNode state_dd_neg_inf = _dtr.convertToNegInfDD( state_bdd )[0];
+//		final ADDRNode state_dd_neg_inf = _dtr.convertToNegInfDD( state_bdd )[0];
 		final ADDRNode domain_constraint_neg_inf = _dtr.getDomainConstraints();
-		final ADDRNode all_constraints = 
-				_manager.apply( domain_constraint_neg_inf, state_dd_neg_inf, DDOper.ARITH_PLUS );
-		ADDRNode sum = all_constraints;
+		ADDRNode sum = domain_constraint_neg_inf;
 		
 		//we need an assignment to action vars to determine path
 		//first find greedy action
 		final List<ADDRNode> rewards_list = _mdp.getRewards();
 		for( final ADDRNode rew : rewards_list ){
 			sum = _manager.apply( sum, rew, DDOper.ARITH_PLUS );
+			sum = _manager.constrain( sum, state_bdd, _manager.DD_NEG_INF );
 //			sum = _manager.apply( sum, all_constraints, DDOper.ARITH_PLUS );
 		}
 				
@@ -247,8 +246,9 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		//find greedy action
 		final ADDRNode diff = _manager.apply( max_actions, sum, DDOper.ARITH_MINUS );
 		final ADDRNode greedy_actions = _manager.threshold( diff, 0.0d, false );
-		final ADDRNode greedy_actions_ties
-			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false);
+		final ADDRNode greedy_actions_ties = _dtr.breakActionTies( greedy_actions, state );
+		
+//			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false);
 		if( greedy_actions_ties.equals( _manager.DD_ZERO ) ){ 
 			try {
 				throw new Exception("no/or not unnique greedy action");

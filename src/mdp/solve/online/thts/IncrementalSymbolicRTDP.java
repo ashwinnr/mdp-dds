@@ -1,7 +1,9 @@
 package mdp.solve.online.thts;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Random;
 import java.util.Set;
@@ -25,6 +27,8 @@ import util.InternedArrayList;
 import util.Timer;
 import util.UnorderedPair;
 import dd.DDManager.APPROX_TYPE;
+import dd.DDManager.DDMarginalize;
+import dd.DDManager.DDOper;
 import dd.DDManager.DDQuantify;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
@@ -44,7 +48,6 @@ import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
 import mdp.generalize.trajectory.type.GeneralizationType;
 import mdp.solve.online.Exploration;
-import mdp.solve.online.thts.IncrementalSymbolicRTDP.START_STATE;
 import mdp.solve.online.thts.SymbolicRTDP.LearningMode;
 import mdp.solve.online.thts.SymbolicRTDP.LearningRule;
 import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
@@ -135,6 +138,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 				learningMode, true, false, global_init, local_init, truncate_trials, mark_visited, mark_solved, 
 				remember_mode, reward_init );
 		_rand = new Random( topLevel.nextLong() );
+		DISPLAY_TRAJECTORY = false;
 	}
 
 	@Override
@@ -156,13 +160,12 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		int j = num_states-1;
 //		System.out.println("num states " + num_states );
 			
-		while( i >= 2 ){
+		while( j > 0 ){
 		
 //	    	System.out.println("Updating trajectories " + j );
 	    	
 	    	ADDRNode this_next_states, this_states, this_actions;
 	    	ADDRNode source_val, target_val, target_policy;
-
 	    	this_next_states = trajectory[i--];
 			this_actions = trajectory[i--];
 			this_states = trajectory[i];
@@ -172,7 +175,8 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			
 			source_val = _stationary_vfn ? _valueDD[0] : _valueDD[ j ];
 			
-			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> backup = null;
+			Timer dp_time = new Timer();
+			UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, ADDRNode>> backup = null;
 			if( j-1 < _onPolicyDepth ){
 				backup = updatePath( 
 						target_val, target_policy, source_val, 
@@ -187,12 +191,30 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 					apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy,
 					trajectory_states[j-1], trajectory_actions[j-1], j );
 			}
+			_valueDD[j-1] = backup._o1;
+			_policyDD[j-1] = backup._o2._o1;
+			if( _markVisited ){
+				visit_node( backup._o2._o2 , j-1 );
+			}
+			if( _enableLabelling ){
+				ADDRNode new_solved = getSolvedStates(j-1, backup._o2._o2 );
+				mark_node_solved(new_solved, j-1);
+			}
+			saveValuePolicy();
+			
+			dp_time.StopTimer();
+			final double this_time = dp_time.GetElapsedTimeInMinutes();
+			++_numUpdates;
+			_avgDPTime = ( ( _numUpdates-1 )*_avgDPTime + this_time ) / _numUpdates;
+			--j;
+			
 		}
+		
 //		System.out.println(succesful_generalization);
 //		succesful_generalization = 0;
 	}
 
-	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>> updatePath(
+	private UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, ADDRNode>> updatePath(
 			final ADDRNode target_val, 
 			final ADDRNode target_policy, 
 			final ADDRNode source_val,
@@ -206,12 +228,56 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			final FactoredState<RDDLFactoredStateSpace> actual_state, 
 			final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace> actual_action,
 			final int depth  ){
-
-		ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
-		ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
-		ADDRNode current_lgg = getLeastGeneralGeneralization( current_value_path, current_policy_path );
-
+		final ADDRNode actual_state_bdd = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
+		final ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
+		final ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
+		final ADDRNode current_lgg = getLeastGeneralGeneralization( current_value_path, current_policy_path );
+		final ADDRNode current_lgg_neg_inf = _dtr.convertToNegInfDD( current_lgg )[0];
+		final ADDRNode domain_constraints_neg_inf = _dtr.getDomainConstraints();
+		final ADDRNode lgg_constraints = _manager.apply( current_lgg_neg_inf, domain_constraints_neg_inf, DDOper.ARITH_PLUS );	
 		
+		ADDRNode ret = _manager.remapVars(source_val, _mdp.getPrimeRemap() );
+		ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
+		
+		final ArrayList<String> expectation_order = _mdp.getSumOrder();
+		final Map<String, ADDRNode> cpts = _mdp.getCpts();
+		for( final String ns_var : expectation_order ){
+			final ADDRNode this_cpt = cpts.get( ns_var );
+			ret = _manager.apply( ret, this_cpt, DDOper.ARITH_PROD );
+			ret = _manager.marginalize(ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
+			ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
+			ret = _manager.constrain( ret, actual_state_bdd, _manager.DD_NEG_INF );
+		}
+		ret = _manager.scalarMultiply( ret, _mdp.getDiscount() );
+
+		for( final ADDRNode rew : _mdp.getRewards() ){
+			ret = _manager.apply( ret, rew, DDOper.ARITH_PLUS );
+			ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
+			ret = _manager.constrain( ret, actual_state_bdd, _manager.DD_NEG_INF );
+		}
+		 
+		if( do_apricodd ){
+			ret = _manager.doApricodd(ret, do_apricodd, apricodd_epsilon, apricodd_type);
+		}
+		final ADDRNode qfunc = ret;
+		final ADDRNode vfunc = _dtr.maxActionVariables(qfunc, _mdp.getElimOrder(), null,
+				do_apricodd, apricodd_epsilon, apricodd_type);
+		
+		final ADDRNode diff = _manager.apply( vfunc, qfunc, DDOper.ARITH_MINUS );
+		final ADDRNode policy = _manager.threshold(diff, 0.0d, false );
+		final ADDRNode policy_ties = _dtr.breakActionTies(policy, actual_state );
+		
+		final ADDRNode state_path = _manager.get_path( vfunc, actual_state.getFactoredState() );
+		final ADDRNode state_path_neg = _manager.BDDNegate( state_path );
+		
+		final ADDRNode value_ret = _manager.apply( 
+				_manager.BDDIntersection( target_val, state_path_neg ),
+				_manager.BDDIntersection( vfunc, state_path ),
+				DDOper.ARITH_PLUS );
+		final ADDRNode policy_ret = _manager.BDDUnion( 
+				_manager.BDDIntersection( target_policy, state_path_neg ), 
+				_manager.BDDIntersection( policy_ties, state_path ) );
+		return new UnorderedPair<>( value_ret, new UnorderedPair<>( policy_ret, state_path) );
 	}
 
 	private ADDRNode getPolicyGenState(
@@ -288,49 +354,49 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 //		
 //	}
 
-	private ADDRNode InitializeGenState(
-			final FactoredState<RDDLFactoredStateSpace> actual_state,
-			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> actual_action,
-			final int depth,
-			final ADDRNode value_path_gen , 
-			final ADDRNode policy_path_gen ) {
-		saveValuePolicy();
-		ADDRNode ret = null;
-		
-		switch( _init_mode ){
-		case FROM_SPECIFIC : 
-			ret = getMoreSpecificAbstraction( value_path_gen, policy_path_gen );
-			break;
-		case CONCRETE_STATE : 
-			ret = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
-			break;
-		}
-		return ret;
-	}
-	
-	
-
-	private ADDRNode getMoreSpecificAbstraction(final ADDRNode value_path_gen,
-			final ADDRNode policy_path_gen) {
-		//sanity
-		if( _manager.BDDIntersection(value_path_gen, policy_path_gen).equals(_manager.DD_ZERO) ){
-			try{
-				throw new Exception("gen states are contradictory");
-			}catch( Exception e ){
-				e.printStackTrace();
-				System.exit(1);
-			}
-		}
-		//x => y means x is more specific
-		if( _manager.BDDImplication(value_path_gen, 
-				policy_path_gen).equals(_manager.DD_ONE)){
-			return policy_path_gen;
-		}else if( _manager.BDDImplication(policy_path_gen,
-				value_path_gen ).equals( _manager.DD_ONE ) ){
-			return value_path_gen;
-		}
-		return null;
-	}
+//	private ADDRNode InitializeGenState(
+//			final FactoredState<RDDLFactoredStateSpace> actual_state,
+//			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> actual_action,
+//			final int depth,
+//			final ADDRNode value_path_gen , 
+//			final ADDRNode policy_path_gen ) {
+//		saveValuePolicy();
+//		ADDRNode ret = null;
+//		
+//		switch( _init_mode ){
+//		case FROM_SPECIFIC : 
+//			ret = getMoreSpecificAbstraction( value_path_gen, policy_path_gen );
+//			break;
+//		case CONCRETE_STATE : 
+//			ret = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
+//			break;
+//		}
+//		return ret;
+//	}
+//	
+//	
+//
+//	private ADDRNode getMoreSpecificAbstraction(final ADDRNode value_path_gen,
+//			final ADDRNode policy_path_gen) {
+//		//sanity
+//		if( _manager.BDDIntersection(value_path_gen, policy_path_gen).equals(_manager.DD_ZERO) ){
+//			try{
+//				throw new Exception("gen states are contradictory");
+//			}catch( Exception e ){
+//				e.printStackTrace();
+//				System.exit(1);
+//			}
+//		}
+//		//x => y means x is more specific
+//		if( _manager.BDDImplication(value_path_gen, 
+//				policy_path_gen).equals(_manager.DD_ONE)){
+//			return policy_path_gen;
+//		}else if( _manager.BDDImplication(policy_path_gen,
+//				value_path_gen ).equals( _manager.DD_ONE ) ){
+//			return value_path_gen;
+//		}
+//		return null;
+//	}
 
 //	private ADDRNode getPolicyGenState(
 //			final FactoredState<RDDLFactoredStateSpace> actual_state,
@@ -347,81 +413,83 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 //		saveValuePolicy();
 //		return _manager.get_path(_valueDD[depth], actual_state.getFactoredState() );
 //	}
-
-	private String pickNextVariable(
-			final Set<String> current_generalization_vars,
-			final FactoredState<RDDLFactoredStateSpace> actual_state,
-			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> actual_action, 
-			final Set<String> ignore_vars ) {
-		
-		if( current_generalization_vars.isEmpty() ){
-			return null;
-		}
-		if( ignore_vars.isEmpty() ){
-			return null;
-		}
-		
-		String ret = null;
-		InternedArrayList<String> list_ordering;
-		switch( _remove_mode ){
-		case LOWEST_ORDER : 
-			final InternedArrayList<String> ord = _manager.getOrdering();
-			for( int i = ord.size()-1; i >= 0 ; --i ){
-				final String this_state_var = ord.get(i);
-				if( current_generalization_vars.contains( this_state_var ) ){
-					ret = this_state_var;
-					break;
-				}
-			}
-			break;
-		case RANDOM :
-			ret = getRandomElementFromSet( current_generalization_vars, _rand );
-			break;
-		case FROM_LGG : 
-			list_ordering = _manager.getOrdering();
-			for( int i =  list_ordering.size()-1 ; i >= 0 ; --i ){
-				final String s = list_ordering.get(i);
-				if( current_generalization_vars.contains(s) && 
-						_mdp.isStateVariable( s ) && ignore_vars.contains(s) ){
-					ret = s;
-					break;
-				}
-			}
-			break;
-		}
-//		System.out.println("ignore " + ret );
-		return ret;
-	}
-
-	public static <T> T getRandomElementFromSet(
-			final Set<T> some_set, 
-			final Random rand ) {
-		final int size = some_set.size();
-		T ret = null;
-		final int index = rand.nextInt( size );
-		int i = 0;
-		
-		for( final T thing : some_set ){
-			if( i == index ){
-				ret = thing;
-				break;
-			}
-		}
-		
-		return ret;
-	}
-	
+//
+//	private String pickNextVariable(
+//			final Set<String> current_generalization_vars,
+//			final FactoredState<RDDLFactoredStateSpace> actual_state,
+//			final FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> actual_action, 
+//			final Set<String> ignore_vars ) {
+//		
+//		if( current_generalization_vars.isEmpty() ){
+//			return null;
+//		}
+//		if( ignore_vars.isEmpty() ){
+//			return null;
+//		}
+//		
+//		String ret = null;
+//		InternedArrayList<String> list_ordering;
+//		switch( _remove_mode ){
+//		case LOWEST_ORDER : 
+//			final InternedArrayList<String> ord = _manager.getOrdering();
+//			for( int i = ord.size()-1; i >= 0 ; --i ){
+//				final String this_state_var = ord.get(i);
+//				if( current_generalization_vars.contains( this_state_var ) ){
+//					ret = this_state_var;
+//					break;
+//				}
+//			}
+//			break;
+//		case RANDOM :
+//			ret = getRandomElementFromSet( current_generalization_vars, _rand );
+//			break;
+//		case FROM_LGG : 
+//			list_ordering = _manager.getOrdering();
+//			for( int i =  list_ordering.size()-1 ; i >= 0 ; --i ){
+//				final String s = list_ordering.get(i);
+//				if( current_generalization_vars.contains(s) && 
+//						_mdp.isStateVariable( s ) && ignore_vars.contains(s) ){
+//					ret = s;
+//					break;
+//				}
+//			}
+//			break;
+//		}
+////		System.out.println("ignore " + ret );
+//		return ret;
+//	}
+//
+//	public static <T> T getRandomElementFromSet(
+//			final Set<T> some_set, 
+//			final Random rand ) {
+//		final int size = some_set.size();
+//		T ret = null;
+//		final int index = rand.nextInt( size );
+//		int i = 0;
+//		
+//		for( final T thing : some_set ){
+//			if( i == index ){
+//				ret = thing;
+//				break;
+//			}
+//		}
+//		
+//		return ret;
+//	}
+//	
 	protected ADDRNode[] generalize_trajectory(
 			final FactoredState<RDDLFactoredStateSpace>[] trajectory_states, 
 			final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace>[] trajectory_actions) {
 		final ADDRNode[] ret = new ADDRNode[ trajectory_states.length + trajectory_actions.length ];
-		int i =0;
-		for( final FactoredState<RDDLFactoredStateSpace> fs : trajectory_states ){
-			ret[i++] = _manager.getProductBDDFromAssignment(fs.getFactoredState());
-			if( i != ret.length ){
-				ret[i++] = _manager.DD_ONE;
-			}
-		}
+		Arrays.fill(ret, _manager.DD_ZERO);
+		
+//		int i =0;
+//		for( final FactoredState<RDDLFactoredStateSpace> fs : trajectory_states ){
+//			ret[i++] = _manager.getProductBDDFromAssignment(fs.getFactoredState());
+//			if( i != ret.length ){
+//				ret[i++] = _manager.DD_ONE;
+//			}
+//		}
 		return ret;
 	}
 	
@@ -467,10 +535,13 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 				LearningRule.valueOf( cmd.getOptionValue("learningRule") ),
 				Integer.valueOf( cmd.getOptionValue("maxRules") ),
 				LearningMode.valueOf( cmd.getOptionValue("learningMode")  ) ,
-				START_STATE.valueOf( cmd.getOptionValue("initGen") ),
-				STOPPING_CONDITION.valueOf(cmd.getOptionValue("stopGen") ),
-				REMOVE_VAR_CONDITION.valueOf(cmd.getOptionValue("nextGen") ) ,
-				Integer.parseInt( cmd.getOptionValue("maxIgnoreDepth") ) );
+				GLOBAL_INITIALIZATION.valueOf( cmd.getOptionValue("global_init") ),
+				LOCAL_INITIALIZATION.valueOf( cmd.getOptionValue("local_init") ) ,
+				Boolean.valueOf( cmd.getOptionValue("truncate_trials") ),
+				Boolean.valueOf( cmd.getOptionValue("mark_visited") ),
+				Boolean.valueOf( cmd.getOptionValue("mark_solved") ),
+				REMEMBER_MODE.valueOf( cmd.getOptionValue("remember_mode") ),
+				Boolean.valueOf( cmd.getOptionValue("init_reward") ) );
 		
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();

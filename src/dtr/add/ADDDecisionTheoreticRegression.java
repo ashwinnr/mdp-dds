@@ -22,6 +22,8 @@ import java.util.concurrent.TimeoutException;
 import com.sun.org.apache.bcel.internal.generic.GETSTATIC;
 
 import rddl.EvalException;
+import rddl.RDDL.LCONST;
+import rddl.RDDL.PVAR_NAME;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
@@ -2586,6 +2588,32 @@ RDDLFactoredActionSpace> {
 
 	public ADDRNode getDomainConstraints() {
 		return domain_constraints_neg_inf;
+	}
+
+	public ADDRNode breakActionTies( final ADDRNode policy, 
+			final FactoredState<RDDLFactoredStateSpace> actual_state  ) {
+		Set<String> action_vars = _mdp.get_actionVars();
+		ADDRNode restricted_policy = _manager.restrict(policy, actual_state.getFactoredState());
+		ADDRNode ret = _manager.DD_ONE;
+		while( restricted_policy.getNode() instanceof ADDINode ){
+			final String var = restricted_policy.getTestVariable();
+			if( !action_vars.contains( var ) ){
+				try{
+					throw new Exception("state var in policy action");
+				}catch( Exception e ){
+					e.printStackTrace();
+					System.exit(1);
+				}
+			}
+			if( restricted_policy.getTrueChild().getMax() == 1 ){
+				ret = _manager.BDDIntersection( ret, _manager.getIndicatorDiagram(var, true) );
+				restricted_policy = restricted_policy.getTrueChild();
+			}else{
+				ret = _manager.BDDIntersection( ret, _manager.getIndicatorDiagram(var, false) );
+				restricted_policy = restricted_policy.getFalseChild();
+			}
+		}
+		return ret;
 	}
 
 //	public ADDRNode getGreedyAction( final ADDRNode state_dd ) {
