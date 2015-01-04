@@ -1,0 +1,133 @@
+domain crossing_traffic_mdp {
+	requirements = {
+		constrained-state,
+		reward-deterministic
+	};
+	
+	types {
+		xpos : object;
+		ypos : object;
+	};
+	
+	pvariables {
+
+		NORTH(ypos, ypos) : {non-fluent, bool, default = false};
+		SOUTH(ypos, ypos) : {non-fluent, bool, default = false};
+		EAST(xpos, xpos)  : {non-fluent, bool, default = false};
+		WEST(xpos, xpos)  : {non-fluent, bool, default = false};
+
+		MIN-XPOS(xpos) : {non-fluent, bool, default = false};
+		MAX-XPOS(xpos) : {non-fluent, bool, default = false};
+		MIN-YPOS(ypos) : {non-fluent, bool, default = false};
+		MAX-YPOS(ypos) : {non-fluent, bool, default = false};
+	
+		INPUT-RATE : {non-fluent, real, default = 0.2};
+		
+		GOAL(xpos,ypos) : {non-fluent, bool, default = false};
+		
+		// Fluents
+		robot-at-x(xpos)    : {state-fluent, bool, default = false};
+		robot-at-y(ypos)	: {state-fluent, bool, default = false};
+		
+		obstacle-at(xpos, ypos) : {state-fluent, bool, default = false};
+		
+		collision-x(xpos) : {state-fluent, bool, default = false};
+		collision-y(ypos) : {state-fluent, bool, default = false};
+		
+		//actions - for x and y
+		//00 - noop
+		//10 - move -1 x/y
+		//01 - move +1 x/y
+		//11 - noop
+		delta-x-1 : {action-fluent, bool, default = false };
+		delta-x-2 : {action-fluent, bool, default = false };
+		delta-y-1 : {action-fluent, bool, default = false };
+		delta-y-2 : {action-fluent, bool, default = false };
+		
+		
+	};
+	
+	cpfs {
+	
+		collision-x'(?x) = KronDelta( collision-x(?x) | ( robot-at-x(?x) ^ exists_{?y:ypos}[ robot-at-y(?y) ^ obstacle-at(?x,?y) ] ) | exists_{?x2:xpos}[ collision-x(?x2) ]  );
+		collision-y'(?y) = KronDelta( collision-y(?y) | ( robot-at-y(?y) ^ exists_{?x:xpos}[ robot-at-x(?x) ^ obstacle-at(?x,?y) ] ) | exists_{?y2:ypos}[ collision-y(?y2) ] );
+		
+		robot-at-x'(?x) =
+			if ( ~robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ^ delta-x-1 ^ ~delta-x-2 ^ robot-at-x(?x2) ^ ~collision-x(?x2) ] 
+				| exists_{?x2:xpos}[ WEST(?x,?x2) ^ ~delta-x-1 ^ delta-x-2 ^ robot-at-x(?x2) ^ ~collision-x(?x2) ] ) )
+			then 
+				KronDelta(true)//arriving from other x
+			else if ( ~collision-x(?x) ^ robot-at-x(?x) ^ ( exists_{?x2:xpos}[ EAST(?x,?x2) ] ^ ~delta-x-1 ^ delta-x-2 
+				|  exists_{?x2:xpos}[ WEST(?x,?x2) ] ^ delta-x-1 ^ ~delta-x-2 ) )
+			then
+				KronDelta(false)//vacate this x
+			else 
+				KronDelta( robot-at-x(?x) ); //noop//(delta-x-1 == delta-x-2
+					
+		robot-at-y'(?y) = 
+			if ( ~robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ^ delta-y-1 ^ ~delta-y-2 ^ robot-at-y(?y2) ^ ~collision-y(?y2) ] 
+				| exists_{?y2:ypos}[ SOUTH(?y,?y2) ^ ~delta-y-1 ^ delta-y-2 ^ robot-at-y(?y2) ^ ~collision-y(?y2) ] ) )
+			then 
+				KronDelta(true)//arriving from other y
+			else if ( ~collision-y(?y) ^ robot-at-y(?y) ^ ( exists_{?y2:ypos}[ NORTH(?y,?y2) ] ^ ~delta-y-1 ^ delta-y-2 
+				|  exists_{?y2:ypos}[ SOUTH(?y,?y2) ] ^ delta-y-1 ^ ~delta-y-2 ) )
+			then
+				KronDelta(false)//vacate this y
+			else 
+				KronDelta( robot-at-y(?y) );//^ (delta-y-1 == delta-y-2) ) );
+			
+		obstacle-at'(?x, ?y) =
+		
+			// No obstacles in top or bottom row (these rows are safe havens)
+			if ( MIN-YPOS(?y) | MAX-YPOS(?y) )
+				then KronDelta( false )
+		
+			// Check for RHS border input cell
+			//arrive only if not already occupied
+			else if ( MAX-XPOS(?x) )
+				then Bernoulli(	INPUT-RATE )
+			
+			// Not a top or bottom row and not a border input cell -- inherits obstacle to east
+			//warning : here it causes the robot and obstacle to excahnge places - incorrect
+			else if( exists_{?x2 : xpos}[ EAST(?x,?x2) ^ obstacle-at(?x2,?y) ^ robot-at-x(?x) ^ robot-at-y(?y) ^ 
+				~delta-x-1 ^ delta-x-2 ^ ~delta-y-1 ^ ~delta-y-2 ] )
+				then KronDelta( false ) //does not inherit from east
+			else if( exists_{?x2 : xpos}[ WEST(?x,?x2) ^ obstacle-at(?x,?y) ^ robot-at-x(?x2) ^ robot-at-y(?y) ^ 
+				~delta-x-1 ^ delta-x-2 ^ ~delta-y-1 ^ ~delta-y-2 ] )
+				then KronDelta( true ) //does not vacate to east		else
+			else
+				KronDelta( exists_{?x2 : xpos} [EAST(?x,?x2) ^ obstacle-at(?x2,?y)] );//arrive from other x
+			
+				
+		
+	};
+	
+	// 0 reward for reaching goal, -1 in all other cases
+	reward = sum_{?x : xpos, ?y : ypos}[ GOAL(?x,?y) * robot-at-x(?x) * robot-at-y(?y) * ~collision-x(?x) ];
+	
+	state-action-constraints {
+//	
+//		// Robot at exactly one position
+		[sum_{?x : xpos} robot-at-x(?x)] == 1;
+		[sum_{?y : ypos} robot-at-y(?y)] == 1;
+//		forall_{?x : xpos, ?y : ypos} [ MIN-YPOS(?y) => ~obstacle-at(?x,?y) ];
+//		forall_{?x : xpos, ?y : ypos} [ MAX-YPOS(?y) => ~obstacle-at(?x,?y) ];
+//		
+//		// EAST, WEST, NORTH, SOUTH defined properly (unique and symmetric)
+//		forall_{?x1 : xpos} [(sum_{?x2 : xpos} WEST(?x1,?x2)) <= 1];
+//		forall_{?x1 : xpos} [(sum_{?x2 : xpos} EAST(?x1,?x2)) <= 1];
+//		forall_{?y1 : ypos} [(sum_{?y2 : ypos} NORTH(?y1,?y2)) <= 1];
+//		forall_{?y1 : ypos} [(sum_{?y2 : ypos} SOUTH(?y1,?y2)) <= 1];
+//		forall_{?x1 : xpos, ?x2 : xpos} [ EAST(?x1,?x2) <=> WEST(?x2,?x1) ];
+//		forall_{?y1 : ypos, ?y2 : ypos} [ SOUTH(?y1,?y2) <=> NORTH(?y2,?y1) ];
+//
+//		// Definition verification
+//		[ sum_{?x : xpos} MIN-XPOS(?x) ] == 1;
+//		[ sum_{?x : xpos} MAX-XPOS(?x) ] == 1;
+//		[ sum_{?y : ypos} MIN-YPOS(?y) ] == 1;
+//		[ sum_{?y : ypos} MAX-YPOS(?y) ] == 1;
+//		[ sum_{?x : xpos, ?y : ypos} GOAL(?x,?y) ] == 1;
+//		
+	};
+	
+}

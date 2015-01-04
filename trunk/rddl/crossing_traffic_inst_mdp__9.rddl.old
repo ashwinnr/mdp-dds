@@ -1,0 +1,52 @@
+non-fluents nf_crossing_traffic_inst_mdp__9 {
+	domain = crossing_traffic_mdp;
+	objects {
+		xpos : {x1,x2,x3,x4,x5,x6,x7};
+		ypos : {y1,y2,y3,y4,y5,y6,y7};
+	};
+	non-fluents {
+		NORTH(y1,y2);
+		SOUTH(y2,y1);
+		NORTH(y2,y3);
+		SOUTH(y3,y2);
+		NORTH(y3,y4);
+		SOUTH(y4,y3);
+		NORTH(y4,y5);
+		SOUTH(y5,y4);
+		NORTH(y5,y6);
+		SOUTH(y6,y5);
+		NORTH(y6,y7);
+		SOUTH(y7,y6);
+
+		EAST(x1,x2);
+		WEST(x2,x1);
+		EAST(x2,x3);
+		WEST(x3,x2);
+		EAST(x3,x4);
+		WEST(x4,x3);
+		EAST(x4,x5);
+		WEST(x5,x4);
+		EAST(x5,x6);
+		WEST(x6,x5);
+		EAST(x6,x7);
+		WEST(x7,x6);
+
+		MIN-XPOS(x1);
+		MAX-XPOS(x7);
+		MIN-YPOS(y1);
+		MAX-YPOS(y7);
+
+		GOAL(x1,y1);
+
+		INPUT-RATE = 0.1;
+	};
+}
+
+instance crossing_traffic_inst_mdp__9 {
+	domain = crossing_traffic_mdp;
+	non-fluents = nf_crossing_traffic_inst_mdp__9;
+	max-nondef-actions = 1;
+	horizon = 40;
+	discount = 1.0;
+}
+
