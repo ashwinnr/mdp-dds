@@ -36,7 +36,7 @@ non-fluents nf_crossing_traffic_inst_mdp__9 {
 		MIN-YPOS(y1);
 		MAX-YPOS(y7);
 
-		GOAL(x1,y1);
+		GOAL(x7,y7);
 
 		INPUT-RATE = 0.1;
 	};
@@ -45,6 +45,27 @@ non-fluents nf_crossing_traffic_inst_mdp__9 {
 instance crossing_traffic_inst_mdp__9 {
 	domain = crossing_traffic_mdp;
 	non-fluents = nf_crossing_traffic_inst_mdp__9;
+	init-state {
+		robot-at(x7,y1);
+		obstacle-at(x1,y3);
+		obstacle-at(x2,y2);
+		obstacle-at(x2,y3);
+		obstacle-at(x2,y4);
+		obstacle-at(x2,y5);
+		obstacle-at(x2,y6);
+		obstacle-at(x3,y3);
+		obstacle-at(x3,y5);
+		obstacle-at(x4,y2);
+		obstacle-at(x4,y4);
+		obstacle-at(x5,y5);
+		obstacle-at(x6,y2);
+		obstacle-at(x6,y4);
+		obstacle-at(x6,y5);
+		obstacle-at(x6,y6);
+		obstacle-at(x7,y2);
+		obstacle-at(x7,y3);
+		obstacle-at(x7,y6);
+	};
 	max-nondef-actions = 1;
 	horizon = 40;
 	discount = 1.0;
