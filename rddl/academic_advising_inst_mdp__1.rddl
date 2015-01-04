@@ -30,7 +30,7 @@ non-fluents nf_academic_advising_inst_mdp__1 {
 instance academic_advising_inst_mdp__1 {
 	domain = academic_advising_mdp;
 	non-fluents = nf_academic_advising_inst_mdp__1;
-	max-nondef-actions = 5;
-	horizon  = 20;
+	max-nondef-actions = 1;
+	horizon  = 7;
 	discount = 1.0;
 }

@@ -183,13 +183,13 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 						BACKUP_TYPE.VI_FAR,  do_apricodd, 
 						do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0 , 
 						apricodd_type, true, -1 , CONSTRAIN_NAIVELY, null, 
-						trajectory_states[j-1], trajectory_actions[j-1], j  );
+						trajectory_states[j-1], trajectory_actions[j-1] );
 			}else{
 				backup = updatePath( target_val, target_policy, source_val, 
 					BACKUP_TYPE.VI_FAR, do_apricodd, 
 					do_apricodd ? ( _stationary_vfn ? apricodd_epsilon[0] : apricodd_epsilon[j-1] ) : 0, 
 					apricodd_type, true, -1 , CONSTRAIN_NAIVELY, target_policy,
-					trajectory_states[j-1], trajectory_actions[j-1], j );
+					trajectory_states[j-1], trajectory_actions[j-1] );
 			}
 			_valueDD[j-1] = backup._o1;
 			_policyDD[j-1] = backup._o2._o1;
@@ -226,48 +226,60 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			final boolean constrain_naively, 
 			final ADDRNode policy_constraint, 
 			final FactoredState<RDDLFactoredStateSpace> actual_state, 
-			final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace> actual_action,
-			final int depth  ){
+			final FactoredAction<RDDLFactoredStateSpace,RDDLFactoredActionSpace> actual_action  ){
 		final ADDRNode actual_state_bdd = _manager.getProductBDDFromAssignment( actual_state.getFactoredState() );
-		final ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
-		final ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
-		final ADDRNode current_lgg = getLeastGeneralGeneralization( current_value_path, current_policy_path );
-		final ADDRNode current_lgg_neg_inf = _dtr.convertToNegInfDD( current_lgg )[0];
-		final ADDRNode domain_constraints_neg_inf = _dtr.getDomainConstraints();
-		final ADDRNode lgg_constraints = _manager.apply( current_lgg_neg_inf, domain_constraints_neg_inf, DDOper.ARITH_PLUS );	
+		final ADDRNode domain_constraints_bdd = _dtr.getDomainConstraintsBDD();
+		final ADDRNode all_constraints_bdd = _manager.BDDIntersection( actual_state_bdd, domain_constraints_bdd );
+		final ADDRNode domain_constraints_neg_inf = _dtr.getDomainConstraintsNegInf();
+		
+//		final ADDRNode current_value_path = getValueGenState( target_val, actual_state, actual_action );
+//		final ADDRNode current_policy_path = getPolicyGenState( target_policy, actual_state, actual_action );
+//		final ADDRNode current_lgg = getLeastGeneralGeneralization( current_value_path, current_policy_path );
+//		final ADDRNode current_lgg_neg_inf = _dtr.convertToNegInfDD( current_lgg )[0];
+//		final ADDRNode lgg_constraints = _manager.apply( current_lgg_neg_inf, domain_constraints_neg_inf, DDOper.ARITH_PLUS );	
 		
 		ADDRNode ret = _manager.remapVars(source_val, _mdp.getPrimeRemap() );
-		ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
+//		ret = _manager.apply( ret, domain_constraints_neg_inf, DDOper.ARITH_PLUS );
 		
 		final ArrayList<String> expectation_order = _mdp.getSumOrder();
 		final Map<String, ADDRNode> cpts = _mdp.getCpts();
 		for( final String ns_var : expectation_order ){
 			final ADDRNode this_cpt = cpts.get( ns_var );
+//			INCORRECT : final ADDRNode mult_cpt = _manager.constrain( this_cpt, actual_state_bdd, _manager.DD_ZERO);
+			
 			ret = _manager.apply( ret, this_cpt, DDOper.ARITH_PROD );
 			ret = _manager.marginalize(ret, ns_var, DDMarginalize.MARGINALIZE_SUM );
-			ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
-			ret = _manager.constrain( ret, actual_state_bdd, _manager.DD_NEG_INF );
+//			ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
+			ret = _manager.constrain( ret, all_constraints_bdd, _manager.DD_NEG_INF );
 		}
+		
+		ret = _manager.apply( ret, domain_constraints_neg_inf, DDOper.ARITH_PLUS );
 		ret = _manager.scalarMultiply( ret, _mdp.getDiscount() );
 
 		for( final ADDRNode rew : _mdp.getRewards() ){
 			ret = _manager.apply( ret, rew, DDOper.ARITH_PLUS );
-			ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
-			ret = _manager.constrain( ret, actual_state_bdd, _manager.DD_NEG_INF );
+//			ret = _manager.apply( ret, lgg_constraints, DDOper.ARITH_PLUS );
+			ret = _manager.constrain( ret, all_constraints_bdd, _manager.DD_NEG_INF );
 		}
 		 
 		if( do_apricodd ){
 			ret = _manager.doApricodd(ret, do_apricodd, apricodd_epsilon, apricodd_type);
 		}
 		final ADDRNode qfunc = ret;
-		final ADDRNode vfunc = _dtr.maxActionVariables(qfunc, _mdp.getElimOrder(), null,
+		ADDRNode vfunc = _dtr.maxActionVariables(qfunc, _mdp.getElimOrder(), null,
 				do_apricodd, apricodd_epsilon, apricodd_type);
+		vfunc = _manager.constrain( vfunc, all_constraints_bdd, _manager.DD_NEG_INF );
 		
 		final ADDRNode diff = _manager.apply( vfunc, qfunc, DDOper.ARITH_MINUS );
 		final ADDRNode policy = _manager.threshold(diff, 0.0d, false );
-		final ADDRNode policy_ties = _dtr.breakActionTies(policy, actual_state );
+		final ADDRNode policy_ties = _manager.breakTiesInBDD(policy, _mdp.get_actionVars(), false );
+		
+		//this is the unsound part
 		
 		final ADDRNode state_path = _manager.get_path( vfunc, actual_state.getFactoredState() );
+//		System.out.println(" State : " + _manager.enumeratePathsBDD(actual_state_bdd)) ;
+//		System.out.println(" Path : " + _manager.enumeratePathsBDD(state_path)) ;
+		
 		final ADDRNode state_path_neg = _manager.BDDNegate( state_path );
 		
 		final ADDRNode value_ret = _manager.apply( 
@@ -295,32 +307,32 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		return _manager.get_path(value_add, actual_state.getFactoredState() );
 	}
 
-	private boolean isThereEnoughTime(
-			final double time_per_extension, 
-			final int num_next_extensions, final double remaining_time ) {
-		return ( time_per_extension * num_next_extensions < remaining_time );
-	}
+//	private boolean isThereEnoughTime(
+//			final double time_per_extension, 
+//			final int num_next_extensions, final double remaining_time ) {
+//		return ( time_per_extension * num_next_extensions < remaining_time );
+//	}
+//
+//	private double updateTimeEstimate(
+//			final double time_per_extension,
+//			final double elapsedTimeInMinutes, 
+//			final double new_elapsed_time,
+//			final int num_max_updated_extensions ) {
+//		final double this_avg = (new_elapsed_time-elapsedTimeInMinutes)/num_max_updated_extensions;
+//		//old avg = ( some time )/ n
+//		//new avg = ( some time + new time ) / 2n = old_avg/2 + new avg/2
+//		return 0.5d*( time_per_extension + this_avg );
+//	}
 
-	private double updateTimeEstimate(
-			final double time_per_extension,
-			final double elapsedTimeInMinutes, 
-			final double new_elapsed_time,
-			final int num_max_updated_extensions ) {
-		final double this_avg = (new_elapsed_time-elapsedTimeInMinutes)/num_max_updated_extensions;
-		//old avg = ( some time )/ n
-		//new avg = ( some time + new time ) / 2n = old_avg/2 + new avg/2
-		return 0.5d*( time_per_extension + this_avg );
-	}
-
-	private boolean checkInvariance(ADDRNode new_lgg, ADDRNode old_lgg) {
-		//a generalized update is good if it 
-		//strictly reduces the size of the lgg
-		if( new_lgg.equals(old_lgg) ){
-			return false;
-		}
-		
-		return _manager.BDDImplication(old_lgg, new_lgg).equals(_manager.DD_ONE);
-	}
+//	private boolean checkInvariance(ADDRNode new_lgg, ADDRNode old_lgg) {
+//		//a generalized update is good if it 
+//		//strictly reduces the size of the lgg
+//		if( new_lgg.equals(old_lgg) ){
+//			return false;
+//		}
+//		
+//		return _manager.BDDImplication(old_lgg, new_lgg).equals(_manager.DD_ONE);
+//	}
 
 	private ADDRNode getLeastGeneralGeneralization(final ADDRNode gen_1,
 			final ADDRNode gen_2) {

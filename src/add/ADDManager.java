@@ -27,6 +27,7 @@ import org.apache.commons.collections4.map.ReferenceMap;
 
 import util.InternedArrayList;
 import util.Pair;
+import util.UnorderedPair;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -439,7 +440,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	    testAssignDD();
 //	    testGetProductFromAssign();
 //		testApricodd();
-		testBreakTies();
+//		testBreakTies();
 		//		testAddPair();
 		//		testgetINode();
 		//		testIndicators();
@@ -449,7 +450,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//		testGraph();
 		//		testClearDeadNodes((int)1e5);
 //		testApply();
-//		testConstrain();
+		testConstrain();
 		//		testRestrict();
 //		testEnumeratePaths();
 //		testPathsToLeaf();
@@ -817,30 +818,68 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		ord.add("D");
 
 		ADDManager man = new ADDManager(100, 100, ord, 42);
+		
+		//check with cache
+//		final ADDRNode a1 = man.getINode("A", man.getLeaf(1), man.getLeaf(2) );
+//		final ADDRNode a2 = man.getINode("B", man.getLeaf(1), man.getLeaf(2) );
+//		final ADDRNode sum = man.getINode("B" , 
+//				man.getINode("C", man.getLeaf(1), man.getLeaf(2) ), man.getLeaf(3) );
+//				
+////				man.apply( 			a1, a2, DDOper.ARITH_PLUS );
+//		System.out.println( man.enumeratePathsADD( sum ) );
+//		
+//		final ADDRNode c1 = man.getINode( "A" , man.getINode( "B",  man.DD_ONE, man.DD_ZERO ),
+//				man.getINode( "B", man.getINode( "C", man.DD_ONE, man.DD_ZERO ), man.DD_ZERO ) );
+//		System.out.println( man.enumeratePathsBDD( c1 )  );
+//		System.out.println( man.enumeratePaths( man.constrain( sum, c1, man.DD_NEG_INF ) ) );
+//		
+		final ADDRNode n1 = man.getINode( 
+				"B", man.getINode( 
+						"C", man.getINode(
+								"D", man.DD_ZERO, man.DD_ONE ),
+							man.getINode( 
+								"D", man.getLeaf(2), man.getLeaf(3) ) ),
+					man.getINode( 
+						"C", man.getINode(
+								"D", man.getLeaf(2), man.getLeaf(3) ),
+							man.getLeaf(4) ) );
+		System.out.println( man.enumeratePaths(n1) );
 
-		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5), man.getLeaf(4.3) );
-
-		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d), man.getLeaf(7d) );
-
-		//		man.showGraph(inodeB);
-
-		ADDRNode inodeAB = man.apply(inodeA, inodeB, DDOper.ARITH_PLUS);
-
-		ADDRNode constr = man.getIndicatorDiagram("C", true);
-
-		ADDRNode constrained = man.constrain(inodeAB, constr, man.DD_ZERO);
-
-		man.showGraph(inodeA, inodeB, inodeAB, constr);
-
-		man.showGraph( constrained );
-
-		ADDRNode mult = man.apply( inodeAB, constr, DDOper.ARITH_PROD);
-
-		man.showGraph( mult );
-
-		ADDRNode con2 = man.constrain( constrained, man.getIndicatorDiagram("A", false), man.DD_ZERO);
-
-		man.showGraph(con2);
+		final ADDRNode c1 = man.getINode(
+				"B", 
+					man.getINode( "C", man.DD_ZERO, 
+							man.getINode("D", man.DD_ZERO,man.DD_ONE ) ),
+					man.getINode("C", 
+							man.getINode("D", man.DD_ZERO,man.DD_ONE ),
+							man.getINode("D", man.DD_ONE,man.DD_ZERO ) ) );
+		
+		System.out.println( man.enumeratePathsBDD(c1) );
+		
+		System.out.println( man.enumeratePaths( man.constrain( n1, c1, man.DD_NEG_INF ) ) );
+		
+//		ADDRNode inodeA = man.getINode("A", man.getLeaf(5.5), man.getLeaf(4.3) );
+//
+//		ADDRNode inodeB = man.getINode("B", man.getLeaf(2d), man.getLeaf(7d) );
+//
+//		//		man.showGraph(inodeB);
+//
+//		ADDRNode inodeAB = man.apply(inodeA, inodeB, DDOper.ARITH_PLUS);
+//
+//		ADDRNode constr = man.getIndicatorDiagram("C", true);
+//
+//		ADDRNode constrained = man.constrain(inodeAB, constr, man.DD_ZERO);
+//
+//		man.showGraph(inodeA, inodeB, inodeAB, constr);
+//
+//		man.showGraph( constrained );
+//
+//		ADDRNode mult = man.apply( inodeAB, constr, DDOper.ARITH_PROD);
+//
+//		man.showGraph( mult );
+//
+//		ADDRNode con2 = man.constrain( constrained, man.getIndicatorDiagram("A", false), man.DD_ZERO);
+//
+//		man.showGraph(con2);
 
 	}
 
@@ -1298,6 +1337,10 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			addPermenant( getIndicatorDiagram(var, true) );
 			addPermenant( getIndicatorDiagram(var, false) );
 		}
+		
+		for( final DDOper op : DDOper.values() ){
+			throwAwayApplyCache( op );
+		}
 //		_rand = new Random(seed);
 	}
 	
@@ -1313,13 +1356,6 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			Objects.requireNonNull(res, "addpair null");
 //			Objects.requireNonNull(op, "op null");
 			
-			if( applyCache.get(op) == null ){
-				final Table< ADDRNode, ADDRNode, ADDRNode > inner_cache 
-					= HashBasedTable.create();
-//					CacheBuilder.from( apply_cache_spec ).recordStats().build();
-				applyCache.put(op, inner_cache);
-			}
-
 			Table<ADDRNode, ADDRNode, ADDRNode> inner_cache =
 					applyCache.get(op);
 			inner_cache.put( op1, op2, res );
@@ -1412,21 +1448,40 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode breakTiesInBDD( final ADDRNode input ,
 			final Set<String> tiesIn,
 			final boolean default_value ){
-//		Objects.requireNonNull( input );
-//		Objects.requireNonNull( tiesIn );
+		//a tie = same assignment to vars \ tiesIn
+		//different assignment to tiesIn
+		//lead to leaf value of 1
+		//at a var in tiesIn
+			//existentially quantify all v in tiesIn
+			//compute intersection between left and right branch
+			//zero it out in non-default branch
+		//cache existential quantifies in bottom up as preprocess
+			//the only quantified sets are ending suffixes of tiesIn
+			//an, an-1 an, an-2 an-1 an ... 
+			//bn = exists_an, add to cache,bn-1 = exists_an-1 bn
+			// in top down part, b2 or more will be used first in any path
+		Map< ADDRNode, ADDRNode > _tempExistCache = 
+				new HashMap< ADDRNode, ADDRNode >();//<root node with tiesIn, ...> -> exists all ties under it
+
 		Map< ADDRNode, ADDRNode > _tempUnaryCache 
 		= new HashMap<ADDRNode, ADDRNode>();
 		final ADDRNode ret = breakTiesInBDDInt( input, tiesIn, default_value, 
-				_tempUnaryCache );
+				_tempUnaryCache, _tempExistCache );
+		_tempExistCache = null;
 		_tempUnaryCache = null;
 		return ret;
 	}
 
 	private ADDRNode breakTiesInBDDInt(ADDRNode input, Set<String> tiesIn,
-			final boolean default_value, Map<ADDRNode, ADDRNode> _tempUnaryCache ) {
+			final boolean default_value, Map<ADDRNode, ADDRNode> _tempUnaryCache, 
+			final Map<ADDRNode, ADDRNode> _tempExistCache ) {
 		final ADDNode node = input.getNode();
 		if( node instanceof ADDLeaf ){
 			return input;
+		}
+		final ADDRNode lookup = _tempUnaryCache.get( input );
+		if( lookup != null ){
+			return lookup;
 		}
 		
 		final String testVar = input.getTestVariable();
@@ -1453,101 +1508,117 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			}
 		}
 		
-		//2/6/2013 : Leaf child preferred for breaking ties
-		
 		final boolean is_tie_able = tiesIn.contains( testVar );
 		if( is_tie_able ){
 		
-				final ADDNode trueNode = trueChild.getNode();
-				final ADDNode falseNode = falseChild.getNode();
-				if( trueNode instanceof ADDLeaf && !( falseNode instanceof ADDLeaf )
-						&& trueChild.equals( DD_ONE ) ){
-					final ADDRNode ret = getINode( testVar,  trueChild, DD_ZERO );
-					return ret;//true was 1 leaf
-				}else if( falseNode instanceof ADDLeaf && !(trueNode instanceof ADDLeaf)
-						&& falseChild.equals( DD_ONE ) ){
-					final ADDRNode ret = getINode( testVar,  DD_ZERO, falseChild );
-					return ret;//false was 1 leaf
-				}else if( this_max == false_max && this_max == true_max ){
-					//1/20/14 : intersect true and false
-					// zero out in non default
-					final ADDRNode intersect = BDDIntersection(trueChild, falseChild);
-					final ADDRNode intersect_not = BDDNegate( intersect );
-					
-					final ADDRNode true_recurse = breakTiesInBDDInt( 
-							default_value ? trueChild : BDDIntersection(trueChild, intersect_not), 
-									tiesIn, 
-							default_value, _tempUnaryCache );
-					final ADDRNode false_recurse = breakTiesInBDDInt( 
-							default_value ? BDDIntersection(falseChild, intersect_not) : falseChild, 
-							tiesIn, default_value, _tempUnaryCache);
-					final ADDRNode ret = getINode( testVar,  true_recurse, 
-							false_recurse );
-					_tempUnaryCache.put( input, ret );
-					return ret;//bounds matched - pick default
-				}else{
-					//if here - one of them must be a 0 leaf
-					//recurse on the other one only
-					final boolean true_zero = trueChild.equals( DD_ZERO );
-					final boolean false_zero = falseChild.equals( DD_ZERO );
-					if( true_zero && !false_zero ){
-						final ADDRNode false_ans = breakTiesInBDDInt( falseChild, 
-								tiesIn, default_value, _tempUnaryCache );
-						final ADDRNode ret = getINode( testVar, DD_ZERO, false_ans );
-						return ret;
-					}else if( false_zero && !true_zero ){
-						final ADDRNode true_ans = breakTiesInBDDInt(trueChild, 
-								tiesIn, default_value, _tempUnaryCache );
-						final ADDRNode ret = getINode(testVar, true_ans, DD_ZERO );
-						return ret;
-					}else{
-						try{
-							throw new Exception("incorrect state - irreduced BDD");
-						}catch( Exception e ){
-							e.printStackTrace();
-							System.exit(1);
-						}
-					}
-				}
+				final ADDRNode marg_true = marginalizeTies( input.getTrueChild(), tiesIn, _tempExistCache );
+				final ADDRNode marg_false = marginalizeTies( input.getFalseChild(), tiesIn, _tempExistCache );
 				
+				ADDRNode ret = null; 
+				final ADDRNode ties_under = BDDIntersection( marg_true, marg_false );
+				final ADDRNode ties_under_not = BDDNegate( ties_under );
+					
+				final ADDRNode true_recurse = breakTiesInBDDInt(
+						default_value ? trueChild : BDDIntersection( trueChild, ties_under_not ),
+							tiesIn, default_value, _tempUnaryCache, _tempExistCache );
+				final ADDRNode false_recurse = breakTiesInBDDInt(
+						default_value ? BDDIntersection(falseChild, ties_under_not) : falseChild, 
+							tiesIn, default_value, _tempUnaryCache, _tempExistCache);
+					
+				ret = getINode( testVar,  true_recurse, false_recurse );
+				_tempUnaryCache.put( input, ret );
+				return ret;
 		}else if( !is_tie_able ){
-			final ADDRNode lookup = _tempUnaryCache.get( input );
-			if( lookup == null ){
 				final ADDRNode true_result = breakTiesInBDDInt( trueChild, 
-						tiesIn, default_value, _tempUnaryCache );
+						tiesIn, default_value, _tempUnaryCache, _tempExistCache );
 				final ADDRNode false_result = breakTiesInBDDInt( falseChild, tiesIn, 
-						default_value, _tempUnaryCache );
+						default_value, _tempUnaryCache, _tempExistCache );
 				final ADDRNode this_result = getINode( testVar, true_result, false_result );
 				_tempUnaryCache.put( input, this_result );
 				return this_result;
-			}
-			return lookup;
 		}
 		return null;
 	}
 	
+	//max marginalizes all vars in tiesIn  in input BDD
+	//does so in bottom up over each path generated in DFS
+	//caching the intermediate results
+	//cache is also returned, for use in e.g. breakTiesInBDD(...).
+	private ADDRNode marginalizeTies( 
+			final ADDRNode input,
+			final Set<String> tiesIn,
+			final Map<ADDRNode, ADDRNode> _tempExistCache ) {
+		
+		if( input.getNode() instanceof ADDLeaf ){
+			return input;
+		}
+		final ADDRNode lookup = _tempExistCache.get( input );
+		if( lookup != null ){
+			return lookup;
+		}
+		
+		final String testVar = input.getTestVariable();
+		//DFS
+		final ADDRNode trueChild = input.getTrueChild();
+		final ADDRNode true_recurse 
+			= marginalizeTies( trueChild, tiesIn, _tempExistCache);
+		
+		final ADDRNode falseChild = input.getFalseChild();
+		final ADDRNode false_recurse 
+			= marginalizeTies( falseChild, tiesIn, _tempExistCache);
+		
+		if( tiesIn.contains( testVar ) ){
+			final ADDRNode ret = apply( true_recurse, false_recurse, DDOper.ARITH_MAX );
+			//store result in cache
+			_tempExistCache.put( input, ret );
+			return ret;
+		}else{
+			//just recurse
+			final ADDRNode ret = getINode( testVar, true_recurse, false_recurse );
+			_tempExistCache.put( input, ret );
+			return ret;
+		}
+	}
+
 	public static void testBreakTies(){
 			final ArrayList<String> ord = new ArrayList<String>();
 			ord.add("X");
 			ord.add("Y");
 			ord.add("Z");
-			ord.add("K");
 			final ADDManager man = new ADDManager(100, 100, ord, 42);
 			final ADDRNode z = man.getIndicatorDiagram("Z", true);
 			final ADDRNode not_z = man.getIndicatorDiagram("Z", false );
 			final ADDRNode y = man.getIndicatorDiagram("Y", true);
-
+			final ADDRNode not_y = man.getIndicatorDiagram("Y", false );
+			final ADDRNode x = man.getIndicatorDiagram("X", true);
+			final ADDRNode not_x = man.getIndicatorDiagram("X", false );
+			
 			final ADDRNode inod1 = man.getINode( "X", 
-					man.getINode("Y", z, man.DD_ONE ),
-					man.getINode("Y", z, man.DD_ZERO ) );
+					man.getINode("Y", man.DD_ZERO, man.getINode("Z", man.DD_ZERO, man.DD_ONE )), 
+					man.getINode("Y", not_z, z ) );
+			Set<String> ties_done = new HashSet<String>();
+			ties_done.add("X");
+			ties_done.add("Y");
+			ties_done.add("Z");
 			
 			System.out.println( man.enumeratePathsBDD(inod1) );
 			
-			final ADDRNode tie_true_X = man.breakTiesInBDD( inod1, Collections.singleton("X"), true );
-			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, Collections.singleton("Y"), false );
+//			final ADDRNode tie_true_X = man.breakTiesInBDD( inod1, Collections.singleton("X"), true );
+//			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, Collections.singleton("Y"), false );
+//			final ADDRNode tie_false_XYZ = man.breakTiesInBDD( inod1, ties_done, false );
+//			
+////			System.out.println( man.enumeratePathsBDD(tie_true_X) );
+////			System.out.println( man.enumeratePathsBDD(tie_false_Y) );
+//			System.out.println( man.enumeratePathsBDD(tie_false_XYZ) );
+//			
+//			ties_done.remove("X");
+//			ties_done.remove("Z");
+//			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, ties_done, false );
+//			System.out.println( man.enumeratePathsBDD(tie_false_Y) );//should not remove any paths
 			
-			System.out.println( man.enumeratePathsBDD(tie_true_X) );
-			System.out.println( man.enumeratePathsBDD(tie_false_Y) );
+			ties_done.remove("Z");
+			final ADDRNode tie_false_XY = man.breakTiesInBDD( inod1, ties_done, false );
+			System.out.println( man.enumeratePathsBDD(tie_false_XY) );//should not remove any paths
 			
 //			man.showGraph( inod1 );
 //			man.showGraph( tie_true, tie_false );
@@ -1793,7 +1864,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			ret = applyInt( op1, op2, op );
 		}catch(OutOfMemoryError e ){
 			e.printStackTrace();
-			throwAwayApplyCache();
+			throwAwayApplyCache( op );
 			System.err.println("apply EML");
 			
 			throw new OutOfMemoryError();
@@ -1808,7 +1879,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //				System.exit(1);
 //			}
 //		}
-		throwAwayApplyCache();
+		throwAwayApplyCache( op );
 //		System.gc();
 		return ret;
 	}
@@ -1823,6 +1894,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 
 	public ADDRNode applyInt( final ADDRNode op1, final ADDRNode op2,
 			final DDOper op) {
+		
 //		Objects.requireNonNull( op1 );
 //		Objects.requireNonNull( op2 );
 		//not able to construct Inodes with indicator due to neg inf
@@ -2280,8 +2352,8 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		Table< ADDRNode, ADDRNode, ADDRNode > _tempBinaryCache 
 			= HashBasedTable.create();
 		//<ADDRNode, ADDRNode, ADDRNode >create();// CacheBuilder.from( temp_unary_cache_spec ).build();
-		Map<ADDRNode, ADDRNode> _tempExistCache 
-		= new HashMap<ADDRNode, ADDRNode>();
+		Table<ADDRNode, ADDRNode, ADDRNode> _tempExistCache 
+			= HashBasedTable.create();
 		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempBinaryCache ,
 				_tempExistCache );
 		_tempBinaryCache = null;
@@ -2294,7 +2366,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 	public ADDRNode constrainInt( final ADDRNode rnode, 
 			final ADDRNode rconstrain, final ADDRNode violate,
 			Table<ADDRNode, ADDRNode, ADDRNode> _tempBinaryCache,
-			final Map<ADDRNode, ADDRNode> _tempExistCache ){
+			final Table<ADDRNode, ADDRNode, ADDRNode> _tempExistCache ){
 //		Objects.requireNonNull( new Object[]{ rnode, rconstrain, violate } );
 		final ADDNode node = rnode.getNode();
 		final ADDNode constr = rconstrain.getNode();
@@ -2312,28 +2384,16 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //			System.out.println("leaf was reached in input ADD " + rnode);
 			ret = rnode;
 		}else{
-			ADDRNode lookup = _tempBinaryCache.contains( rnode, rconstrain ) ? 
-					_tempBinaryCache.get( rnode, rconstrain ) :  null;
-
+			ADDRNode lookup = _tempBinaryCache.get( rnode, rconstrain ) ;
+//					_tempBinaryCache.get( rnode, rconstrain ) :  null;
 			if( lookup == null ){
 				if( node instanceof ADDINode && constr instanceof ADDINode ){
 					final ADDRNode trueAns, falseAns;
 					if( isEqualVars(rnode, rconstrain) ){
+						final ADDRNode ans = constrainEqualVars( rnode, rconstrain, 
+									violate, _tempBinaryCache, _tempExistCache );
 //								System.out.println("descend both " + rnode.getTestVariable() 
 //										+ " " + rconstrain.getTestVariable() );
-							final ADDRNode rnode_true = rnode.getTrueChild();
-							final ADDRNode rnode_false = rnode.getFalseChild();
-							final ADDRNode rconstrain_true = rconstrain.getTrueChild();
-							final ADDRNode rconstrain_false = rconstrain.getFalseChild();
-							trueAns = constrainInt(rnode_true, 
-									rconstrain_true, violate, _tempBinaryCache , _tempExistCache);
-//								System.out.println( rnode.getTestVariable() + " true " 
-//										+ trueAns );
-							falseAns = constrainInt( rnode_false, 
-									rconstrain_false, violate, _tempBinaryCache, _tempExistCache );
-//								System.out.println( rnode.getTestVariable() + " false " 
-//										+ falseAns );
-							final ADDRNode ans = getINode(rnode.getTestVariable(), trueAns, falseAns);
 							_tempBinaryCache.put( rnode, rconstrain, ans );
 							return ans;
 					}else{
@@ -2368,28 +2428,37 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //											+ rnode.getTestVariable() 
 //											+ " " + rconstrain.getTestVariable() );
 								//inefficiency : recurrent computation
-								ADDRNode common = null;
-								if( !_tempExistCache.containsKey(rconstrain) ){
-									 common = getCommonConstraints( rconstrain );
-									_tempExistCache.put(rconstrain, common );
-								}else{
-									common = _tempExistCache.get( rconstrain );
+								ADDRNode common = _tempExistCache.get( 
+										rconstrain.getTrueChild(), 
+										 rconstrain.getFalseChild() );
+								if( common == null ){
+									common = _tempExistCache.get(  
+											 rconstrain.getFalseChild(),
+											 rconstrain.getTrueChild() );
 								}
+								if( common == null ){
+									 final UnorderedPair<ADDRNode, Table<ADDRNode, ADDRNode, ADDRNode>> udpated_common 
+									 	= getCommonConstraints( rconstrain, _tempExistCache );
+									 _tempExistCache.putAll( udpated_common._o2 );
+									 common = udpated_common._o1;
+								}
+
 								final ADDRNode ans = constrainInt( rnode, 
 									common, violate, _tempBinaryCache , _tempExistCache );
 								_tempBinaryCache.put( rnode, rconstrain, ans );
 								return ans;
 							}
 					}
-			}else{
-				try{
-					throw new ExecutionException("not two Inodes", null);
-				}catch( ExecutionException e ){
-					e.printStackTrace();
-					System.exit(1);
+				}else{
+					try{
+						throw new ExecutionException("not two Inodes", null);
+					}catch( ExecutionException e ){
+						e.printStackTrace();
+						System.exit(1);
+					}
 				}
-			}
 			}else{
+//				System.out.println("constraint cache hit");
 				ret = lookup;
 			}
 		}
@@ -2397,20 +2466,76 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
+	private ADDRNode constrainEqualVars(ADDRNode rnode, ADDRNode rconstrain, 
+			final ADDRNode violate,
+			final Table<ADDRNode, ADDRNode, ADDRNode> _tempBinaryCache, 
+			final Table<ADDRNode, ADDRNode, ADDRNode> _tempExistCache ) {
+		final ADDRNode rnode_true = rnode.getTrueChild();
+		final ADDRNode rnode_false = rnode.getFalseChild();
+		final ADDRNode rconstrain_true = rconstrain.getTrueChild();
+		final ADDRNode rconstrain_false = rconstrain.getFalseChild();
+		final ADDRNode trueAns = constrainInt(rnode_true, 
+				rconstrain_true, violate, _tempBinaryCache , _tempExistCache);
+//			System.out.println( rnode.getTestVariable() + " true " 
+//					+ trueAns );
+		final ADDRNode falseAns = constrainInt( rnode_false, 
+				rconstrain_false, violate, _tempBinaryCache, _tempExistCache );
+//			System.out.println( rnode.getTestVariable() + " false " 
+//					+ falseAns );
+		final ADDRNode ans = getINode(rnode.getTestVariable(), trueAns, falseAns);
+		return ans;
+	}
+
 	//WARNING: constrain should be a BDD
-	private ADDRNode getCommonConstraints(final ADDRNode rconstrain) {
+	private UnorderedPair<ADDRNode, Table<ADDRNode, ADDRNode, ADDRNode>> getCommonConstraints(final ADDRNode rconstrain,
+			final Table<ADDRNode, ADDRNode, ADDRNode> cache ) {
 //		Objects.requireNonNull(rconstrain);
 		final ADDRNode truth = rconstrain.getTrueChild();
 		final ADDRNode falseth = rconstrain.getFalseChild();
-		final ADDRNode ret = BDDUnion(truth, falseth);
-//		
-//		final ADDRNode one_minus_truth = apply( DD_ONE, truth, DDOper.ARITH_MINUS);
-//		final ADDRNode one_minus_falseth = apply( DD_ONE, falseth, DDOper.ARITH_MINUS);
-//		final ADDRNode common_one = apply( one_minus_falseth, one_minus_truth, DDOper.ARITH_PROD );
-//		final ADDRNode ret = apply( DD_ONE, common_one, DDOper.ARITH_MINUS );
-//		Objects.requireNonNull( new Object[]{ ret, truth, falseth, one_minus_falseth,
-//				one_minus_truth, common_one } );
+		final UnorderedPair<ADDRNode, Table<ADDRNode, ADDRNode, ADDRNode>> ret 
+			= BDDUnionWithLoadSave(truth, falseth, cache, true);
 		return ret;
+
+	}
+
+	private UnorderedPair<ADDRNode, Table<ADDRNode, ADDRNode, ADDRNode>> BDDUnionWithLoadSave(
+			final ADDRNode op1, ADDRNode op2,
+			final Table<ADDRNode, ADDRNode, ADDRNode> load_cache,
+			final boolean return_cache ) {
+		final UnorderedPair<ADDRNode, Table<ADDRNode, ADDRNode, ADDRNode>> ret 
+			= applyWithLoadSave( op1, op2 , DDOper.ARITH_MAX, load_cache, return_cache );
+		return ret;
+	}
+
+	private UnorderedPair<ADDRNode, Table<ADDRNode, ADDRNode, ADDRNode>> applyWithLoadSave(
+			final ADDRNode op1, 
+			final ADDRNode op2,
+			final DDOper op,
+			final Table<ADDRNode, ADDRNode, ADDRNode> load_cache,
+			final boolean return_cache) {
+		ADDRNode ret = null;
+		applyCache.put( op, load_cache );
+		try{
+			ret = applyInt( op1, op2, op );
+		}catch(OutOfMemoryError e ){
+			e.printStackTrace();
+			throwAwayApplyCache( op );
+			System.err.println("apply EML");
+			
+			throw new OutOfMemoryError();
+		}catch( Exception e ){
+			e.printStackTrace();
+		}
+		if( !return_cache ){
+			throwAwayApplyCache( op );
+		}
+
+		//		System.gc();
+		Table<ADDRNode, ADDRNode, ADDRNode> ret_cache = return_cache ? applyCache.get(op) : null;
+		throwAwayApplyCache(op);
+		
+		return new UnorderedPair<>( ret, ret_cache );
+		
 	}
 
 	public List<Long> countNodes( final ADDRNode... rnodes ){
@@ -2804,9 +2929,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	}
 	}
 
-	private void throwAwayApplyCache() {
-	    	applyCache = new EnumMap< 
-		DDOper, Table< ADDRNode, ADDRNode , ADDRNode > >( DDOper.class );
+	private void throwAwayApplyCache( final DDOper op ) {
+		final Table< ADDRNode, ADDRNode, ADDRNode > inner_cache 
+				= HashBasedTable.create();
+	    	applyCache.put( op, inner_cache );
+//	    	= new EnumMap< 
+//		DDOper, Table< ADDRNode, ADDRNode , ADDRNode > >( DDOper.class );
 	    	
 //		for( final Table<ADDRNode, ADDRNode, ADDRNode> t  : applyCache.values()) {
 //			t.clear();
@@ -4627,14 +4755,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		return ret;
 	}
 
-	public ADDRNode normalizePDF(final ADDRNode input, final ADDRNode constraint) {
-		final ADDRNode constr_neg = BDDNegate(constraint);
-		final ADDRNode missing_mass_dd = apply( input, constr_neg, DDOper.ARITH_PROD );
-		final ADDRNode missing_mass = sumOutAllVariables( missing_mass_dd );
-		ADDRNode ret = apply( input, constraint, DDOper.ARITH_PROD );
-		ret = apply( ret ,  missing_mass, DDOper.ARITH_DIV );
-		return ret;
-	}
+	//COMMENTED OUT : needs testing - not using currently
+//	public ADDRNode normalizePDF(final ADDRNode input, final ADDRNode constraint) {
+//		final ADDRNode constr_neg = BDDNegate(constraint);
+//		final ADDRNode missing_mass_dd = apply( input, constr_neg, DDOper.ARITH_PROD );
+//		final ADDRNode missing_mass = sumOutAllVariables( missing_mass_dd );
+//		ADDRNode ret = apply( input, constraint, DDOper.ARITH_PROD );
+//		ret = apply( ret ,  missing_mass, DDOper.ARITH_DIV );
+//		return ret;
+//	}
 	
 	public ADDRNode sumOutAllVariables( final ADDRNode input ){
 		ADDRNode ret = input;

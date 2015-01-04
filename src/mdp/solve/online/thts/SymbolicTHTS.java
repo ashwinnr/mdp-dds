@@ -163,7 +163,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		_stateSelectionRand = new Random( topLevel.nextLong() );
 		_mdp.makeTransitionRelation(true); 
 		
-		_baseLinePolicy = _manager.DD_ZERO;//HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
+		_baseLinePolicy = HandCodedPolicies.get(domain, _dtr, _manager, _mdp.get_actionVars() );
 		_generalizer = new GenericTransitionGeneralization<T, P>( _dtr, cons );
 
 		_genaralizeParameters = new GenericTransitionParameters<T, P, 
@@ -221,7 +221,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		final NavigableMap<String, Boolean> state_path = state.getFactoredState();
 		final ADDRNode state_bdd = _manager.getProductBDDFromAssignment( state_path );
 //		final ADDRNode state_dd_neg_inf = _dtr.convertToNegInfDD( state_bdd )[0];
-		final ADDRNode domain_constraint_neg_inf = _dtr.getDomainConstraints();
+		final ADDRNode domain_constraint_neg_inf = _dtr.getDomainConstraintsNegInf();
 		ADDRNode sum = domain_constraint_neg_inf;
 		
 		//we need an assignment to action vars to determine path
@@ -246,7 +246,8 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		//find greedy action
 		final ADDRNode diff = _manager.apply( max_actions, sum, DDOper.ARITH_MINUS );
 		final ADDRNode greedy_actions = _manager.threshold( diff, 0.0d, false );
-		final ADDRNode greedy_actions_ties = _dtr.breakActionTies( greedy_actions, state );
+		final ADDRNode greedy_actions_ties 
+			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false );
 		
 //			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false);
 		if( greedy_actions_ties.equals( _manager.DD_ZERO ) ){ 

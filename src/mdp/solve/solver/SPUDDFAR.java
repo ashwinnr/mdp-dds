@@ -15,6 +15,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import com.google.common.collect.Maps;
 
 import dd.DDManager.APPROX_TYPE;
+import dd.DDManager.DDOper;
 import dtr.add.ADDDecisionTheoreticRegression;
 
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
@@ -234,8 +235,10 @@ public class SPUDDFAR implements Runnable{
 			return null;
 		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
+		final ADDRNode ret_neg_inf = _dtr.convertToNegInfDD( ret )[ 0 ];
 
-		System.out.println("value of state : " + _manager.constrain( _valueDD, ret, _manager.DD_NEG_INF ).getMax() );
+		final ADDRNode value_init_state = _manager.apply( _valueDD, ret_neg_inf, DDOper.ARITH_PLUS );
+		System.out.println("value of state : " + _manager.enumeratePathsADD(value_init_state) );
 		return ret;
 	}
 

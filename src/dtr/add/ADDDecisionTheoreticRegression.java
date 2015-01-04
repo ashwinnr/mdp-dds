@@ -77,7 +77,8 @@ RDDLFactoredActionSpace> {
 	protected ADDRNode domain_constraints_neg_inf;
 
 	public enum INITIAL_STATE_CONF{
-		UNIFORM, BERNOULLI, CONJUNCTIVE, RDDL
+		//UNIFORM, BERNOULLI, 
+		CONJUNCTIVE, RDDL
 	}
 
 	private class Heuristic_Compute implements Callable< UnorderedPair<ADDRNode, ADDRNode> >{
@@ -331,8 +332,8 @@ RDDLFactoredActionSpace> {
 		for( final ADDRNode rew : reward_dds ){
 //			final ADDRNode r2 = _manager.constrain(rew, this_constraint, _manager.DD_NEG_INF );
 			value_ret = _manager.apply( value_ret, rew, DDOper.ARITH_PLUS );
-			value_ret = constrain_naively ? value_ret : // _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS) :
-				_manager.constrain(value_ret, all_constraints, _manager.DD_NEG_INF );
+			value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) :
+				_manager.constrain( value_ret, all_constraints, _manager.DD_NEG_INF );
 		}
 		
 		//has Q now
@@ -340,16 +341,9 @@ RDDLFactoredActionSpace> {
 				_manager.doApricodd(value_ret, do_apricodd, apricodd_epsilon, apricodd_type) 
 				: value_ret;
 		final ADDRNode q_func = value_ret;
-		
-		for( final String act_var : _mdp.getElimOrder() ){
-			if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
-				System.out.println("maxxing " + act_var );
-			}
-			value_ret = _manager.marginalize(value_ret, act_var, DDMarginalize.MARGINALIZE_MAX );
-		}
+		value_ret = maxActionVariables(value_ret, _mdp.getElimOrder(), null, do_apricodd, apricodd_epsilon, apricodd_type);
 		
 //		removeStateConstraint(state_constraint);
-		
 		ADDPolicy policy = new ADDPolicy(_manager, _mdp.getFactoredStateSpace(), 
 				_mdp.getFactoredTransition(), _mdp.getFactoredReward(), _mdp.getFactoredActionSpace() );
 		policy.updateBDDPolicy(value_ret, q_func);
@@ -2072,23 +2066,23 @@ RDDLFactoredActionSpace> {
 		ADDRNode ret = null;
 
 		switch( init_state_conf ){
-		case BERNOULLI :
-			ret = _mdp.getIIDBernoulliDistribution(init_state_prob, state_vars);
-			break;
+//		case BERNOULLI :
+//			ret = _mdp.getIIDBernoulliDistribution(init_state_prob, state_vars);
+//			break;
 		case CONJUNCTIVE :
 			ret = _mdp.getIIDConjunction(!(init_state_prob==0.0d), state_vars );
 			break;
-		case UNIFORM :
-			ret = _mdp.getIIDUniformDistribution( state_vars );
-			break;
+//		case UNIFORM :
+//			ret = _mdp.getIIDUniformDistribution( state_vars );
+//			break;
 		case RDDL : 
 			ret = _manager.getProductBDDFromAssignment( _mdp.getInitialState() );
 			break;
 		}
-		final ADDRNode constr = _manager.productDD(this.__state_constraints);
-		if( !constr.equals(_manager.DD_ONE) ){
-			ret = _manager.normalizePDF( ret, constr );
-		}
+//		final ADDRNode constr = _manager.productDD(this.__state_constraints);
+//		if( !constr.equals(_manager.DD_ONE) ){
+//			ret = _manager.normalizePDF( ret, constr );
+//		}
 
 		return ret;
 	}
@@ -2586,35 +2580,40 @@ RDDLFactoredActionSpace> {
 	//		
 	//	}
 
-	public ADDRNode getDomainConstraints() {
+	public ADDRNode getDomainConstraintsNegInf() {
 		return domain_constraints_neg_inf;
 	}
 
-	public ADDRNode breakActionTies( final ADDRNode policy, 
-			final FactoredState<RDDLFactoredStateSpace> actual_state  ) {
-		Set<String> action_vars = _mdp.get_actionVars();
-		ADDRNode restricted_policy = _manager.restrict(policy, actual_state.getFactoredState());
-		ADDRNode ret = _manager.DD_ONE;
-		while( restricted_policy.getNode() instanceof ADDINode ){
-			final String var = restricted_policy.getTestVariable();
-			if( !action_vars.contains( var ) ){
-				try{
-					throw new Exception("state var in policy action");
-				}catch( Exception e ){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
-			if( restricted_policy.getTrueChild().getMax() == 1 ){
-				ret = _manager.BDDIntersection( ret, _manager.getIndicatorDiagram(var, true) );
-				restricted_policy = restricted_policy.getTrueChild();
-			}else{
-				ret = _manager.BDDIntersection( ret, _manager.getIndicatorDiagram(var, false) );
-				restricted_policy = restricted_policy.getFalseChild();
-			}
-		}
-		return ret;
+	public ADDRNode getDomainConstraintsBDD() {
+		return domain_constraints;
 	}
+
+	
+//	public ADDRNode breakActionTies( final ADDRNode policy, 
+//			final FactoredState<RDDLFactoredStateSpace> actual_state  ) {
+//		Set<String> action_vars = _mdp.get_actionVars();
+//		ADDRNode restricted_policy = _manager.restrict(policy, actual_state.getFactoredState());
+//		ADDRNode ret = _manager.DD_ONE;
+//		while( restricted_policy.getNode() instanceof ADDINode ){
+//			final String var = restricted_policy.getTestVariable();
+//			if( !action_vars.contains( var ) ){
+//				try{
+//					throw new Exception("state var in policy action");
+//				}catch( Exception e ){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
+//			if( restricted_policy.getTrueChild().getMax() == 1 ){
+//				ret = _manager.BDDIntersection( ret, _manager.getIndicatorDiagram(var, true) );
+//				restricted_policy = restricted_policy.getTrueChild();
+//			}else{
+//				ret = _manager.BDDIntersection( ret, _manager.getIndicatorDiagram(var, false) );
+//				restricted_policy = restricted_policy.getFalseChild();
+//			}
+//		}
+//		return ret;
+//	}
 
 //	public ADDRNode getGreedyAction( final ADDRNode state_dd ) {
 //		final ADDRNode state_dd_neg_inf = _manager.apply( 
