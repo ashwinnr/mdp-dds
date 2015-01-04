@@ -329,17 +329,16 @@ RDDLFactoredActionSpace> {
 			System.out.println("adding reward "  );
 		}
 		
+		value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) :
+			_manager.constrain( value_ret, all_constraints, _manager.DD_NEG_INF );
 		for( final ADDRNode rew : reward_dds ){
 //			final ADDRNode r2 = _manager.constrain(rew, this_constraint, _manager.DD_NEG_INF );
 			value_ret = _manager.apply( value_ret, rew, DDOper.ARITH_PLUS );
-			value_ret = constrain_naively ? _manager.apply( value_ret, all_constraints_neg_inf, DDOper.ARITH_PLUS ) :
-				_manager.constrain( value_ret, all_constraints, _manager.DD_NEG_INF );
 		}
 		
 		//has Q now
 		value_ret = do_apricodd ? 
-				_manager.doApricodd(value_ret, do_apricodd, apricodd_epsilon, apricodd_type) 
-				: value_ret;
+				_manager.doApricodd(value_ret, do_apricodd, apricodd_epsilon, apricodd_type) : value_ret;
 		final ADDRNode q_func = value_ret;
 		value_ret = maxActionVariables(value_ret, _mdp.getElimOrder(), null, do_apricodd, apricodd_epsilon, apricodd_type);
 		
