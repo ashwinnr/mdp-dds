@@ -242,6 +242,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		final double state_reward = _manager.evaluate( max_actions, state_path ).getMax();
 		final ADDRNode path_ret = _manager.get_path(max_actions, state_path);
+		System.out.println( _manager.enumeratePathsBDD(path_ret) + " " + state_reward);
 		
 		//find greedy action
 		final ADDRNode diff = _manager.apply( max_actions, sum, DDOper.ARITH_MINUS );

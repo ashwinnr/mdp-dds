@@ -108,18 +108,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 
 
 	@Override
-	public void initilialize_node(FactoredState<RDDLFactoredStateSpace> state,
-			int depth) {
-		try{
-			throw new UnsupportedOperationException("does not make sense for flat states.");
-		}catch( Exception e ){
-			e.printStackTrace();
-			System.exit(1);
-		}
-	}
-
-
-	@Override
 	public FactoredState<RDDLFactoredStateSpace> pick_successor_node(
 			FactoredState<RDDLFactoredStateSpace> state,
 			FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> action,
