@@ -147,25 +147,29 @@ public abstract class RDDLOnlineActor implements Runnable {
 //					System.out.print( horizon_to_go );
 					cur_disc = ( _useDiscounting ) ? cur_disc * DISCOUNT : cur_disc;
 					
-//					if( _domainFile.contains("crossing_traffic") ){
-//						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
-//							if( nfs._sPredName._sPVarName.contains("GOAL") ){
-//								ArrayList<LCONST> goal_params = nfs._alTerms;
-//								ArrayList<LCONST> x_param = new ArrayList<LCONST>();
-//								x_param.add( goal_params.get(0) );
-//								
-//								ArrayList<LCONST> y_param = new ArrayList<LCONST>();
-//								y_param.add( goal_params.get(1) );
-//								
-//								if( ((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("robot-at-x"), x_param )).equals(Boolean.TRUE)
-//										&& ((Boolean)_mdp._state.getPVariableAssign(new PVAR_NAME("robot-at-y"), y_param )).equals(Boolean.TRUE) ){
-//									System.out.println("goal reached - terminating");
+					if( _domainFile.contains("crossing_traffic") ){
+						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
+							if( nfs._sPredName._sPVarName.contains("GOAL") ){
+								ArrayList<LCONST> goal_params = nfs._alTerms;
+								ArrayList<LCONST> x_param = new ArrayList<LCONST>();
+								x_param.add( goal_params.get(0) );
+								
+								ArrayList<LCONST> y_param = new ArrayList<LCONST>();
+								y_param.add( goal_params.get(1) );
+								
+								final PVAR_NAME r_at = new PVAR_NAME("robot-at");
+								final ArrayList<LCONST> const_at = new ArrayList<>();
+								const_at.add( x_param.get(0) );
+								const_at.add( y_param.get(0) );
+								
+								if( ((Boolean)_mdp._state.getPVariableAssign( r_at, const_at )).equals(Boolean.TRUE) ){
+									System.out.println("goal reached - terminating");
 //									round_reward += horizon_to_go;
-//									trial_is_over = true;
-//									break;
-//								}
-//							}
-//						}
+									trial_is_over = true;
+									break;
+								}
+							}
+						}
 //						
 //						for( final String svar : _mdp.get_stateVars() ){
 //							if( svar.contains("collision") ){
@@ -177,8 +181,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 //							}
 //						}
 //						//check for collision
-//					}else 
-					if( _domainFile.contains("triangle_tireworld") ){
+					}else if( _domainFile.contains("triangle_tireworld") ){
 						
 						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
 							if( nfs._sPredName._sPVarName.contains("goal-location") ){
