@@ -220,37 +220,34 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			final FactoredState<RDDLFactoredStateSpace> state, final int depth ) {
 		final NavigableMap<String, Boolean> state_path = state.getFactoredState();
 		final ADDRNode state_bdd = _manager.getProductBDDFromAssignment( state_path );
-//		final ADDRNode state_dd_neg_inf = _dtr.convertToNegInfDD( state_bdd )[0];
+		final ADDRNode state_dd_neg_inf = _dtr.convertToNegInfDD( state_bdd )[0];
+		
 		final ADDRNode domain_constraint_neg_inf = _dtr.getDomainConstraintsNegInf();
 		ADDRNode sum = domain_constraint_neg_inf;
+		sum = _manager.apply( sum, state_dd_neg_inf, DDOper.ARITH_PLUS );
 		
 		//we need an assignment to action vars to determine path
 		//first find greedy action
 		final List<ADDRNode> rewards_list = _mdp.getRewards();
 		for( final ADDRNode rew : rewards_list ){
 			sum = _manager.apply( sum, rew, DDOper.ARITH_PLUS );
-			sum = _manager.constrain( sum, state_bdd, _manager.DD_NEG_INF );
+//			sum = _manager.constrain( sum, state_bdd, _manager.DD_NEG_INF );
 //			sum = _manager.apply( sum, all_constraints, DDOper.ARITH_PLUS );
 		}
 				
-		//sum is a leaf node if no action costs
-		//otherwise sum has only action vars
-		//max actions is leaf node in any case
-		final ADDRNode max_actions 
-		= _dtr.maxActionVariables( sum , _mdp.getElimOrder(), null, 
-				do_apricodd, do_apricodd ? apricodd_epsilon[depth] : 0, apricodd_type);
-		
-		final double state_reward = _manager.evaluate( max_actions, state_path ).getMax();
-		final ADDRNode path_ret = _manager.get_path(max_actions, state_path);
-//		System.out.println( _manager.enumeratePathsBDD(path_ret) + " " + state_reward);
+		final ADDRNode action_dd = 
+				_manager.restrict( sum, state_path );//has only action vars now
+		final double state_reward = _dtr.maxActionVariables( action_dd , _mdp.getElimOrder(), null, 
+				do_apricodd, do_apricodd ? apricodd_epsilon[depth] : 0, apricodd_type).getMax();
 		
 		//find greedy action
-		final ADDRNode diff = _manager.apply( max_actions, sum, DDOper.ARITH_MINUS );
+		final ADDRNode diff = _manager.apply( sum, _manager.getLeaf(state_reward), DDOper.ARITH_MINUS );
 		final ADDRNode greedy_actions = _manager.threshold( diff, 0.0d, false );
-		final ADDRNode greedy_actions_ties 
+		ADDRNode greedy_actions_ties 
 			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false );
+		greedy_actions_ties = _manager.restrict(greedy_actions_ties, state_path);
 		
-//			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false);
+		//			= _manager.breakTiesInBDD(greedy_actions, _mdp.get_actionVars(), false);
 		if( greedy_actions_ties.equals( _manager.DD_ZERO ) ){ 
 			try {
 				throw new Exception("no/or not unnique greedy action");
@@ -260,29 +257,32 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 			}
 		}
 
+		Set<NavigableMap<String, Boolean>> greedy_action_assigns = _manager.enumeratePathsBDD(greedy_actions_ties);
+		if( greedy_action_assigns.size() != 1 ){
+			try {
+				throw new Exception("no/or not unnique greedy action");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
 		
+		NavigableMap<String, Boolean> greedy_action_assign = greedy_action_assigns.iterator().next();
+		greedy_action_assign.remove("1.0");
 		
-//		Set<NavigableMap<String, Boolean>> greedy_action_assigns = _manager.enumeratePathsBDD(greedy_actions_ties);
-//		if( greedy_action_assigns.size() != 1 ){
-//			try {
-//				throw new Exception("no/or not unnique greedy action");
-//			} catch (Exception e) {
-//				e.printStackTrace();
-//				System.exit(1);
-//			}
-//		}
-//		
-//		NavigableMap<String, Boolean> greedy_action_assign = greedy_action_assigns.iterator().next();
-//		System.out.println("Greedy action : " + greedy_action_assign );
-//		
-//		//now get path
-//		ADDRNode path_ret = _manager.DD_ONE;
-//		for( final ADDRNode rew : rewards_list ){
+		NavigableMap<String, Boolean> all_assign = Maps.newTreeMap( state_path );
+		all_assign.putAll( greedy_action_assign );
+		
+		//now get path
+		ADDRNode path_ret = _manager.get_path( domain_constraint_neg_inf, all_assign ) ;
+		for( final ADDRNode rew : rewards_list ){
 //			final ADDRNode r2 = _manager.restrict(rew, greedy_action_assign);
-//			final ADDRNode this_path = _manager.get_path(r2, state_path);
-//			path_ret = _manager.BDDIntersection(path_ret, this_path );
-//		}
-//		
+			final ADDRNode this_path = _manager.get_path( rew, all_assign );
+			path_ret = _manager.BDDIntersection(path_ret, this_path );
+		}
+		path_ret = _manager.restrict(path_ret, greedy_action_assign );
+//		System.out.println( _manager.enumeratePathsBDD(path_ret) + " " + state_reward );
+		
 //		if( _manager.getVars(max_actions ).contains( _mdp.get_action_vars() ) ){
 //			try {
 //				throw new Exception("action var in greedy action");
@@ -457,6 +457,15 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 	public void initialize_node(FactoredState<RDDLFactoredStateSpace> state, int depth) {
 		
 		if( is_node_visited(state, depth) ){
+			try {
+				throw new Exception("initializing already visited node");
+			} catch (Exception e) {
+				e.printStackTrace();
+				System.exit(1);
+			}
+		}
+		
+		if( depth == steps_lookahead-1 && INIT_REWARD ){
 			try {
 				throw new Exception("initializing already visited node");
 			} catch (Exception e) {
