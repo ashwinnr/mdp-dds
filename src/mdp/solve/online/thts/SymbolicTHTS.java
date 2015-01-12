@@ -269,6 +269,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		
 		NavigableMap<String, Boolean> greedy_action_assign = greedy_action_assigns.iterator().next();
 		greedy_action_assign.remove("1.0");
+		for( final String actvar : _mdp.get_actionVars() ){
+			if( greedy_action_assign.get(actvar) == null ){
+				greedy_action_assign.put( actvar, false );
+			}
+		}
 		
 		NavigableMap<String, Boolean> all_assign = Maps.newTreeMap( state_path );
 		all_assign.putAll( greedy_action_assign );
@@ -477,7 +482,7 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		final UnorderedPair<ADDRNode, UnorderedPair<ADDRNode, Double>>
 			gen_leaf = generalize_leaf( state, depth );
 		final ADDRNode the_state 
-		= _genStates ? gen_leaf._o1 :  
+			= _genStates ? gen_leaf._o1 :  
 				_manager.getProductBDDFromAssignment( state.getFactoredState() );
 		final ADDRNode the_state_neg = _manager.BDDNegate(the_state);
 		if( gen_leaf._o2._o1.equals( _manager.DD_ZERO ) ){ 
@@ -513,12 +518,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					_manager.BDDIntersection( _policyDD[depth], the_state_neg ),
 					_manager.BDDIntersection( the_state, gen_leaf._o2._o1 ) );
 				
-				if( _markVisited ){
-					visit_node(the_state, depth);	
-				}
-				if( _enableLabelling && depth == steps_lookahead-1 ){
-					mark_node_solved(the_state, depth);
-				}
 				break;
 			case VMAX : 
 				_policyDD[depth] = _manager.BDDUnion(
@@ -533,10 +532,6 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					}
 				}
 					
-				if( _markVisited ){
-					visit_node(the_state, depth);	
-				}
-				
 				break;
 				
 			default :
@@ -546,6 +541,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 					e.printStackTrace();
 					System.exit(1);
 				}
+		}
+		
+		if( _markVisited ){
+			visit_node(the_state, depth);	
+		}
+		if( _enableLabelling && depth == steps_lookahead-1 ){
+			mark_node_solved(the_state, depth);
 		}
 			
 		//check
