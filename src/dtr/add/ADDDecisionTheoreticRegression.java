@@ -358,9 +358,10 @@ RDDLFactoredActionSpace> {
 //			Syst
 //		}
 		
-		final ADDRNode new_policy = _manager.BDDUnion(
+		ADDRNode new_policy = _manager.BDDUnion(
 				_manager.BDDIntersection(policy._bddPolicy, to),
 				_manager.BDDIntersection(cur_policy, to_not ) );
+		new_policy = _manager.breakTiesInBDD(new_policy, _mdp.get_actionVars(), false );
 		
 //		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 
