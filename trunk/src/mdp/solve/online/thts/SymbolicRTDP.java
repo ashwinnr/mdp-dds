@@ -567,8 +567,7 @@ public class SymbolicRTDP< T extends GeneralizationType,
 								apricodd_type, true, -1, 
 								CONSTRAIN_NAIVELY , null  );
 				_valueDD[ j-1 ] = backup._o1;
-
-				_policyDD[ j-1 ] = backup._o1;
+				_policyDD[ j-1 ] = backup._o2._o1;
 				//_manager.BDDUnion(
 					//					_manager.BDDIntersection( greedy_action, flat_state_bdd ),
 						//				_manager.BDDIntersection( _policyDD[ j-1 ] , _manager.BDDNegate(flat_state_bdd) ) );
