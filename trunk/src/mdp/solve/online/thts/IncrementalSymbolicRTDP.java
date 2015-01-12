@@ -14,6 +14,7 @@ import org.apache.commons.cli.Options;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.sun.xml.internal.messaging.saaj.packaging.mime.util.QDecoderStream;
 
 import add.ADDRNode;
 
@@ -253,7 +254,6 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			ret = _manager.constrain( ret, all_constraints_bdd, _manager.DD_NEG_INF );
 		}
 		
-		ret = _manager.apply( ret, domain_constraints_neg_inf, DDOper.ARITH_PLUS );
 		ret = _manager.scalarMultiply( ret, _mdp.getDiscount() );
 
 		for( final ADDRNode rew : _mdp.getRewards() ){
@@ -265,31 +265,57 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 		if( do_apricodd ){
 			ret = _manager.doApricodd(ret, do_apricodd, apricodd_epsilon, apricodd_type);
 		}
-		final ADDRNode qfunc = ret;
-		ADDRNode vfunc = _dtr.maxActionVariables(qfunc, _mdp.getElimOrder(), null,
-				do_apricodd, apricodd_epsilon, apricodd_type);
-		vfunc = _manager.constrain( vfunc, all_constraints_bdd, _manager.DD_NEG_INF );
 		
-		final ADDRNode diff = _manager.apply( vfunc, qfunc, DDOper.ARITH_MINUS );
+		final ADDRNode qfunc = _manager.apply( ret, domain_constraints_neg_inf, DDOper.ARITH_PLUS );
+		//convert every neg inf to 0, 1 o.w.
+		//union with domain constraints bdd
+		//forall_ actions
+		//get path
+		final ADDRNode qfunc_neg_inf_zero = _manager.threshold(qfunc, Double.MAX_VALUE, false );
+		
+		final ADDRNode qfunc_mask = _manager.BDDUnion( qfunc_neg_inf_zero, _manager.BDDNegate( domain_constraints_bdd ) );
+		ADDRNode state_mask = qfunc_mask;
+		for( final String actvar : _mdp.getElimOrder() ){
+			state_mask = _manager.marginalize( state_mask, actvar, DDMarginalize.MARGINALIZE_MIN );
+		}
+//		final ADDRNode this_state_mask = _manager.get_path(state_mask, actual_state.getFactoredState() ); 
+		
+		final ADDRNode max_q = _dtr.maxActionVariables(qfunc, _mdp.getElimOrder(), null,
+				do_apricodd, apricodd_epsilon, apricodd_type);
+		final double state_value = _manager.evaluate( max_q, actual_state.getFactoredState() ).getMax();
+		
+		final ADDRNode diff = _manager.apply( max_q, qfunc, DDOper.ARITH_MINUS );
 		final ADDRNode policy = _manager.threshold(diff, 0.0d, false );
 		final ADDRNode policy_ties = _manager.breakTiesInBDD(policy, _mdp.get_actionVars(), false );
+
+		final ADDRNode new_vfunc = 
+				_manager.apply( 
+						_manager.BDDIntersection( state_mask, _manager.getLeaf(state_value) ), 
+						_manager.BDDIntersection( target_val, _manager.BDDNegate(state_mask) ),
+				DDOper.ARITH_PLUS );
+		
+		final ADDRNode new_pi = 
+				_manager.apply(
+						_manager.BDDIntersection( policy_ties, state_mask ),
+						_manager.BDDIntersection(target_policy, _manager.BDDNegate(state_mask) ),
+						DDOper.ARITH_PLUS );
 		
 		//this is the unsound part
 		
-		final ADDRNode state_path = _manager.get_path( vfunc, actual_state.getFactoredState() );
-//		System.out.println(" State : " + _manager.enumeratePathsBDD(actual_state_bdd)) ;
-//		System.out.println(" Path : " + _manager.enumeratePathsBDD(state_path)) ;
-		
-		final ADDRNode state_path_neg = _manager.BDDNegate( state_path );
-		
-		final ADDRNode value_ret = _manager.apply( 
-				_manager.BDDIntersection( target_val, state_path_neg ),
-				_manager.BDDIntersection( vfunc, state_path ),
-				DDOper.ARITH_PLUS );
-		final ADDRNode policy_ret = _manager.BDDUnion( 
-				_manager.BDDIntersection( target_policy, state_path_neg ), 
-				_manager.BDDIntersection( policy_ties, state_path ) );
-		return new UnorderedPair<>( value_ret, new UnorderedPair<>( policy_ret, state_path) );
+//		final ADDRNode state_path = _manager.get_path( vfunc, actual_state.getFactoredState() );
+////		System.out.println(" State : " + _manager.enumeratePathsBDD(actual_state_bdd)) ;
+////		System.out.println(" Path : " + _manager.enumeratePathsBDD(state_path)) ;
+//		
+//		final ADDRNode state_path_neg = _manager.BDDNegate( state_path );
+//		
+//		final ADDRNode value_ret = _manager.apply( 
+//				_manager.BDDIntersection( target_val, state_path_neg ),
+//				_manager.BDDIntersection( vfunc, state_path ),
+//				DDOper.ARITH_PLUS );
+//		final ADDRNode policy_ret = _manager.BDDUnion( 
+//				_manager.BDDIntersection( target_policy, state_path_neg ), 
+//				_manager.BDDIntersection( policy_ties, state_path ) );
+		return new UnorderedPair<>( new_vfunc, new UnorderedPair<>( new_pi, state_mask ) );
 	}
 
 	private ADDRNode getPolicyGenState(
