@@ -4,44 +4,37 @@ import java.util.Arrays;
 import java.util.NavigableMap;
 import java.util.Random;
 
+import mdp.generalize.trajectory.EBLGeneralization;
+import mdp.generalize.trajectory.Generalization;
+import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
+import mdp.generalize.trajectory.OptimalActionGeneralization;
+import mdp.generalize.trajectory.ValueGeneralization;
+import mdp.generalize.trajectory.parameters.EBLParams;
+import mdp.generalize.trajectory.parameters.GeneralizationParameters;
+import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
+import mdp.generalize.trajectory.parameters.OptimalActionParameters;
+import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
+import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
+import mdp.generalize.trajectory.type.GeneralizationType;
+import mdp.solve.online.Exploration;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
-
-import add.ADDRNode;
 
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
 import rddl.mdp.RDDLFactoredActionSpace;
 import rddl.mdp.RDDLFactoredStateSpace;
-import sun.reflect.ReflectionFactory.GetReflectionFactoryAction;
 import util.InstantiateArgs;
 import util.Timer;
 import util.UnorderedPair;
+import add.ADDRNode;
 import dd.DDManager.APPROX_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.BACKUP_TYPE;
 import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
 import factored.mdp.define.FactoredAction;
 import factored.mdp.define.FactoredState;
-import mdp.generalize.trajectory.EBLGeneralization;
-import mdp.generalize.trajectory.Generalization;
-import mdp.generalize.trajectory.OptimalActionGeneralization;
-import mdp.generalize.trajectory.RewardGeneralization;
-import mdp.generalize.trajectory.ValueGeneralization;
-import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
-import mdp.generalize.trajectory.parameters.EBLParams;
-import mdp.generalize.trajectory.parameters.GeneralizationParameters;
-import mdp.generalize.trajectory.parameters.OptimalActionParameters;
-import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
-import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
-import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
-import mdp.generalize.trajectory.type.GeneralizationType;
-import mdp.solve.online.Exploration;
-import mdp.solve.online.thts.SymbolicRTDP.LearningMode;
-import mdp.solve.online.thts.SymbolicRTDP.LearningRule;
-import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
-import mdp.solve.online.thts.SymbolicTHTS.LOCAL_INITIALIZATION;
-import mdp.solve.online.thts.SymbolicTHTS.REMEMBER_MODE;
 
 public class OldSymbolicRTDP< T extends GeneralizationType, 
 	P extends GeneralizationParameters<T> >  extends SymbolicRTDP<T,P> {
@@ -259,9 +252,9 @@ public class OldSymbolicRTDP< T extends GeneralizationType,
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			generalizer = new EBLGeneralization();
 		}
-		else if( cmd.getOptionValue("generalization").equals("reward") ){
-			generalizer = new RewardGeneralization();
-		}
+//		else if( cmd.getOptionValue("generalization").equals("reward") ){
+//			generalizer = new RewardGeneralization();
+//		}
 		
 		
 		final Random topLevel = new Random( Long.parseLong( cmd.getOptionValue("seed") ) );
