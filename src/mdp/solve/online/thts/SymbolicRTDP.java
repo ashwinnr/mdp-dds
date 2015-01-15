@@ -8,7 +8,6 @@ import mdp.generalize.trajectory.EBLGeneralization;
 import mdp.generalize.trajectory.Generalization;
 import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.OptimalActionGeneralization;
-import mdp.generalize.trajectory.RewardGeneralization;
 import mdp.generalize.trajectory.ValueGeneralization;
 import mdp.generalize.trajectory.parameters.EBLParams;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters;
@@ -17,7 +16,6 @@ import mdp.generalize.trajectory.parameters.OptimalActionParameters;
 import mdp.generalize.trajectory.parameters.RewardGeneralizationParameters;
 import mdp.generalize.trajectory.parameters.ValueGeneralizationParameters;
 import mdp.generalize.trajectory.type.GeneralizationType;
-import mdp.solve.online.Exploration;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -1013,9 +1011,9 @@ public class SymbolicRTDP< T extends GeneralizationType,
 		}else if( cmd.getOptionValue("generalization").equals("EBL") ){
 			generalizer = new EBLGeneralization();
 		}
-		else if( cmd.getOptionValue("generalization").equals("reward") ){
-			generalizer = new RewardGeneralization();
-		}
+//		else if( cmd.getOptionValue("generalization").equals("reward") ){
+//			generalizer = new RewardGeneralization();
+//		}
 		
 		
 		final Random topLevel = new Random( Long.parseLong( cmd.getOptionValue("seed") ) );
