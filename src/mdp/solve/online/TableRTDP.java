@@ -380,5 +380,13 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 		}
 		return null;
 	}
-	
+
+
+	@Override
+	public void initialize_node(FactoredState<RDDLFactoredStateSpace> state,
+			int depth) {
+		return;
+	}
+
+
 }
