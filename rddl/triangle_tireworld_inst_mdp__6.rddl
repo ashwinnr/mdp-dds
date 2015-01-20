@@ -64,7 +64,24 @@ instance triangle_tireworld_inst_mdp__6 {
 	non-fluents = nf_triangle_tireworld_inst_mdp__6;
 	init-state {
 		vehicle-at(la1a1);
-		hasspare;
+		spare-in(la2a1);
+		spare-in(la2a2);
+		spare-in(la2a3);
+		spare-in(la2a4);
+		spare-in(la2a5);
+		spare-in(la2a6);
+		spare-in(la3a1);
+		spare-in(la3a5);
+		spare-in(la4a1);
+		spare-in(la4a2);
+		spare-in(la4a3);
+		spare-in(la4a4);
+		spare-in(la5a1);
+		spare-in(la5a3);
+		spare-in(la6a1);
+		spare-in(la6a2);
+		spare-in(la7a1);
+		spare-in(la7a1);
 		not-flattire;
 	};
 
