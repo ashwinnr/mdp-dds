@@ -32,7 +32,7 @@
 
 domain crossing_traffic_mdp {
 	requirements = {
-//		constrained-state,
+		constrained-state,
 		reward-deterministic
 	};
 	
