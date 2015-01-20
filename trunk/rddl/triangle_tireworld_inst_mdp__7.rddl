@@ -86,7 +86,16 @@ non-fluents nf_triangle_tireworld_inst_mdp__7 {
 		road(la8a2,la7a3);
 		road(la8a1,la9a1);
 		road(la9a1,la8a2);
-		
+
+		goal-location(la1a9);
+	};
+}
+
+instance triangle_tireworld_inst_mdp__7 {
+	domain = triangle_tireworld_mdp;
+	non-fluents = nf_triangle_tireworld_inst_mdp__7;
+	init-state {
+		vehicle-at(la1a1);
 		spare-in(la2a1);
 		spare-in(la2a2);
 		spare-in(la2a3);
@@ -115,17 +124,6 @@ non-fluents nf_triangle_tireworld_inst_mdp__7 {
 		spare-in(la8a2);
 		spare-in(la9a1);
 		spare-in(la9a1);
-
-		goal-location(la1a9);
-	};
-}
-
-instance triangle_tireworld_inst_mdp__7 {
-	domain = triangle_tireworld_mdp;
-	non-fluents = nf_triangle_tireworld_inst_mdp__7;
-	init-state {
-		vehicle-at(la1a1);
-		hasspare;
 		not-flattire;
 	};
 

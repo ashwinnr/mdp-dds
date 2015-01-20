@@ -1,11 +1,11 @@
-non-fluents nf_triangle_tireworld_inst_mdp__1 {
+non-fluents nf_triangle_tireworld_inst_mdp__2 {
 	domain = triangle_tireworld_mdp;
 	objects {
 		location : {la1a1, la1a2, la1a3, la2a1, la2a2, la3a1};
 	};
 
 	non-fluents {
-		FLAT-PROB = 0.4;
+		FLAT-PROB = 0.499;
 		road(la1a1,la1a2);
 		road(la1a2,la1a3);
 		road(la1a1,la2a1);
@@ -19,9 +19,9 @@ non-fluents nf_triangle_tireworld_inst_mdp__1 {
 	};
 }
 
-instance triangle_tireworld_inst_mdp__1 {
+instance triangle_tireworld_inst_mdp__2 {
 	domain = triangle_tireworld_mdp;
-	non-fluents = nf_triangle_tireworld_inst_mdp__1;
+	non-fluents = nf_triangle_tireworld_inst_mdp__2;
 	init-state {
 		vehicle-at(la1a1);
 		spare-in(la2a1);
