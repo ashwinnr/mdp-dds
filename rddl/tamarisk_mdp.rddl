@@ -40,6 +40,10 @@
 
 domain tamarisk_mdp {
 
+	requirements = {
+		reward-deterministic
+	};
+	
   types {
     reach : object;
     slot  : object;
@@ -126,7 +130,7 @@ domain tamarisk_mdp {
 
 		// If eradicated and no tamerisk at ?s, assume it won't spread to ?s on this iteration
 		else if (~tamarisk-at(?s) ^ [exists_{?r : reach} [SLOT-AT-REACH(?s,?r) ^ eradicate(?r) ^ ~forall_{?s2 : slot} [SLOT-AT-REACH(?s2,?r) ^ tamarisk-at(?s2)]]])
-			then false
+			then KronDelta( false )
 		
 		// Was it eradicated?
 		else if (tamarisk-at(?s) ^ [exists_{?r : reach} [SLOT-AT-REACH(?s,?r) ^ eradicate(?r) ^ ~forall_{?s2 : slot} [SLOT-AT-REACH(?s2,?r) ^ tamarisk-at(?s2)]]])
@@ -149,7 +153,7 @@ domain tamarisk_mdp {
 
 		// Did not experience competition, eradication, death, spreading, or an exogenous production, so the state persists
 		else
-			tamarisk-at(?s);
+			KronDelta( tamarisk-at(?s) );
 	
 	// From the website description, it's not immediately clear how native plants spread.
 	// Because there do not seem to be spread rates for these species, we'll instead simply
@@ -165,7 +169,7 @@ domain tamarisk_mdp {
 
 		// If it is restored and a native plant is already there, assume it must persist in next iteration
 		else if (~tamarisk-at(?s) ^ native-at(?s) ^ [exists_{?r : reach} [SLOT-AT-REACH(?s,?r) ^ restore(?r)]])
-			then true
+			then KronDelta( true )
 
 		// Was it empty and restored?
 		else if (~tamarisk-at(?s) ^ ~native-at(?s) ^ [exists_{?r : reach} [SLOT-AT-REACH(?s,?r) ^ restore(?r)]])
@@ -181,7 +185,7 @@ domain tamarisk_mdp {
 		
 		// Did not experience competition, restoration, death, or an exogenous production, so the state persists
 		else
-			native-at(?s); 
+			KronDelta( native-at(?s) ); 
 	
   };
 
@@ -211,11 +215,11 @@ domain tamarisk_mdp {
 	//	-RESTORATION-COST-FOR-INVADED-SLOT * (restore(?r) ^ SLOT-AT-REACH(?s,?r) ^ tamarisk-at(?s))
 	//]];
 
-  state-action-constraints {
-		
+  //state-action-constraints {
+	//	
 	// Ensure two different plants never at same slot -- *actually* this can happen if both simultaneously generate,
 	// since we are not using a multivalued discrete variable in this model.
 	// forall_{?s : slot} ~[ tamarisk-at(?s) ^ native-at(?s) ];
-  };
+  //};
 
 }     
