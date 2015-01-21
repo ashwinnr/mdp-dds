@@ -146,7 +146,7 @@ domain triangle_tireworld_mdp {
 	
 		// Vehicle at exactly one position
 		[sum_{?l : location} vehicle-at(?l)] <= 1;
-		
+		[forall_{?l : location} ( ~vehicle-at(?l) => [ forall_{?l2:location} ~move-car(?l,?l2) ] ) ];
 		
 		
 	};
