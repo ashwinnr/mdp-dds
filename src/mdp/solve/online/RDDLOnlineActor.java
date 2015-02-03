@@ -162,7 +162,8 @@ public abstract class RDDLOnlineActor implements Runnable {
 								const_at.add( x_param.get(0) );
 								const_at.add( y_param.get(0) );
 								
-								if( ((Boolean)_mdp._state.getPVariableAssign( r_at, const_at )).equals(Boolean.TRUE) ){
+								if( ((Boolean)_mdp._state.getPVariableAssign( 
+										r_at, const_at )).equals(Boolean.TRUE) ){
 									System.out.println("goal reached - terminating");
 //									round_reward += horizon_to_go;
 									trial_is_over = true;
@@ -170,16 +171,21 @@ public abstract class RDDLOnlineActor implements Runnable {
 								}
 							}
 						}
-//						
-//						for( final String svar : _mdp.get_stateVars() ){
-//							if( svar.contains("collision") ){
-//								if( cur_state.getFactoredState().get(svar) == true ){
-//									System.out.println("collision detected... terminating");
-//									trial_is_over = true;
-//									break;
-//								}
-//							}
-//						}
+
+						boolean robot_alive = false;
+						for( final String svar : _mdp.get_stateVars() ){
+							if( svar.contains("robot_at") ){
+								if( cur_state.getFactoredState().get(svar) == true ){
+									robot_alive = true;
+									break;
+								}
+							}
+						}
+						if( !robot_alive ){
+							System.out.println("collision detected... terminating");
+							trial_is_over = true;	
+						}
+						
 //						//check for collision
 					}else if( _domainFile.contains("triangle_tireworld") ){
 						
