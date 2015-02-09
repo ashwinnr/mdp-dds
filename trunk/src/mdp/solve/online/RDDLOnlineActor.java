@@ -183,6 +183,7 @@ public abstract class RDDLOnlineActor implements Runnable {
 						}
 						if( !robot_alive ){
 							System.out.println("collision detected... terminating");
+							round_reward = -HORIZON;//horizon_to_go;
 							trial_is_over = true;	
 						}
 						
