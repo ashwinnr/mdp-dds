@@ -446,11 +446,11 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		//		testIndicators();
 		//		testApplyLeafOp();
 //				testGetRNode();
-//		testBreakTies();
+		testBreakTies();
 		//		testGraph();
 		//		testClearDeadNodes((int)1e5);
 //		testApply();
-		testConstrain();
+//		testConstrain();
 		//		testRestrict();
 //		testEnumeratePaths();
 //		testPathsToLeaf();
@@ -1470,6 +1470,15 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		_tempExistCache = null;
 		_tempUnaryCache = null;
 		return ret;
+
+		
+		//THE FOLLOWING DOES NOT WORK. -ANR 1/13/15
+		//Changing to a simpler implementation
+		//breaks ties in bottom up fashion - if ai and aj can have ties but interact, aj is fixed first, j > i
+		//caching is done bottom up
+		//for a var in Ties
+		//	intersect left and right branches
+		//due to bottom up they will have only vars not in ties
 	}
 
 	private ADDRNode breakTiesInBDDInt(ADDRNode input, Set<String> tiesIn,
@@ -1603,14 +1612,14 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			
 			System.out.println( man.enumeratePathsBDD(inod1) );
 			
-//			final ADDRNode tie_true_X = man.breakTiesInBDD( inod1, Collections.singleton("X"), true );
-//			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, Collections.singleton("Y"), false );
-//			final ADDRNode tie_false_XYZ = man.breakTiesInBDD( inod1, ties_done, false );
-//			
-////			System.out.println( man.enumeratePathsBDD(tie_true_X) );
-////			System.out.println( man.enumeratePathsBDD(tie_false_Y) );
-//			System.out.println( man.enumeratePathsBDD(tie_false_XYZ) );
-//			
+			final ADDRNode tie_true_X = man.breakTiesInBDD( inod1, Collections.singleton("X"), true );
+			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, Collections.singleton("Y"), false );
+			final ADDRNode tie_false_XYZ = man.breakTiesInBDD( inod1, ties_done, false );
+			
+			System.out.println( man.enumeratePathsBDD(tie_true_X) );
+			System.out.println( man.enumeratePathsBDD(tie_false_Y) );
+			System.out.println( man.enumeratePathsBDD(tie_false_XYZ) );
+			
 //			ties_done.remove("X");
 //			ties_done.remove("Z");
 //			final ADDRNode tie_false_Y = man.breakTiesInBDD( inod1, ties_done, false );
@@ -1618,7 +1627,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			
 			ties_done.remove("Z");
 			final ADDRNode tie_false_XY = man.breakTiesInBDD( inod1, ties_done, false );
-			System.out.println( man.enumeratePathsBDD(tie_false_XY) );//should not remove any paths
+			System.out.println( man.enumeratePathsBDD(tie_false_XY) );
 			
 //			man.showGraph( inod1 );
 //			man.showGraph( tie_true, tie_false );
@@ -2357,6 +2366,24 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempBinaryCache ,
 				_tempExistCache );
 		_tempBinaryCache = null;
+		_tempExistCache = null;
+		return ret;
+	}
+	
+	public ADDRNode constrainWithLoadSave( final ADDRNode rnode, final ADDRNode rconstrain, 
+			final ADDRNode violate, final Table< ADDRNode, ADDRNode, ADDRNode > _tempBinaryCache  ){
+
+//				System.out.println("constrain");
+		
+//		if( _constrainCache == null ){
+//			_constrainCache = new ConcurrentHashMap< 
+//					Pair< ADDRNode, ADDRNode >, ADDRNode >();
+//		}
+		//<ADDRNode, ADDRNode, ADDRNode >create();// CacheBuilder.from( temp_unary_cache_spec ).build();
+		Table<ADDRNode, ADDRNode, ADDRNode> _tempExistCache 
+			= HashBasedTable.create();
+		final ADDRNode ret = constrainInt(rnode, rconstrain, violate, _tempBinaryCache ,
+				_tempExistCache );
 		_tempExistCache = null;
 		return ret;
 	}
