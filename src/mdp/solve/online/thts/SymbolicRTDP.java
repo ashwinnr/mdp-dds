@@ -707,7 +707,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			if( do_Xion ){
 				current_partition = findNewGeneralizedPartition( new_val,
 						new_policy, update_states, depth, actual_state, next_state );
+//				System.out.println( depth + " " + 
+//						_manager.enumeratePathsBDD(update_states) + " " + 
+//						_manager.enumeratePathsBDD(current_partition) );
 				current_partition = _manager.BDDIntersection( current_partition, update_states );
+				
+				
 //				if( _enableLabelling ){
 //					current_partition = _manager.BDDUnion(current_partition, new_solved );
 //				}
