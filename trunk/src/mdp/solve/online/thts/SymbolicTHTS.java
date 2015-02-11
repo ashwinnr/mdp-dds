@@ -543,6 +543,11 @@ implements THTS< RDDLFactoredStateSpace, RDDLFactoredActionSpace >{
 				}
 		}
 		
+		if( do_apricodd ){
+			_valueDD[depth] = _manager.doApricodd(_valueDD[depth], 
+					do_apricodd, apricodd_epsilon[depth], apricodd_type);
+		}
+		
 		if( _markVisited ){
 			visit_node(the_state, depth);	
 		}
