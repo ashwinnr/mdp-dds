@@ -348,11 +348,15 @@ RDDLFactoredActionSpace> {
 		policy.updateBDDPolicy(value_ret, q_func);
 		
 		final ADDRNode to_not = _manager.BDDNegate(to);
-		final ADDRNode new_vfn = 
+		ADDRNode new_vfn = 
 				_manager.apply(
 						_manager.BDDIntersection(value_ret, to),
 						_manager.BDDIntersection(current_value, to_not ),
 						DDOper.ARITH_PLUS );
+		if( do_apricodd ){
+			new_vfn = _manager.doApricodd(
+					new_vfn, do_apricodd, apricodd_epsilon, apricodd_type);
+		}
 		
 //		if( new_vfn.getMin() == _manager.getNegativeInfValue() ){
 //			Syst
@@ -365,15 +369,15 @@ RDDLFactoredActionSpace> {
 		
 //		if( _dbg.compareTo(DEBUG_LEVEL.SOLUTION_INFO) >= 0 ){
 
-			if( !_manager.BDDIntersection( current_value, to_not ).
-					equals(_manager.BDDIntersection( new_vfn, to_not )) ){
-				try{
-					throw new Exception("Value of un updated state has changed");
-				}catch( Exception e ){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if( !_manager.BDDIntersection( current_value, to_not ).
+//					equals(_manager.BDDIntersection( new_vfn, to_not )) ){
+//				try{
+//					throw new Exception("Value of un updated state has changed");
+//				}catch( Exception e ){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 //		}
 			
 			if( _manager.hasVars(new_vfn, _mdp.get_actionVars()) ){
