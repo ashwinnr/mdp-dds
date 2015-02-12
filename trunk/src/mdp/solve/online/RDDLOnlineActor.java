@@ -147,7 +147,53 @@ public abstract class RDDLOnlineActor implements Runnable {
 //					System.out.print( horizon_to_go );
 					cur_disc = ( _useDiscounting ) ? cur_disc * DISCOUNT : cur_disc;
 					
-					if( _domainFile.contains("crossing_traffic") ){
+					if( _domainFile.contains("crossing_traffic") && _domainFile.contains("old") ){
+						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
+							if( nfs._sPredName._sPVarName.contains("GOAL") ){
+								ArrayList<LCONST> goal_params = nfs._alTerms;
+								ArrayList<LCONST> x_param = new ArrayList<LCONST>();
+								x_param.add( goal_params.get(0) );
+								
+								ArrayList<LCONST> y_param = new ArrayList<LCONST>();
+								y_param.add( goal_params.get(1) );
+								
+								final PVAR_NAME r_at_x = new PVAR_NAME("robot-at-x");
+								final ArrayList<LCONST> const_at_x = new ArrayList<>();
+								const_at_x.add( x_param.get(0) );
+								
+								final PVAR_NAME r_at_y = new PVAR_NAME("robot-at-y");
+								final ArrayList<LCONST> const_at_y = new ArrayList<>();
+								const_at_y.add( y_param.get(0) );
+								
+								if( ((Boolean)_mdp._state.getPVariableAssign( 
+										r_at_x, const_at_x )).equals(Boolean.TRUE)
+										&&  ((Boolean)_mdp._state.getPVariableAssign( 
+												r_at_y, const_at_y )).equals(Boolean.TRUE) ){
+									System.out.println("goal reached - terminating");
+//									round_reward += horizon_to_go;
+									trial_is_over = true;
+									break;
+								}
+							}
+						}
+
+						boolean robot_alive = true;
+						for( final String svar : _mdp.get_stateVars() ){
+							if( svar.contains("collision") ){
+								if( cur_state.getFactoredState().get(svar) == true ){
+									robot_alive = false;
+									break;
+								}
+							}
+						}
+						if( !robot_alive ){
+							System.out.println("collision detected... terminating");
+							round_reward = -HORIZON;//horizon_to_go;
+							trial_is_over = true;	
+						}
+						
+//						//check for collision
+					}else if( _domainFile.contains("crossing_traffic") ){
 						for( final PVAR_INST_DEF nfs : _mdp._n._alNonFluents ){
 							if( nfs._sPredName._sPVarName.contains("GOAL") ){
 								ArrayList<LCONST> goal_params = nfs._alTerms;
