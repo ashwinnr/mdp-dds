@@ -132,6 +132,7 @@ domain crossing_traffic_mdp {
 	state-action-constraints {
 	
 		// Robot at exactly one position
+		//writing the constraint like this makes the conversion to the ADD blow up
 		[sum_{?x : xpos, ?y : ypos} robot-at(?x,?y)] <= 1;
 		forall_{?x : xpos, ?y : ypos}[ ( MIN-YPOS(?y) | MAX-YPOS(?y) ) => ~obstacle-at(?x,?y) ];
 //		
