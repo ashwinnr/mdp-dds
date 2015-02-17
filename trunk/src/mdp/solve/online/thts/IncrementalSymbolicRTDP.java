@@ -98,7 +98,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 	//	}
 	//	private REMOVE_VAR_CONDITION _remove_mode;
 
-	private static final long NODE_LIMIT = (long) 1e4;//5e3;//10000	private Random _rand;
+	private static long NODE_LIMIT = (long) 1e4;//5e3;//10000	private Random _rand;
 	//	private int _max_ignore_vars;
 	//	private int succesful_generalization;
 
@@ -129,7 +129,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 			final LOCAL_INITIALIZATION local_init, 
 			final boolean truncate_trials, final boolean mark_visited, 
 			final boolean mark_solved, final REMEMBER_MODE remember_mode, 
-			final boolean reward_init ){
+			final boolean reward_init, final long prune_limit ){
 		super( domain, instance, epsilon, debug, order, useDiscounting, numStates,
 				numRounds, constrain_naively, do_apricodd, apricodd_epsilon,
 				apricodd_type, init_state_conf, init_state_prob, nTrials, timeOutMins,
@@ -138,7 +138,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 				onPolicyDepth, learningRule, maxRulesToLearn,
 				learningMode, true, false, global_init, local_init, truncate_trials, mark_visited, mark_solved, 
 				remember_mode, reward_init );
-		_rand = new Random( topLevel.nextLong() );
+		_rand = new Random( topLevel.nextLong() );		NODE_LIMIT = prune_limit;
 		DISPLAY_TRAJECTORY = false;
 	}
 
@@ -462,7 +462,7 @@ P extends GeneralizationParameters<T> > extends SymbolicRTDP<T,P> {
 					Boolean.valueOf( cmd.getOptionValue("mark_visited") ),
 					Boolean.valueOf( cmd.getOptionValue("mark_solved") ),
 					REMEMBER_MODE.valueOf( cmd.getOptionValue("remember_mode") ),
-					Boolean.valueOf( cmd.getOptionValue("init_reward") ) );
+					Boolean.valueOf( cmd.getOptionValue("init_reward") ),					Math.round( Double.valueOf( cmd.getOptionValue("prune_limit") ) ) );
 
 		}catch( Exception e ){
 			HelpFormatter help = new HelpFormatter();
