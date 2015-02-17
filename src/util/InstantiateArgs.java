@@ -95,6 +95,7 @@ public class InstantiateArgs {
 	ret.addOption("remember_mode", true, "remember across decisions " + 
 			Arrays.toString( REMEMBER_MODE.values() ) );
 	ret.addOption("init_reward", true, "whether to start with reward function" );
+	ret.addOption("prune_limit", true, "long to trigger pruning" );
 	
 	return ret;
     }   
