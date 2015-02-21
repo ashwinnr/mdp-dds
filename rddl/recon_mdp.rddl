@@ -45,7 +45,7 @@
 domain recon_mdp {
   	
 	requirements = { 
-		constrained-state,
+//		constrained-state,
 		reward-deterministic  
 	};
 
@@ -198,12 +198,11 @@ domain recon_mdp {
 			 ]; 
 
 //	//only 1 of each kind of tool -- actually might be more fun if there were multiple of each one 	
-	state-action-constraints {
-		forall_{?a:agent}[ (sum_{?x : x_pos, ?y : y_pos}[ agentAt(?a,?x,?y) ]) == 1 ];
+//	state-action-constraints {
 //		(sum_{?t: tool}[WATER_TOOL(?t)])  >= 1;
 //		(sum_{?t: tool}[CAMERA_TOOL(?t)]) >= 1;
 //		(sum_{?t: tool}[LIFE_TOOL(?t)])   >= 1;
-	};
+//	};
 }
 
 
