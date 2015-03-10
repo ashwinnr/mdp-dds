@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -110,11 +111,13 @@ public class SPUDDFAR implements Runnable{
 		List<Long> size_change = new ArrayList<Long>();
 		
 		while( !done && !_stop ) {
+			
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, true, CONSTRAIN_NAIVELY, size_change,
 						do_apricodd, apricodd_epsilon, apricodd_type );
+			
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -152,7 +155,7 @@ public class SPUDDFAR implements Runnable{
 			++iter;
 			_valueDD = newValueDD._o1.getValueFn();
 			_policy = newValueDD._o2;
-					
+				
 //			_manager.showGraph( _valueDD );//, _policy );
 		}
 		
@@ -173,6 +176,7 @@ public class SPUDDFAR implements Runnable{
 	}
 	
 	public void stop(){
+		System.out.println("stopping");
 		_stop = true;
 	}
 	
@@ -203,7 +207,7 @@ public class SPUDDFAR implements Runnable{
 		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
 		
 		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
-		
+	
 		try{
 			policy.executePolicy( nRounds, nStates, useDisc, 
 					worker.getHorizon(), worker.getDiscount(), null, 
@@ -215,9 +219,7 @@ public class SPUDDFAR implements Runnable{
 		}catch( Exception e ){
 			e.printStackTrace();
 		}
-		
 		t.interrupt();
-		
 	}
 	
 	private int getHorizon() {
@@ -231,9 +233,8 @@ public class SPUDDFAR implements Runnable{
 	private ADDRNode getInitialStateADD(
 			final INITIAL_STATE_CONF init_conf, 
 			final Double init_prob) {
-		if( init_conf == null ){
-			return null;
-		}
+		Objects.requireNonNull(init_conf);
+		
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
 		final ADDRNode ret_neg_inf = _dtr.convertToNegInfDD( ret )[ 0 ];
 

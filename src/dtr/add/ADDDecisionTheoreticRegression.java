@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
@@ -2065,6 +2066,9 @@ RDDLFactoredActionSpace> {
 
 	public ADDRNode getIIDInitialStates(INITIAL_STATE_CONF init_state_conf,
 			double init_state_prob ) {
+		
+		Objects.requireNonNull( init_state_conf, "init state conf is null");
+		
 		Set<String> state_vars_set = _mdp.get_stateVars();
 		final String[] state_vars = state_vars_set.toArray(new String[ state_vars_set.size() ]);
 		ADDRNode ret = null;
@@ -2080,7 +2084,9 @@ RDDLFactoredActionSpace> {
 //			ret = _mdp.getIIDUniformDistribution( state_vars );
 //			break;
 		case RDDL : 
-			ret = _manager.getProductBDDFromAssignment( _mdp.getInitialState() );
+			final NavigableMap<String, Boolean> initialStateSet = _mdp.getInitialState();
+			System.out.println( initialStateSet );
+			ret = _manager.getProductBDDFromAssignment( initialStateSet );
 			break;
 		}
 //		final ADDRNode constr = _manager.productDD(this.__state_constraints);
