@@ -4,7 +4,7 @@ non-fluents nf_sysadmin_star_10_3 {
 		computer : {c1,c2,c3,c4,c5,c6,c7,c8,c9,c10};
 	};
 	non-fluents {
-		REBOOT-PROB = 0.05;
+		REBOOT-PROB = 0.0;
 CONNECTED(c1 ,c2);
 CONNECTED(c1 ,c3);
 CONNECTED(c1 ,c4);
@@ -35,5 +35,5 @@ instance sysadmin_star_10_3 {
 
 	max-nondef-actions = 3;
 	horizon  = 40;
-	discount = 1.0;
+	discount = 0.9;
 }
