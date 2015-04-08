@@ -4,7 +4,7 @@ non-fluents nf_sysadmin_uniring_15_1 {
 		computer : {c101,c102,c103,c104,c105,c106,c107,c108,c109,c110,c111,c112,c113,c114,c115};
 	};
 	non-fluents {
-		REBOOT-PROB = 0.05;
+		REBOOT-PROB = 0.0;
 		CONNECTED(c101,c102);
 		CONNECTED(c102,c103);
 		CONNECTED(c103,c104);
