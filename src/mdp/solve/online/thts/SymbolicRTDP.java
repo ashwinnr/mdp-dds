@@ -144,6 +144,12 @@ public class SymbolicRTDP< T extends GeneralizationType,
 			if( lookup != null ){
 				System.out.println("Reacting");
 				return lookup;
+			}else{
+				//TODO : 
+				//need to compress rules
+				//plan again
+				//add a rule
+				//compression should guarantee reduction in number
 			}
 		}
 		
@@ -260,6 +266,10 @@ public class SymbolicRTDP< T extends GeneralizationType,
 
 	private FactoredAction<RDDLFactoredStateSpace, RDDLFactoredActionSpace> lookupRule(
 			final FactoredState<RDDLFactoredStateSpace> state) {
+		
+		//TODO : What if the rules are not disjoint 
+		//e.g. ordered like a dlist
+		
 		if( _learnedPolicy == null ){
 			return null;
 		}
