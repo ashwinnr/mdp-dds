@@ -148,7 +148,7 @@ public class SPUDDFAR implements Runnable{
 				done = true;
 			}
 
-			if( _dtr.terminate( error, iter, EPSILON, Integer.MAX_VALUE ) ){//|| iter == HORIZON-1 ){
+			if( _dtr.terminate( error, iter, EPSILON, HORIZON ) ){
 				lastiter = true;
 			}
 			
