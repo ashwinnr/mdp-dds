@@ -108,7 +108,7 @@ public class GenerateBiRing {
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		new GenerateBiRing(7, 15, 1, 0.9, 40, 0.0, "sysadmin_biring_", 
+		new GenerateBiRing(7, 15, 1, 1.0d, 40, 0.0, "sysadmin_biring_", 
 				"./rddl/", 7 );
 	}
 	

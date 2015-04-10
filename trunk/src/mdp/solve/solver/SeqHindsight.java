@@ -6,12 +6,12 @@ import java.util.Random;
 import rddl.mdp.RDDL2ADD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
-
 import util.Timer;
 import util.UnorderedPair;
 import add.ADDManager;
 import add.ADDRNode;
 import dd.DDManager.APPROX_TYPE;
+import dd.DDManager.DDOper;
 import dtr.add.ADDDecisionTheoreticRegression;
 import dtr.add.ADDPolicy;
 import dtr.add.ADDValueFunction;
@@ -116,7 +116,7 @@ public class SeqHindsight implements Runnable {
 				_policy = newValueDD._o2;
 				break;
 			}
-			if( _dtr.terminate(error, iter, EPSILON, HORIZON) && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
+			if( _dtr.terminate( error, iter, EPSILON, HORIZON  ) && !lastiter ){//)*(1-DISCOUNT)/(2*DISCOUNT) ){
 				lastiter = true;
 			}
 		}
@@ -141,6 +141,11 @@ public class SeqHindsight implements Runnable {
 			return null;
 		}
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
+		
+		final ADDRNode ret_neg_inf = _dtr.convertToNegInfDD( ret )[ 0 ];
+		final ADDRNode value_init_state = _manager.apply( _valueDD, ret_neg_inf, DDOper.ARITH_PLUS );
+		System.out.println("value of state : " + _manager.enumeratePathsADD(value_init_state) );
+		
 		return ret;
 	}
 

@@ -36,5 +36,5 @@ instance sysadmin_uniring_10_7 {
 
 	max-nondef-actions = 7;
 	horizon  = 40;
-	discount = 0.9;
+	discount = 1.0;
 }

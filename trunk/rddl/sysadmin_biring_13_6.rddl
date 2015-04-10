@@ -55,5 +55,5 @@ instance sysadmin_biring_13_6 {
 
 	max-nondef-actions = 6;
 	horizon  = 40;
-	discount = 0.9;
+	discount = 1.0;
 }
