@@ -181,6 +181,9 @@ public class MBMPI_Naive implements Runnable {
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
+		
+		System.out.println( args );
+		
 		MBMPI_Naive worker = new MBMPI_Naive(args[0], args[1], Double.parseDouble(args[2]), 
 				 DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
 				Boolean.parseBoolean(args[4]), Integer.parseInt(args[5]), 
