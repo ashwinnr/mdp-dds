@@ -1,33 +1,25 @@
-/**
- * 
- */
 package mdp.solve.solver;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.NavigableMap;
+import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import javax.print.attribute.standard.Sides;
-
-import com.sun.corba.se.spi.ior.MakeImmutable;
-
-import dd.DDManager.APPROX_TYPE;
-import dtr.add.ADDDecisionTheoreticRegression;
-import dtr.add.ADDPolicy;
-import dtr.add.ADDValueFunction;
-
-import add.ADDManager;
-import add.ADDRNode;
 import rddl.mdp.RDDL2ADD;
-import rddl.mdp.RDDL2DD;
 import rddl.mdp.RDDL2DD.DEBUG_LEVEL;
 import rddl.mdp.RDDL2DD.ORDER;
 import util.Timer;
 import util.UnorderedPair;
+import add.ADDManager;
+import add.ADDRNode;
+import dd.DDManager.APPROX_TYPE;
+import dd.DDManager.DDOper;
+import dtr.add.ADDDecisionTheoreticRegression;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_STATE_CONF;
+import dtr.add.ADDDecisionTheoreticRegression.INITIAL_VALUE;
+import dtr.add.ADDPolicy;
+import dtr.add.ADDValueFunction;
 
 public class MBFAR implements Runnable{
 
@@ -47,6 +39,12 @@ public class MBFAR implements Runnable{
 	private int _nRounds;
 	private boolean _useDiscounting;
 	private long BIGDD;
+	private ADDRNode _valueDD;
+	private ADDPolicy _policy;
+	private RDDL2ADD _mdp;
+	
+	private boolean _stop = false;
+	
 	/**
 	 * @param debug 
 	 * @param order 
@@ -66,24 +64,28 @@ public class MBFAR implements Runnable{
 			final long bigdd, 
 			final boolean do_apricodd, 
 			final double apricodd_epsilon, 
-			final APPROX_TYPE apricodd_type ) {
+			final APPROX_TYPE apricodd_type  ,
+			final INITIAL_VALUE init_value ) {
 		_bq = bq;
 		BIGDD = bigdd;
 		EPSILON = epsilon;
 		_cptTimer = new Timer();
-		RDDL2ADD mdp = new RDDL2ADD(domain, instance, true, debug, order, true, seed);
+		_mdp = new RDDL2ADD(domain, instance, true, debug, order, true, seed);
 		_cptTimer.StopTimer();
 		_nStates = numStates;
 		_nRounds = numRounds;
 		_useDiscounting = useDiscounting;
-		_dtr = new ADDDecisionTheoreticRegression(mdp, seed);
-		_manager = mdp.getManager();
-		DISCOUNT = mdp.getDiscount();
-		HORIZON = mdp.getHorizon();
+		_dtr = new ADDDecisionTheoreticRegression( _mdp, seed);
+		_manager = _mdp.getManager();
+		DISCOUNT = _mdp.getDiscount();
+		HORIZON = _mdp.getHorizon();
 		CONSTRAIN_NAIVELY = constrain_naively;
 		DO_APRICODD = do_apricodd;
 		APRICODD_EPSILON = apricodd_epsilon;
 		APRICODD_TYPE = apricodd_type;
+		
+		_valueDD = ( init_value.equals( INITIAL_VALUE.ZERO ) ?
+				_manager.DD_ZERO : _mdp.getVMax(-1,-1) );
 	}
 
 	/* (non-Javadoc)
@@ -92,8 +94,8 @@ public class MBFAR implements Runnable{
 //	@Override
 	public void run() {
 		
-		ADDRNode _valueDD = _manager.DD_ZERO;
-		ADDPolicy _policy = null;
+		_valueDD = _manager.DD_ZERO;
+		_policy = null;
 		
 		int iter = 1;
 		boolean done = false;
@@ -103,7 +105,7 @@ public class MBFAR implements Runnable{
 		double prev_error = Double.NEGATIVE_INFINITY;
 		List<Long> size_change = new ArrayList<Long>();
 		
-		while( !done ) {
+		while( !done && !_stop ) {
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
@@ -125,15 +127,15 @@ public class MBFAR implements Runnable{
 			size_change.clear();
 //			_manager.cacheSummary();
 			
-			if( prev_error != Double.NEGATIVE_INFINITY
-					&& error > prev_error ){
-				try{
-					throw new Exception("BE increased here");
-				}catch( Exception e ){
-					e.printStackTrace();
-					System.exit(1);
-				}
-			}
+//			if( prev_error != Double.NEGATIVE_INFINITY
+//					&& error > prev_error ){
+//				try{
+//					throw new Exception("BE increased here");
+//				}catch( Exception e ){
+//					e.printStackTrace();
+//					System.exit(1);
+//				}
+//			}
 			
 			prev_error = error;
 
@@ -142,7 +144,7 @@ public class MBFAR implements Runnable{
 				done = true;
 			}
 
-			if( error < EPSILON ){//|| iter == HORIZON-1 ){
+			if( _dtr.terminate( error, iter, EPSILON, HORIZON ) ){
 				lastiter = true;
 			}
 			
@@ -158,7 +160,6 @@ public class MBFAR implements Runnable{
 //		} catch (IOException e) {
 //			e.printStackTrace();
 //		}
-		_policy.executePolicy(_nRounds, _nStates, _useDiscounting, HORIZON, DISCOUNT ).printStats();
 		
 		System.out.println("Solution time: " + _solutionTimer.GetElapsedTimeInMinutes() );
 		System.out.println("CPT time: " + _cptTimer.GetTimeSoFarAndResetInMinutes() );
@@ -169,17 +170,91 @@ public class MBFAR implements Runnable{
 		
 	}
 	
-	public static void main(String[] args) throws InterruptedException {
-		Runnable worker = new MBFAR(args[0], args[1], Double.parseDouble(args[2]), null, 
-				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, Long.parseLong(args[3]), 
-				Boolean.parseBoolean( args[4] ), Integer.parseInt(args[5]), 
-				Integer.parseInt(args[6]) , Boolean.parseBoolean(args[7]),
-				Long.parseLong( args[8] ),
-				Boolean.parseBoolean(args[9]) ,
-				Double.parseDouble(args[10]) ,
-				APPROX_TYPE.valueOf(args[11]) );
-		Thread t = new Thread( worker );
-		t.start();
-		t.join();
+	public void stop(){
+		System.out.println("stopping");
+		_stop = true;
 	}
+	
+	public static void main(String[] args) throws InterruptedException {
+		
+		final int nStates = Integer.parseInt(args[5]);
+		final int nRounds = Integer.parseInt(args[6]);
+		final boolean useDisc = Boolean.parseBoolean( args[4] );
+		
+		final long seed = Long.parseLong(args[3]);
+		final Random topLevel = new Random( seed );
+		
+		final MBFAR worker = new MBFAR(args[0], args[1], Double.parseDouble(args[2]), null, 
+				DEBUG_LEVEL.PROBLEM_INFO, ORDER.GUESS, topLevel.nextLong(), 
+				useDisc , nStates , 
+				nRounds, Boolean.parseBoolean(args[7]), Long.parseLong( args[8] ), 
+				Boolean.parseBoolean( args[9] ),
+				Double.parseDouble( args[10] ),  APPROX_TYPE.valueOf( args[11] ) ,
+				INITIAL_VALUE.valueOf( args[12] )  );
+		Thread t = new Thread( worker );
+		System.out.println("Timeout = " + args[13] ); 
+		t.start();
+		t.join( (long) ( Double.parseDouble( args[13] ) * 60 * 1000 ) );
+		worker.stop();
+		
+		final ADDPolicy policy = worker.getPolicy();
+		
+		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
+		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
+		
+		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
+	
+		try{
+			policy.executePolicy( nRounds, nStates, useDisc, 
+					worker.getHorizon(), worker.getDiscount(), null, 
+					init_state, 
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() ) ,
+					new Random( topLevel.nextLong() )
+					).printStats();
+		}catch( Exception e ){
+			e.printStackTrace();
+		}
+		t.interrupt();
+		
+	}
+	
+	private ADDRNode getInitialStateADD(
+			final INITIAL_STATE_CONF init_conf, 
+			final Double init_prob) {
+		Objects.requireNonNull(init_conf);
+		
+		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
+		final ADDRNode ret_neg_inf = _dtr.convertToNegInfDD( ret )[ 0 ];
+
+		final ADDRNode value_init_state = _manager.apply( _valueDD, ret_neg_inf, DDOper.ARITH_PLUS );
+		System.out.println("value of state : " + _manager.enumeratePathsADD(value_init_state) );
+		return ret;
+	}
+
+	public ADDRNode getValueDD() {
+		return _valueDD;
+	}
+	
+	public ADDManager getManager() {
+		return _manager;
+	}
+	
+	public ADDPolicy getPolicy() {
+		return _policy;
+	}
+	
+	public ADDDecisionTheoreticRegression getDTR() {
+		return _dtr;
+	}
+	
+	
+	private int getHorizon() {
+		return HORIZON;
+	}
+	
+	private double getDiscount(){
+		return DISCOUNT;
+	}
+	
 }
