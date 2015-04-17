@@ -4,8 +4,6 @@ import java.util.Arrays;
 
 import mdp.generalize.trajectory.GenericTransitionGeneralization.Consistency;
 import mdp.generalize.trajectory.parameters.GeneralizationParameters.GENERALIZE_PATH;
-import mdp.generalize.trajectory.parameters.OptimalActionParameters.UTYPE;
-import mdp.generalize.trajectory.parameters.GenericTransitionParameters;
 import mdp.solve.online.thts.SymbolicTHTS.GLOBAL_INITIALIZATION;
 import mdp.solve.online.thts.SymbolicTHTS.LOCAL_INITIALIZATION;
 import mdp.solve.online.thts.SymbolicTHTS.REMEMBER_MODE;
