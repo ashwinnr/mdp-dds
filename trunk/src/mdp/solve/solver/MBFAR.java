@@ -1,6 +1,7 @@
 package mdp.solve.solver;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -176,6 +177,8 @@ public class MBFAR implements Runnable{
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
+		
+		System.out.println( Arrays.toString(args) );
 		
 		final int nStates = Integer.parseInt(args[5]);
 		final int nRounds = Integer.parseInt(args[6]);
