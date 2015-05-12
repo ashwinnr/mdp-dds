@@ -729,6 +729,9 @@ RDDLFactoredActionSpace> {
 
 			//not noting down the size of V
 			v_func = _manager.apply( v_func, this_q, DDOper.ARITH_MAX );
+			if( do_apricodd ){
+				v_func = _manager.doApricodd(v_func, do_apricodd, apricodd_epsilon, apricodd_type);
+			}
 
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("showing diagrams: " + action );

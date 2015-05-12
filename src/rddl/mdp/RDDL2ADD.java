@@ -1431,9 +1431,9 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 	}
 
 	public static void main(String[] args) {
-//		new RDDL2ADD( args[0], args[1], false, 
-//				DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, true , 42);
-		testMakeTransition();
+		new RDDL2ADD( args[0], args[1], Boolean.parseBoolean(args[2]) , 
+				DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, Boolean.parseBoolean(args[3]) , 42);
+//		testMakeTransition();
 	}
 
 	public ADDManager getManager() {
@@ -1492,8 +1492,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 //				true, DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, 
 //				true, 42 ).makeTransitionRelation( true );
 		new RDDL2ADD("./rddl/sysadmin_mdp.rddl", "./rddl/sysadmin_star_7_3.rddl",
-				false , DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, 
-				true, 42 ).makeTransitionRelation( false );
+				true , DEBUG_LEVEL.SOLUTION_INFO, ORDER.GUESS, 
+				true, 42 ).makeTransitionRelation( true );
 	}
 	
 	@Override
