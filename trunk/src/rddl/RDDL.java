@@ -906,7 +906,17 @@ public class RDDL {
 		
 		// Recurses until distribution then samples parameters (assuming deterministic)
 		public abstract EXPR getDist(HashMap<LVAR,LCONST> subs, State s) throws EvalException;
-	}
+		
+		//a method to simply substitute a (partial)-grounding and simplify as much as possible
+		//e.g. ?x = c1, ?y = c2, ?z is unknown 
+		//implement bottom up 
+			//at leaf
+				//substitute ?v=c for all ?v
+			//at each level 
+				//create new EXPR of same type , but with simplified children
+					//change all constructors of E extends EXPR to account for simplification
+					
+	}	
 	
 	////////////////////////////////////////////////////////// 
 	
