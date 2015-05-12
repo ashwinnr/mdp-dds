@@ -1982,7 +1982,10 @@ RDDLFactoredActionSpace> {
 					}
 				}
 
-				ret = _manager.doApricodd(ret, do_apricodd, apricodd_epsilon, apricodd_type);
+				//NOTE : the number of times the approximation is applied is important 
+				//applying apricodd only once in regressSPUDD()
+				//after maximizing over actions
+//				ret = _manager.doApricodd(ret, do_apricodd, apricodd_epsilon, apricodd_type);
 
 				return ret;
 	}
