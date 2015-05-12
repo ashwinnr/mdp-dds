@@ -14,7 +14,7 @@ public class GenerateUniRing {
 		protected float reboot_prob;
 		protected int horizon;
 		protected float discount;
-		private final int MAX_COMPS = 15;
+		private final int MAX_COMPS = 25;
 		private int end_degree;
 
 		public static void main(String [] args) throws Exception {

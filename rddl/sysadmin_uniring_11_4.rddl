@@ -38,5 +38,5 @@ instance sysadmin_uniring_11_4 {
 
 	max-nondef-actions = 4;
 	horizon  = 40;
-	discount = 1.0;
+	discount = 0.9;
 }
