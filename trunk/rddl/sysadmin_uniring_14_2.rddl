@@ -44,5 +44,5 @@ instance sysadmin_uniring_14_2 {
 
 	max-nondef-actions = 2;
 	horizon  = 40;
-	discount = 1.0;
+	discount = 0.9;
 }
