@@ -1882,8 +1882,7 @@ RDDLFactoredActionSpace> {
 
 		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
 		//		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
-		ADDRNode summed_constrained = 
-				constrain_naively ? summed : applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
+		ADDRNode summed_constrained = applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
 						constrain_naively, size_change);
 		//		_manager.flushCaches(   );
 
