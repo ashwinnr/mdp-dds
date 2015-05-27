@@ -1876,11 +1876,11 @@ RDDLFactoredActionSpace> {
 		ADDRNode ret = input;
 		final ADDRNode mult = _manager.apply(ret, this_cpt, DDOper.ARITH_PROD);
 		//		final ADDRNode mult_approx = _manager.doApricodd( mult, do_apricodd, apricodd_epsilon, apricodd_type );
-		//		ADDRNode mult_constrained = applyMDPConstraints(mult, action, _manager.DD_ZERO,
-		//				constrain_naively, size_change );
+		ADDRNode mult_constrained = applyMDPConstraints(mult, action, _manager.DD_ZERO,
+				constrain_naively, size_change );
 		//		_manager.flushCaches(   );
 
-		final ADDRNode summed = _manager.marginalize(mult, str, DDMarginalize.MARGINALIZE_SUM);
+		final ADDRNode summed = _manager.marginalize(mult_constrained, str, DDMarginalize.MARGINALIZE_SUM);
 		//		final ADDRNode summed_approx = _manager.doApricodd( summed, do_apricodd , apricodd_epsilon, apricodd_type );
 		ADDRNode summed_constrained = applyMDPConstraints(summed, action, _manager.DD_NEG_INF,
 						constrain_naively, size_change);
