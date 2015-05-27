@@ -2029,8 +2029,7 @@ RDDLFactoredActionSpace> {
 			//					do_apricodd,
 			//					apricodd_epsilon, apricodd_type );
 			final ADDRNode added_rew_constrained 
-			= constrain_naively ? added_rew : 
-				applyMDPConstraints(added_rew, action, _manager.DD_NEG_INF,
+			= applyMDPConstraints(added_rew, action, _manager.DD_NEG_INF,
 						constrain_naively, size_change );
 			if( _dbg.compareTo(DEBUG_LEVEL.DIAGRAMS) >= 0 ){
 				System.out.println("Showing diagrams after one addition" );
