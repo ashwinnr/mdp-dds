@@ -1254,8 +1254,6 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 			System.out.println("Ordering : " + order);	
 		}
 
-		
-
 		return order;
 	}
 

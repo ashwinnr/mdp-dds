@@ -173,10 +173,11 @@ public class SPUDDFAR implements Runnable{
 //					_manager.countPathsADD( _policy._addPolicy ) ) );
 //		System.out.println( "No. of leaves = " + Arrays.toString( _manager.countLeaves(_valueDD) ) );
 //		_manager.showGraph( _valueDD );//,_FAR ? _policy._bddPolicy : _policy._addPolicy );
+		System.out.println("SPUDDFAR done");
 	}
 	
 	public void stop(){
-		System.out.println("stopping");
+		System.out.println("stopping stop()");
 		_stop = true;
 	}
 	

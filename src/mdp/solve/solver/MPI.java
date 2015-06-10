@@ -46,7 +46,11 @@ public class MPI implements Runnable {
 	private ADDPolicy _policy = null;
 	
 	public void stop(){
+		System.out.println("Stopping stop()!");
 		_stop = true;
+//		synchronized( this ){
+//			this.notifyAll();
+//		}
 	}
 	
 	public MPI(String domain, String instance, double epsilon,
@@ -131,15 +135,20 @@ public class MPI implements Runnable {
 			if( makePolicy ){
 				_policyDD = _FAR ? newValueDD._o2._bddPolicy : 
 					newValueDD._o2._addPolicy;
-				_policy  = newValueDD._o2;				
+//				break ties in policy
+				_policyDD = _manager.breakTiesInBDD(_policyDD, _mdp.getFactoredActionSpace().getActionVariables(),
+						false );
+				_policy  = new ADDPolicy(_manager, _mdp.getFactoredStateSpace(), 
+						_mdp.getFactoredTransition(), _mdp.getFactoredReward(), 
+						_mdp.getFactoredActionSpace() );
+				_policy._bddPolicy = _FAR ? _policyDD : null;
+				_policy._addPolicy = null;
 			}
 			
 			if( makePolicy && !_stop ){
 				_solutionTimer.ResumeTimer();
 				_evalTimer.ResumeTimer();
-				//	break ties in policy
-				_policyDD = _manager.breakTiesInBDD(_policyDD, _mdp.getFactoredActionSpace().getActionVariables(),
-						false );
+				
 				//policy eval
 				UnorderedPair<ADDRNode, Integer> evaluation 
 					= _dtr.evaluatePolicy(_valueDD, _policyDD, _evalSteps, 
@@ -174,6 +183,7 @@ public class MPI implements Runnable {
 		System.out.println("Eval backups = " + eval_backups );
 		System.out.println("Bellman backups = " + iter );
 //		_manager.showGraph( _valueDD,_FAR ? _policy._bddPolicy : _policy._addPolicy );
+		stop();
 	}
 	
 	public static void main(String[] args) throws InterruptedException {
@@ -195,7 +205,13 @@ public class MPI implements Runnable {
 		t.join( (long) (Double.parseDouble( args[13] ) * 60 * 1000) );
 		
 		worker.stop();
-		System.out.println("Stopping!" );
+		
+//		synchronized( worker ){
+//			System.out.println("Waiting!" );
+//			worker.wait();
+//		}
+		
+		Thread.sleep(10000);
 		
 		final ADDPolicy policy = worker.getPolicy();
 		
