@@ -886,8 +886,8 @@ public class RDDL2ADD extends RDDL2DD<ADDNode, ADDRNode, ADDINode, ADDLeaf> {
 
 	private PVAR_NAME getPVar(final String name) {
 
-		String ret = name.toLowerCase();
-		ret = ret.replace('_', '-');
+//		String ret = name.toLowerCase();
+		final String ret = name.replace('_', '-');
 		//		System.out.println(name);
 
 		for( PVAR_NAME state : _state._alActionNames){
