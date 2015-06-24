@@ -222,7 +222,7 @@ public class MPI implements Runnable {
 		
 		try{
 			policy.executePolicy( nRounds, nStates, Boolean.parseBoolean(args[8] ), 
-					worker.getHorizon(), worker.getDiscount(), null ,
+					worker.getHorizon(), worker.getDiscount(), null , init_state, 
 					new Random( topLevel.nextLong() ) ,
 					new Random( topLevel.nextLong() ) ,
 					new Random( topLevel.nextLong() ) ).printStats();

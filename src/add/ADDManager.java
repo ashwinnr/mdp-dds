@@ -2062,8 +2062,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 		final Double leaf1 = node1.getLeafValues();
 		final Double leaf2 = node2.getLeafValues();
 		double result = Double.NaN;//, result_2 = Double.NaN;
-		ADDRNode ret = null;
-
+		ADDRNode ret = null;				if( Double.isInfinite(leaf1.doubleValue()) || Double.isInfinite(leaf2.doubleValue() ) ){			if( leaf1.doubleValue() == 0d || leaf2.doubleValue() == 0d ){				return DD_ZERO; // inf times zero = zero			}else{				return DD_NEG_INF;			}		}
 		switch( op ){
 
 		case ARITH_PLUS : 
@@ -2134,7 +2133,7 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 			System.exit(1);
 		}
 
-		if( result == Double.NaN ){//|| result_2 == Double.NaN ){
+		if( Double.isNaN( result ) ){//|| result_2 == Double.NaN ){
 			try{
 				throw new Exception("NaN's prduced");
 			}catch( Exception e ){

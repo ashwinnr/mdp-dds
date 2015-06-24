@@ -37,7 +37,7 @@ instance crossing_traffic_3_3 {
 		obstacle-at(x3,y2);
 	};
 	max-nondef-actions = 1;
-	horizon = 7;
+	horizon = 40;
 	discount = 1.0;
 }
 
