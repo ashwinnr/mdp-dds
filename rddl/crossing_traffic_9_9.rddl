@@ -54,7 +54,7 @@ instance crossing_traffic_9_9 {
 	domain = crossing_traffic_mdp;
 	non-fluents = nf_crossing_traffic_9_9;
 	init-state {
-		robot-at-x(x1);
+		robot-at-x(x9);
 		robot-at-y(y1);
 		obstacle-at(x1,y2);
 		obstacle-at(x1,y3);
