@@ -43,7 +43,7 @@ instance crossing_traffic_6_6 {
 	non-fluents = nf_crossing_traffic_6_6;
 	init-state {
 		robot-at-x(x6);
-		robot-at-y(y2);
+		robot-at-y(y1);
 		obstacle-at(x1,y5);
 		obstacle-at(x1,y6);
 		obstacle-at(x2,y4);
