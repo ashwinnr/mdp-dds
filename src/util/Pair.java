@@ -87,10 +87,8 @@ public class  Pair<K1 extends Comparable<K1> , K2 extends Comparable<K2> >
 	public int hashCode() {
 //		return com.google.common.base.Objects.hashCode( _o1, _o2 );
 //		return Objects.hash( _o1.hashCode(), _o2.hashCode() );
-		int h1 = _o1.hashCode();
-		int h2 = _o2.hashCode();
 //		System.out.println( h1 + " " + h2  + " " + result );
-		return com.google.common.base.Objects.hashCode( h1+h2, h1 );
+		return Objects.hash( _o1, _o2 );
 		
 		//hcb.append( h1+h2 ).
 //				//append( h2 ).hashCode();//.append( h1*h1 ).append( h1*h2 ).hashCode();

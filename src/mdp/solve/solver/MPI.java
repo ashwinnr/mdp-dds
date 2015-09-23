@@ -209,13 +209,8 @@ public class MPI implements Runnable {
 		t.join( (long) (Double.parseDouble( args[13] ) * 60 * 1000) );
 		
 		worker.stop();
-		
-//		synchronized( worker ){
-//			System.out.println("Waiting!" );
-//			worker.wait();
-//		}
-		
-		Thread.sleep(10000);
+		System.out.println("waiting for thread to terminate");
+		t.join();
 		
 		final ADDPolicy policy = worker.getPolicy();
 		

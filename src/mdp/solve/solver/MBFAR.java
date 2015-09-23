@@ -200,6 +200,8 @@ public class MBFAR implements Runnable{
 		t.start();
 		t.join( (long) ( Double.parseDouble( args[13] ) * 60 * 1000 ) );
 		worker.stop();
+		System.out.println("waiting for thread to terminate");
+		t.join();
 		
 		final ADDPolicy policy = worker.getPolicy();
 		

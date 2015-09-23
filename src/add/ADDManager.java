@@ -70,12 +70,12 @@ public class ADDManager implements DDManager<ADDNode, ADDRNode, ADDINode, ADDLea
 //	Cache< ADDRNode, ADDRNode > _tempUnaryCache 
 //	= CacheBuilder.from( temp_unary_cache_spec ).build();
 	
-	private static final CacheBuilderSpec  made_leaf_cache_spec = 
-		CacheBuilderSpec
-			.parse("concurrencyLevel=1,softValues" );
-	private static final CacheBuilderSpec  made_inode_cache_spec = 
-			CacheBuilderSpec
-				.parse("concurrencyLevel=1,softValues");
+//	private static final CacheBuilderSpec  made_leaf_cache_spec = //
+//		CacheBuilderSpec//
+//			.parse("concurrencyLevel=1,softValues" );//
+//	private static final CacheBuilderSpec  made_inode_cache_spec = //
+//			CacheBuilderSpec//
+//				.parse("concurrencyLevel=1,softValues");
 //	private static final CacheBuilderSpec  apply_cache_spec = 
 //			CacheBuilderSpec
 //				.parse("concurrencyLevel=1, maximumSize = " +

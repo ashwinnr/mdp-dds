@@ -206,12 +206,15 @@ public class SPUDDFAR implements Runnable{
 		t.start();
 		t.join( (long) ( Double.parseDouble( args[13] ) * 60 * 1000 ) );
 		worker.stop();
+		System.out.println("waiting for thread to terminate");
+		t.join();
 		
 		final ADDPolicy policy = worker.getPolicy();
 		assert( policy != null );
 		
 		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
 		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
+		System.out.println(" Initial state " + thing1 +  " " + thing2 );
 		
 		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
 		assert( init_state != null );
@@ -241,7 +244,7 @@ public class SPUDDFAR implements Runnable{
 	private ADDRNode getInitialStateADD(
 			final INITIAL_STATE_CONF init_conf, 
 			final Double init_prob) {
-		Objects.requireNonNull(init_conf);
+		assert(init_conf != null);
 		
 		final ADDRNode ret = _dtr.getIIDInitialStates(init_conf, init_prob);
 		final ADDRNode ret_neg_inf = _dtr.convertToNegInfDD( ret )[ 0 ];
