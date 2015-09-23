@@ -117,6 +117,9 @@ public class SPUDDFAR implements Runnable{
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
 				= _dtr.regress(_valueDD, _FAR, false, true, CONSTRAIN_NAIVELY, size_change,
 						do_apricodd, apricodd_epsilon, apricodd_type );
+			if( _stop ){
+				break;
+			}
 			
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
@@ -155,6 +158,8 @@ public class SPUDDFAR implements Runnable{
 			++iter;
 			_valueDD = newValueDD._o1.getValueFn();
 			_policy = newValueDD._o2;
+			
+			assert( _valueDD != null ); assert( _policy != null );
 				
 //			_manager.showGraph( _valueDD );//, _policy );
 		}
@@ -203,12 +208,14 @@ public class SPUDDFAR implements Runnable{
 		worker.stop();
 		
 		final ADDPolicy policy = worker.getPolicy();
+		assert( policy != null );
 		
 		INITIAL_STATE_CONF thing1 = ( args.length == 14 ) ? null : INITIAL_STATE_CONF.valueOf( args[14] );
 		Double thing2 = ( args.length == 14 ) ? null : Double.parseDouble( args[15] );
 		
 		final ADDRNode init_state = worker.getInitialStateADD( thing1 , thing2 );
-	
+		assert( init_state != null );
+		
 		try{
 			policy.executePolicy( nRounds, nStates, useDisc, 
 					worker.getHorizon(), worker.getDiscount(), null, 

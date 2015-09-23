@@ -107,6 +107,10 @@ public class MPI implements Runnable {
 				= _dtr.regress(_valueDD, _FAR, false, 
 						makePolicy  , CONSTRAIN_NAIVELY, size_change,
 						DO_APRICODD, APRICODD_EPSILON, APRICODD_APRROX ); 
+			if( _stop ){
+				break;
+			}
+			
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();

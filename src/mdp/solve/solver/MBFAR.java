@@ -110,12 +110,12 @@ public class MBFAR implements Runnable{
 			_solutionTimer.ResumeTimer();
 			//			_manager.addPermenant(_valueDD);
 			UnorderedPair<ADDValueFunction, ADDPolicy> newValueDD 
-				= _dtr.regressMBFAR(_valueDD,
-						lastiter, CONSTRAIN_NAIVELY, BIGDD,
-						size_change ,
-						DO_APRICODD,
-						APRICODD_EPSILON,
-						APRICODD_TYPE ); 
+				= _dtr.regressMBFAR(_valueDD, true, CONSTRAIN_NAIVELY, BIGDD,
+						size_change , DO_APRICODD, APRICODD_EPSILON, APRICODD_TYPE ); 
+			if( _stop ){
+				break;
+			}
+			
 			double error =  _dtr.getBellmanError(newValueDD._o1.getValueFn(), 
 					_valueDD );
 			_solutionTimer.PauseTimer();
@@ -151,6 +151,7 @@ public class MBFAR implements Runnable{
 			
 			++iter;
 //			_manager.removePermenant(_valueDD);
+			_policy = newValueDD._o2;
 			_valueDD = newValueDD._o1.getValueFn();
 //			_manager.showGraph( _valueDD );
 		}
